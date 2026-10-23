@@ -1,0 +1,285 @@
+/* ============================================================
+   长征：拾光 —— 开始页面
+   舞台固定 1280×720，由 JS 写入 --s 做等比缩放
+   ============================================================ */
+
+:root {
+  --gold: #e3b23c;
+  --gold-lite: #ffd97a;
+  --red-deep: #2a0806;
+  --ink: #100404;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  /* 关闭移动端点击高亮和长按菜单，更像游戏而不是网页 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ---------- 舞台 ---------- */
+#stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 720px;
+  transform: translate(-50%, -50%) scale(var(--s, 1));
+  transform-origin: center center;
+  background: url("../assets/brand/bg-march.webp") center / cover no-repeat;
+  overflow: hidden;
+}
+
+/* 压暗四周，把视线收到中间的标题和按钮上。
+   不用纯黑，用偏红褐的暗色，跟画面调子一致。 */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 52% at 50% 40%,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(20, 4, 3, 0.34) 58%,
+      rgba(20, 4, 3, 0.82) 100%),
+    linear-gradient(to bottom,
+      rgba(18, 3, 3, 0.62) 0%,
+      rgba(18, 3, 3, 0.12) 20%,
+      rgba(18, 3, 3, 0.00) 43%,
+      rgba(12, 2, 2, 0.46) 66%,
+      rgba(12, 2, 2, 0.80) 100%);
+}
+
+/* 极细的颗粒，避免大面积红色出现色带 */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.9) 0.5px, transparent 0.5px),
+    radial-gradient(rgba(0, 0, 0, 0.9) 0.5px, transparent 0.5px);
+  background-size: 3px 3px, 4px 4px;
+  background-position: 0 0, 2px 2px;
+}
+
+/* ---------- 标题 ---------- */
+.title {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 456px;
+  margin: 0;
+  transform: translateX(-50%);
+  animation: titleIn 900ms cubic-bezier(0.22, 0.7, 0.24, 1) both;
+}
+
+.title img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 7px 18px rgba(0, 0, 0, 0.88))
+          drop-shadow(0 0 38px rgba(0, 0, 0, 0.5));
+}
+
+@keyframes titleIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.93);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* ---------- 菜单 ---------- */
+.menu {
+  position: absolute;
+  left: 50%;
+  bottom: 52px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn {
+  width: 340px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: block;
+  transition: transform 180ms cubic-bezier(0.22, 0.7, 0.24, 1),
+              filter 180ms ease;
+  filter: drop-shadow(0 7px 18px rgba(0, 0, 0, 0.78))
+          drop-shadow(0 2px 5px rgba(0, 0, 0, 0.6));
+  animation: btnIn 520ms cubic-bezier(0.22, 0.7, 0.24, 1) both;
+}
+
+.btn img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;   /* 点击永远落在 button 上 */
+}
+
+.btn:nth-child(1) { animation-delay: 380ms; }
+.btn:nth-child(2) { animation-delay: 480ms; }
+.btn:nth-child(3) { animation-delay: 580ms; }
+
+@keyframes btnIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* hover：上浮 + 金色辉光 */
+.btn:not([disabled]):hover {
+  transform: translateY(-3px) scale(1.035);
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.5))
+          drop-shadow(0 0 18px rgba(227, 178, 60, 0.55));
+}
+
+.btn:not([disabled]):active {
+  transform: translateY(-1px) scale(0.985);
+  transition-duration: 90ms;
+}
+
+/* 键盘焦点：金色描边，不用默认蓝框 */
+.btn:focus { outline: none; }
+
+.btn:focus-visible {
+  outline: 2px solid var(--gold-lite);
+  outline-offset: 7px;
+  border-radius: 3px;
+}
+
+/* 禁用态：继续按钮在没存档时就是这个样子 */
+.btn[disabled] {
+  cursor: not-allowed;
+  filter: grayscale(1) brightness(0.55) contrast(1.05)
+          drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+  opacity: 0.62;
+}
+
+/* ---------- 退场遮罩 ---------- */
+.farewell {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: radial-gradient(ellipse at 50% 45%, #3a0b07 0%, #170302 70%);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 520ms ease, visibility 520ms;
+  z-index: 10;
+}
+
+.farewell.on {
+  opacity: 1;
+  visibility: visible;
+}
+
+.farewell .l1 {
+  font: 700 44px/1.2 "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", serif;
+  color: var(--gold-lite);
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 32px rgba(227, 178, 60, 0.4);
+}
+
+.farewell .l2 {
+  font: 400 16px/1.6 "Songti SC", "STSong", "SimSun", serif;
+  color: rgba(255, 236, 210, 0.62);
+  letter-spacing: 0.08em;
+}
+
+/* ---------- 轻提示 ---------- */
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%) translateY(12px);
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(227, 178, 60, 0.4);
+  background: rgba(28, 6, 5, 0.88);
+  color: #ffeccb;
+  font: 400 14px/1 "Songti SC", "STSong", "SimSun", serif;
+  letter-spacing: 0.06em;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 240ms ease, transform 240ms ease, visibility 240ms;
+  z-index: 20;
+}
+
+.toast.on {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---------- 竖屏提示 ---------- */
+.rotate-hint {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #150403;
+  color: #ffeccb;
+  z-index: 99;
+  text-align: center;
+  padding: 24px;
+}
+
+.rotate-hint .ico {
+  width: 54px;
+  height: 54px;
+  border: 2px solid rgba(227, 178, 60, 0.75);
+  border-radius: 9px;
+  animation: tilt 2.4s ease-in-out infinite;
+}
+
+.rotate-hint p {
+  margin: 0;
+  font: 400 15px/1.7 "Songti SC", "STSong", "SimSun", serif;
+  letter-spacing: 0.1em;
+  color: rgba(255, 236, 203, 0.8);
+}
+
+@keyframes tilt {
+  0%, 45%, 100% { transform: rotate(0deg); }
+  65%, 85%      { transform: rotate(90deg); }
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  .rotate-hint { display: flex; }
+}
+
+/* ---------- 降低动效 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .title,
+  .btn,
+  .rotate-hint .ico {
+    animation: none !important;
+  }
+  .title, .btn, .farewell, .toast {
+    transition-duration: 1ms !important;
+  }
+}
