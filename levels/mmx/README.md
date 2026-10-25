@@ -52,28 +52,6 @@ window.parent.postMessage({ type: 'cz:done' }, '*');
 
 `finish()` 里已经写好了，照抄就行。**完整接口说明见 [`docs/level-api.md`](../../docs/level-api.md)。**
 
-
-## 关卡名：改 `meta.js`
-
-卡片上显示的名字来自 `meta.js`：
-
-```js
-window.CZ_META['你的缩写'] = { name: '四渡赤水·一渡' };
-```
-
-改完刷新页面就生效。多人共一个地点时，建议加个区分（「·一渡」「·二渡」），
-否则几张卡片看起来一模一样。
-
-## 通关一定要 postMessage
-
-这是最容易漏的一步：关卡跑完，但地图那边不知道，界面就一直挂着。
-
-```js
-window.parent.postMessage({ type: 'cz:done' }, '*');
-```
-
-`finish()` 里已经写好了，照抄就行。**完整接口说明见 [`docs/level-api.md`](../../docs/level-api.md)。**
-
 ## 边界
 
 - 只改 `levels/mmx/` 里的东西
