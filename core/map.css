@@ -129,8 +129,8 @@ html, body {
 
 /* 场景底层：铺在地图上的水墨小景 */
 .scene-img {
-  opacity: 0.42;
-  filter: saturate(0.45) brightness(1.06);
+  opacity: 0.62;
+  filter: saturate(0.5) brightness(1.03) contrast(1.04);
 }
 
 /* 外圈 */
