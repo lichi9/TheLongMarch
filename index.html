@@ -107,6 +107,9 @@
       window.CZ.startGame(mode);
       return;
     }
+    /* 存档功能还没做，所以每次点「开始」都是新游戏：
+       进地图前先把进度清掉，否则会接着上次的记录往下走 */
+    try { localStorage.removeItem('cz.progress'); } catch (e) {}
     location.href = 'map.html';
   }
 

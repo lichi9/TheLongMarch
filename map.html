@@ -225,7 +225,7 @@
     </g>
 
     <!-- 08 会宁：终点星章 -->
-    <g class="seal locked final" data-level="" tabindex="0" role="button"
+    <g class="seal locked final" data-level="hsj" tabindex="0" role="button"
        aria-label="会宁会师，终章" transform="translate(246,188)">
       <circle class="hit" r="56"/>
       <circle class="ring" r="44"/><circle class="pulse" r="49.0"/>
@@ -252,6 +252,40 @@
   <div class="tip" id="tip" role="status"></div>
 </div>
 
+<!-- 选关面板：点开某个事件后，列出该事件下所有成员的关卡卡片 -->
+<div class="panel" id="panel" hidden>
+  <div class="panel-veil" data-close></div>
+  <div class="panel-box" role="dialog" aria-modal="true" aria-labelledby="panel-title">
+    <div class="panel-head">
+      <h2 class="panel-title" id="panel-title"></h2>
+      <button class="panel-close" type="button" data-close aria-label="关闭">&times;</button>
+    </div>
+    <div class="cards" id="cards"></div>
+    <p class="panel-foot" id="panel-foot"></p>
+  </div>
+</div>
+
+<!-- 关卡容器：点卡片后在这里加载该成员的关卡（iframe，互不干扰） -->
+<div class="level-host" id="level-host" hidden>
+  <iframe class="level-frame" id="level-frame" title="关卡"></iframe>
+  <button class="level-exit" id="level-exit" type="button">退出关卡</button>
+</div>
+
+<!-- 终章之后的尾声：黑屏金字，播完回开始页 -->
+<div class="ending" id="ending" hidden>
+  <div class="ending-inner">
+    <p class="ending-line" style="animation-delay:.8s">一九三四年十月</p>
+    <p class="ending-line" style="animation-delay:2s">八万六千人从于都出发</p>
+    <p class="ending-line" style="animation-delay:3.6s">湘江血战，折损过半</p>
+    <p class="ending-line" style="animation-delay:4.8s">遵义城头，转兵向西</p>
+    <p class="ending-line" style="animation-delay:6s">四渡赤水，巧渡金沙，飞夺泸定</p>
+    <p class="ending-line" style="animation-delay:7.2s">雪山埋骨，草地断粮</p>
+    <p class="ending-line" style="animation-delay:8.8s">一九三六年十月，会宁会师</p>
+    <p class="ending-line" style="animation-delay:10s">两万五千里</p>
+    <p class="ending-line big" style="animation-delay:11.8s">山河已换人间</p>
+  </div>
+</div>
+
 <div class="rotate-hint">
   <p>请把手机横过来<br>画面按 16:9 铺开</p>
 </div>
@@ -261,7 +295,9 @@
   'use strict';
 
   function fit() {
-    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    /* 上限锁死 1：舞台就是 1280×720，窗口更大时也不要放大，
+       否则 iframe 开合这类尺寸变化会把整张图撑出视口 */
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720, 1);
     document.documentElement.style.setProperty('--s', s);
   }
   fit();
@@ -280,7 +316,8 @@
   var TIPS = {
     locked:  '请先完成前面的关卡',
     done:    '重新体验',
-    current: '继续'
+    current: '继续',
+    final:   '恭喜抵达'
   };
 
   function stateOf(el) {
@@ -298,7 +335,9 @@
 
   function showTip(el, ev) {
     if (!tip) return;
-    tip.textContent = TIPS[stateOf(el)];
+    var key = stateOf(el);
+    if (key === 'current' && el.classList.contains('final')) key = 'final';
+    tip.textContent = TIPS[key];
     var p = toStage(ev.clientX, ev.clientY);
     tip.style.left = p.x + 'px';
     tip.style.top = p.y + 'px';
@@ -309,39 +348,254 @@
     if (tip) tip.classList.remove('show');
   }
 
-  /* 默认：第一枚是"当前"，其余未通关。
-     ?demo=1 演示完整进度：第一枚已通关、第二枚进行中，其余未通关。 */
-  if (seals.length) {
-    seals[0].classList.remove('locked');
-    seals[0].classList.add('current');
+  /* ---------- 选关面板 ----------
+     点开一个印章 -> 地图压暗（is-dim）+ 脉冲暂停
+     -> 面板里按成员数生成卡片，一张卡对应一个人的关卡
 
-    if (/[?&]demo=1\b/.test(location.search)) {
-      seals[0].classList.remove('current');
-      seals[0].classList.add('done');
-      if (seals[1]) {
-        seals[1].classList.remove('locked');
-        seals[1].classList.add('current');
+     ★ 卡片里的图片来自 levels/<缩写>/cover.webp
+       这个文件是占位图，由该关卡的负责人自己替换成正式的封面。
+       换图不用改任何代码，文件名和路径保持一致就行。
+       规格：480×320（3:2 横图），单张 ≤ 300KB。 */
+  var panel = document.getElementById('panel');
+  var cardsBox = document.getElementById('cards');
+  var panelTitle = document.getElementById('panel-title');
+  var panelFoot = document.getElementById('panel-foot');
+  var lastFocus = null;
+  var currentNode = null;   // 当前打开的是哪个地点，通关后要回到它
+
+  function openNode(el) {
+    currentNode = el;
+    var raw = el.getAttribute('data-level') || '';
+    var ids = raw.split(',').filter(Boolean);
+    if (!ids.length) return;
+
+    lastFocus = el;
+    panelTitle.textContent = (el.querySelector('.name') || {}).textContent || '';
+    cardsBox.innerHTML = '';
+
+    /* 卡片按顺序解锁：已通关的可重玩，第一个没通关的是当前可玩的，
+       它右边的全部锁住（灰掉 + 不可点） */
+    var doneList = loadProgress();
+    var lockedNext = false;
+
+    ids.forEach(function (id) {
+      var isDone = doneList.indexOf(id) >= 0;
+      var usable = isDone || !lockedNext;
+      if (!isDone) lockedNext = true;
+
+      var btn = document.createElement('button');
+      btn.className = 'card' + (isDone ? ' is-done' : '') + (usable ? '' : ' is-locked');
+      btn.type = 'button';
+      btn.disabled = !usable;
+      btn.setAttribute('aria-label', usable
+        ? '进入 ' + id + ' 的关卡'
+        : id + ' 尚未解锁，请先完成左边的关卡');
+
+      var pic = document.createElement('span');
+      pic.className = 'card-pic';
+      var img = document.createElement('img');
+      img.src = 'levels/' + id + '/cover.webp';
+      img.alt = id + ' 的关卡封面';
+      // 封面缺失时不要露出破图标，让占位底色顶住
+      img.addEventListener('error', function () { img.style.display = 'none'; });
+      pic.appendChild(img);
+
+      if (isDone) {
+        var mark = document.createElement('span');
+        mark.className = 'card-mark';
+        mark.textContent = '已通关';
+        pic.appendChild(mark);
       }
-      if (seals[2]) {
-        seals[2].classList.remove('locked');
-        seals[2].classList.add('done');
+
+      var label = document.createElement('span');
+      label.className = 'card-id';
+      label.textContent = id;
+
+      btn.appendChild(pic);
+      btn.appendChild(label);
+      if (usable) {
+        btn.addEventListener('click', function () { enterLevel(id); });
+      }
+      cardsBox.appendChild(btn);
+    });
+
+    /* 会宁是终点，这里不是「解锁下一站」，而是回望全程 */
+    if (el.classList.contains('final')) {
+      panelFoot.textContent = '回顾这趟旅程';
+    } else if (ids.length > 1) {
+      panelFoot.textContent = '这 ' + ids.length + ' 关全部通关，才会解锁下一个地点';
+    } else {
+      panelFoot.textContent = '通关这一关，才会解锁下一个地点';
+    }
+
+    panel.hidden = false;
+    stage.classList.add('is-dim');
+    hideTip();
+
+  }
+
+  function closePanel() {
+    panel.hidden = true;
+    stage.classList.remove('is-dim');
+    if (lastFocus) lastFocus.focus();
+  }
+
+  /* ---------- 进度 ----------
+     存在 localStorage 的 cz.progress 里，值是【已通关的成员 id】数组。
+     一个事件里只要有一个人通关，这个事件就算过了（并联，谁都不卡谁）。 */
+  var PROGRESS_KEY = 'cz.progress';
+
+  function loadProgress() {
+    try {
+      var raw = localStorage.getItem(PROGRESS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+
+  function saveProgress(list) {
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+
+  function markDone(id) {
+    var list = loadProgress();
+    if (list.indexOf(id) < 0) list.push(id);
+    saveProgress(list);
+  }
+
+  /* 按进度刷新节点：已通关 = done，第一个没过的 = current，后面全 locked */
+  function refreshStates() {
+    var done = loadProgress();
+    var unlocked = true;   // 前面的地点是否已全部通关
+
+    for (var i = 0; i < seals.length; i++) {
+      var el = seals[i];
+      var ids = (el.getAttribute('data-level') || '').split(',').filter(Boolean);
+
+      var allDone = ids.length > 0;
+      for (var k = 0; k < ids.length; k++) {
+        if (done.indexOf(ids[k]) < 0) { allDone = false; break; }
+      }
+
+      el.classList.remove('locked', 'done', 'current');
+
+      if (ids.length === 0) {
+        // 终章：前面全过了才能进
+        el.classList.add(unlocked ? 'current' : 'locked');
+        continue;
+      }
+
+      if (allDone) {
+        el.classList.add('done');
+      } else if (unlocked) {
+        el.classList.add('current');
+        unlocked = false;
+      } else {
+        el.classList.add('locked');
       }
     }
   }
 
+  /* ---------- 关卡容器 ----------
+     用 iframe 加载 levels/<id>/test/index.html：
+     每个成员的 CSS / JS 都在自己的文档里，不会互相污染 */
+  var levelHost = document.getElementById('level-host');
+  var levelFrame = document.getElementById('level-frame');
+  var levelExit = document.getElementById('level-exit');
+  var playingId = null;
 
+  function enterLevel(id) {
+    playingId = id;
+    levelFrame.src = 'levels/' + id + '/test/index.html';
+    levelHost.hidden = false;
+    closePanel();
+  }
 
+  function closeLevel() {
+    levelHost.hidden = true;
+    levelFrame.src = 'about:blank';   // 停掉关卡里的计时器/动画
+    playingId = null;
+    fit();                            // iframe 期间窗口尺寸若变过，这里把舞台缩放算回来
+  }
+
+  levelExit.addEventListener('click', closeLevel);
+
+  /* ---------- 尾声 ----------
+     会宁通关后播黑屏金字，播完自动回开始页 */
+  var ending = document.getElementById('ending');
+
+  function playEnding() {
+    var lines = ending.querySelectorAll('.ending-line');
+    ending.hidden = false;
+
+    // 重置动画，保证逐行出现（重播也不会一次全冒出来）
+    for (var i = 0; i < lines.length; i++) {
+      lines[i].style.animation = 'none';
+      void lines[i].offsetWidth;
+      lines[i].style.animation = '';
+    }
+
+    requestAnimationFrame(function () { ending.classList.add('is-on'); });
+
+    setTimeout(function () {
+      location.href = 'index.html';   // 播完回开始页面
+    }, 15000);
+  }
+
+  /* 关卡通关后由 level.js 用 postMessage 通知过来 */
+  window.addEventListener('message', function (e) {
+    if (!e.data || e.data.type !== 'cz:done') return;
+    if (playingId) markDone(playingId);
+    refreshStates();
+
+    var isFinal = !!(currentNode && currentNode.classList.contains('final'));
+
+    /* 不停留、不盖「通关」：关掉关卡立刻回到面板，
+       反馈交给面板里刚变红的那张卡 */
+    closeLevel();
+    if (isFinal) {
+      playEnding();                                    // 会宁：播尾声，之后回开始页
+    } else if (currentNode) {
+      openNode(currentNode);                            // 其它地点：留在本地点继续选
+    }
+  });
+
+  panel.addEventListener('click', function (e) {
+    if (e.target.hasAttribute('data-close')) closePanel();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!levelHost.hidden) { closeLevel(); return; }
+    if (!panel.hidden) closePanel();
+  });
+
+  /* ---------- 开局 ----------
+     ?reset=1  清空进度，从头开始
+     ?all=1    把前面的关卡全标成已通关，方便直接测最后一关 */
+  if (/[?&]reset=1\b/.test(location.search)) {
+    saveProgress([]);
+  }
+
+  if (/[?&]all=1\b/.test(location.search)) {
+    var allIds = [];
+    for (var a = 0; a < seals.length - 1; a++) {
+      allIds = allIds.concat(
+        (seals[a].getAttribute('data-level') || '').split(',').filter(Boolean)
+      );
+    }
+    saveProgress(allIds);
+  }
+
+  refreshStates();
+
+  /* 印章事件绑定：点击进关、悬停提示、键盘可达 */
 
 
   for (var i = 0; i < seals.length; i++) {
     (function (el) {
       function go() {
-        var ids = el.getAttribute('data-level');
-        if (!ids) {
-          console.log('[map] 终章节点，暂未接入');
-          return;
-        }
-        console.log('[map] 进入关卡组：', ids.split(','));
+        if (stateOf(el) === 'locked') return;  // 未通关的不让进
+        openNode(el);
       }
       el.addEventListener('click', go);
       el.addEventListener('mouseenter', function (e) { showTip(el, e); });
@@ -357,6 +611,7 @@
       });
     })(seals[i]);
   }
+
 })();
 </script>
 
