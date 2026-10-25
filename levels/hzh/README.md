@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | `index.html` | 入口页，主程序加载的就是它 | 入库 |
 | `level.js` | 关卡逻辑。**通关必须 postMessage**，见下文 | 入库 |
-| `style.css` | 关卡样式，独立文档，`html` / `body` 随便写 | 入库 |
+| `style.css` | 关卡样式，舞台固定 1280×720，`html` / `body` 随便写 | 入库 |
 | `cover.webp` | 选关面板里的封面，换成你自己的 | 入库 |
 | `assets/` | 别人 clone 下来必须有的素材 | 入库 |
 | `test/` | 参考样例，能跑但**别改它** | 入库 |
@@ -29,6 +29,17 @@
 跑通了再往里填自己的东西。
 
 `test/` 里是一份一模一样的参考样例，**改坏了可以对着它比**，别去改它本身。
+
+## 通关一定要 postMessage
+
+这是最容易漏的一步：关卡跑完，但地图那边不知道，界面就一直挂着。
+
+```js
+window.parent.postMessage({ type: 'cz:done' }, '*');
+```
+
+`finish()` 里已经写好了，照抄就行。**完整接口说明见 [`docs/level-api.md`](../../docs/level-api.md)。**
+
 
 ## 通关一定要 postMessage
 

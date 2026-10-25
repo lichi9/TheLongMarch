@@ -58,3 +58,7 @@
     mount(stage, null);
   }
 })(window);
+
+  /* 想在关卡里放一个自己的「返回」按钮，就调：
+       window.parent.postMessage({ type: 'cz:exit' }, '*');
+     主程序会关掉关卡、回到选关面板，不算通关。 */

@@ -269,6 +269,10 @@
 <div class="level-host" id="level-host" hidden>
   <iframe class="level-frame" id="level-frame" title="关卡"></iframe>
   <button class="level-exit" id="level-exit" type="button">退出关卡</button>
+  <div class="level-loading" id="level-loading" hidden>
+    <p class="level-loading-text" id="level-loading-text">正在进入关卡…</p>
+    <p class="level-loading-sub" id="level-loading-sub"></p>
+  </div>
 </div>
 
 <!-- 终章之后的尾声：黑屏金字，播完回开始页 -->
@@ -300,6 +304,9 @@
        否则 iframe 开合这类尺寸变化会把整张图撑出视口 */
     var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720, 1);
     document.documentElement.style.setProperty('--s', s);
+    /* 关卡舞台也是 1280×720，跟地图用同一个缩放比例，
+       这样成员按 1280×720 摆的元素在任何屏幕上都对得上位置 */
+    document.documentElement.style.setProperty('--level-s', s);
   }
   fit();
   window.addEventListener('resize', fit);
@@ -509,14 +516,71 @@
     levelFrame.src = 'levels/' + id + '/index.html';
     levelHost.hidden = false;
     closePanel();
+    startLoadWatch();
   }
 
   function closeLevel() {
+    stopLoadWatch();
     levelHost.hidden = true;
     levelFrame.src = 'about:blank';   // 停掉关卡里的计时器/动画
     playingId = null;
     fit();                            // iframe 期间窗口尺寸若变过，这里把舞台缩放算回来
   }
+
+  /* ---------- 关卡加载监控 ----------
+     iframe 加载失败不会抛错，只会白屏，新手很难自己看出问题。
+     这里给 6 秒兜底：还没 load 就把原因直接写在屏幕上。 */
+  var levelLoading = document.getElementById('level-loading');
+  var loadingText = document.getElementById('level-loading-text');
+  var loadingSub = document.getElementById('level-loading-sub');
+  var loadTimer = null;
+  var loadedOk = false;
+
+  function startLoadWatch() {
+    loadedOk = false;
+    clearTimeout(loadTimer);
+    levelLoading.hidden = false;
+    levelLoading.classList.remove('is-error');
+    loadingText.textContent = '正在进入关卡…';
+    loadingSub.textContent = '';
+
+    loadTimer = setTimeout(function () {
+      if (!loadedOk) showLoadError('等了 6 秒还没加载出来');
+    }, 6000);
+  }
+
+  function stopLoadWatch() {
+    clearTimeout(loadTimer);
+    levelLoading.hidden = true;
+    levelLoading.classList.remove('is-error');
+  }
+
+  function showLoadError(reason) {
+    clearTimeout(loadTimer);
+    levelLoading.hidden = false;
+    levelLoading.classList.add('is-error');
+    loadingText.textContent = '这一关没能打开';
+    loadingSub.textContent = reason + '。先确认 levels/' + (playingId || '?')
+      + '/index.html 存在，再按 F12 看控制台有没有报错。';
+  }
+
+  levelFrame.addEventListener('load', function () {
+    if (!playingId) return;
+    if (levelFrame.src === 'about:blank') return;
+
+    loadedOk = true;
+    clearTimeout(loadTimer);
+
+    /* 同源时能读到内容：空文档 / 纯白页基本都是路径写错或脚本报错 */
+    var bad = false;
+    try {
+      var doc = levelFrame.contentDocument;
+      if (!doc || !doc.body || doc.body.children.length === 0) bad = true;
+    } catch (e) { /* 读不到就交给超时兜底 */ }
+
+    if (bad) { showLoadError('页面是空的'); return; }
+    levelLoading.hidden = true;
+  });
 
   levelExit.addEventListener('click', closeLevel);
 
@@ -544,7 +608,19 @@
 
   /* 关卡通关后由 level.js 用 postMessage 通知过来 */
   window.addEventListener('message', function (e) {
-    if (!e.data || e.data.type !== 'cz:done') return;
+    /* 只认关卡那个 iframe 发来的消息。别的窗口/页面往这里 postMessage
+       一律不理，免得被外部页面误触发送关。 */
+    if (!levelFrame.contentWindow || e.source !== levelFrame.contentWindow) return;
+    if (!e.data) return;
+
+    /* 关卡自己想退出（它内部可以放个「返回」按钮调这个） */
+    if (e.data.type === 'cz:exit') {
+      closeLevel();
+      if (currentNode) openNode(currentNode);
+      return;
+    }
+
+    if (e.data.type !== 'cz:done') return;
     if (playingId) markDone(playingId);
     refreshStates();
 
