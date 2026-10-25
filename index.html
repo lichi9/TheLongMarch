@@ -36,6 +36,17 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- 存档面板：开始 → 新建；继续 → 读取 -->
+  <div class="saves" id="saves" hidden>
+    <div class="saves-veil" data-close></div>
+    <div class="saves-box" role="dialog" aria-modal="true" aria-labelledby="saves-title">
+      <h2 class="saves-title" id="saves-title">选择存档</h2>
+      <p class="saves-sub" id="saves-sub"></p>
+      <div class="slots" id="slots"></div>
+      <button class="saves-cancel" type="button" data-close>取消</button>
+    </div>
+  </div>
 </div>
 
 <div class="rotate-hint">
@@ -43,15 +54,17 @@
   <p>请把手机横过来<br>画面按 16:9 铺开</p>
 </div>
 
+<script src="core/save.js"></script>
 <script>
 (function () {
   'use strict';
 
   var STAGE_W = 1280;
   var STAGE_H = 720;
-  var SAVE_KEY = 'cz.save';
 
-  /* ---------- 舞台等比缩放 ---------- */
+  /* ---------- 舞台等比缩放 ----------
+     取宽高里较小的比例，让 1280×720 的舞台既放得下、又尽量填满窗口。
+     不设上限：窗口比 1280×720 大时内容跟着放大，否则四周会有黑边。 */
   function fit() {
     var s = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
     document.documentElement.style.setProperty('--s', s);
@@ -60,20 +73,16 @@
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
 
-  /* ---------- 存档探测 ----------
-     真正的存档结构等 core 定了再替换，现在只判断「有没有」。
-     localStorage 在 file:// 下可用；隐私模式或个别浏览器会抛异常，
-     所以整段包在 try 里，取不到就当没有存档。 */
-  var forceSave = /[?&]save=1\b/.test(location.search);
+  /* ---------- 存档 ----------
+     8 个挡位，全部存在浏览器本地。真身在 core/save.js，这里只管界面。 */
+  var savesEl = document.getElementById('saves');
+  var slotsEl = document.getElementById('slots');
+  var savesTitle = document.getElementById('saves-title');
+  var savesSub = document.getElementById('saves-sub');
 
-  function hasSave() {
-    if (forceSave) return true;
-    try {
-      return !!window.localStorage.getItem(SAVE_KEY);
-    } catch (e) {
-      return false;
-    }
-  }
+  var saveMode = 'new';   // new = 新建（可覆盖已有） / continue = 读取
+  var confirmSlot = 0;    // 等第二次点击确认覆盖的挡位
+  var confirmTimer = null;
 
   var btnStart = document.getElementById('btn-start');
   var btnContinue = document.getElementById('btn-continue');
@@ -81,7 +90,23 @@
   var farewell = document.getElementById('farewell');
   var toastEl = document.getElementById('toast');
 
-  if (!hasSave()) {
+  ['click', 'pointerdown'].forEach(function (ev) {
+    btnStart.addEventListener(ev, function (e) {
+      e.preventDefault();
+      openSaves('new');
+    });
+  });
+
+  ['click', 'pointerdown'].forEach(function (ev) {
+    btnContinue.addEventListener(ev, function (e) {
+      e.preventDefault();
+      if (btnContinue.disabled) return;
+      openSaves('continue');
+    });
+  });
+
+  /* 没有任何存档时，「继续」置灰 */
+  if (!window.CZSave || !CZSave.hasAny()) {
     btnContinue.disabled = true;
     btnContinue.setAttribute('aria-disabled', 'true');
     btnContinue.title = '还没有存档记录';
@@ -99,26 +124,115 @@
     }, 2200);
   }
 
-  /* ---------- 进入游戏 ----------
-     接入 core 之后把这里换成真正的跳转：
-       location.href = 'game.html'            // 独立页面
-     或 CZ.boot({ level: 'first', fresh: true })  // 同页切换
-     两种都行，先把入口留在这里，别让按钮点了没反应。 */
-  function enterGame(mode) {
-    if (window.CZ && typeof window.CZ.startGame === 'function') {
-      window.CZ.startGame(mode);
-      return;
-    }
-    toast(mode === 'continue' ? '继续：存档入口还没接上' : '开始：序章还没接上');
+  /* ---------- 存档面板 ---------- */
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function fmtTime(ts) {
+    if (!ts) return '—';
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+      + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
-  btnStart.addEventListener('click', function () {
-    enterGame('new');
-  });
+  function renderSlots() {
+    var list = CZSave.summary();
+    slotsEl.innerHTML = '';
 
-  btnContinue.addEventListener('click', function () {
-    if (btnContinue.disabled) return;
-    enterGame('continue');
+    list.forEach(function (s) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot'
+        + (s.empty ? ' is-empty' : '')
+        + (s.slot === confirmSlot ? ' is-confirm' : '');
+      btn.dataset.slot = s.slot;
+
+      if (s.empty && saveMode === 'continue') btn.disabled = true;
+
+      var no = document.createElement('span');
+      no.className = 'slot-no';
+      no.textContent = pad(s.slot);
+
+      var main = document.createElement('span');
+      main.className = 'slot-main';
+
+      var meta = document.createElement('span');
+      meta.className = 'slot-meta';
+
+      if (s.empty) {
+        main.textContent = saveMode === 'new' ? '点击新建存档' : '空挡位';
+        meta.textContent = saveMode === 'new' ? '从这里开始新的行军' : ' ';
+      } else if (s.slot === confirmSlot) {
+        main.textContent = '再点一次覆盖';
+        meta.textContent = '已通关 ' + s.progress + ' / ' + s.total + ' 关　（覆盖不可撤销）';
+      } else {
+        main.textContent = '已通关 ' + s.progress + ' / ' + s.total + ' 关';
+        meta.textContent = '创建 ' + fmtTime(s.createdAt) + '　·　上次 ' + fmtTime(s.playedAt);
+      }
+
+      btn.appendChild(no);
+      btn.appendChild(main);
+      btn.appendChild(meta);
+      btn.addEventListener('click', function () { choose(s); });
+      slotsEl.appendChild(btn);
+    });
+  }
+
+  function choose(s) {
+    if (!window.CZSave) return;
+
+    if (saveMode === 'continue') {
+      if (s.empty) return;
+      CZSave.setActive(s.slot);
+      go();
+      return;
+    }
+
+    if (s.empty) {
+      if (!CZSave.create(s.slot)) { toast('存档写不进去，浏览器可能禁用了本地存储'); return; }
+      go();
+      return;
+    }
+
+    // 已有存档：第一下是确认，第二下才真的覆盖
+    if (confirmSlot === s.slot) {
+      if (!CZSave.create(s.slot)) { toast('存档写不进去，浏览器可能禁用了本地存储'); return; }
+      go();
+      return;
+    }
+
+    confirmSlot = s.slot;
+    renderSlots();
+    if (confirmTimer) clearTimeout(confirmTimer);
+    confirmTimer = setTimeout(function () {
+      confirmSlot = 0;
+      renderSlots();
+    }, 3200);
+  }
+
+  function openSaves(mode) {
+    if (!window.CZSave) { toast('这个浏览器没法存本地档'); return; }
+    saveMode = mode;
+    confirmSlot = 0;
+    savesTitle.textContent = mode === 'new' ? '新建存档' : '读取存档';
+    savesSub.textContent = mode === 'new'
+      ? '选一个位置开始新游戏。点已有存档会覆盖，需要再点一次确认。'
+      : '选一个存档接着玩，空挡位不能选。';
+    renderSlots();
+    savesEl.hidden = false;
+  }
+
+  function closeSaves() {
+    savesEl.hidden = true;
+    confirmSlot = 0;
+    renderSlots();
+  }
+
+  function go() {
+    location.href = 'map.html';
+  }
+
+  savesEl.addEventListener('click', function (e) {
+    if (e.target.hasAttribute('data-close')) closeSaves();
   });
 
   /* ---------- 退出 ----------
