@@ -1,0 +1,321 @@
+/* ============================================================
+   长征：拾光 —— 行军图（选关页）
+   苏联构成主义：米白纸、正红、纯黑、粗几何
+   舞台 1280×720，由 JS 写入 --s 等比缩放
+   ============================================================ */
+
+:root {
+  --paper:      #e9e2d1;
+  --paper-dim:  #dcd3bd;
+  --red:        #c12b22;
+  --red-deep:   #8a1a12;
+  --red-bright: #e03a2c;
+  --ink:        #1b1916;
+  --grey:       #8e897e;
+  --gold:       #c9a24a;
+
+  --sans: "SimHei", "Heiti SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #17130f;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 720px;
+  transform: translate(-50%, -50%) scale(var(--s, 1));
+  transform-origin: center center;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------- 标题：构成主义的大字块 ---------- */
+.map-title {
+  position: absolute;
+  left: 54px;
+  top: 30px;
+  pointer-events: none;
+}
+
+.map-title .bar {
+  width: 64px;
+  height: 7px;
+  background: var(--red);
+  margin-bottom: 12px;
+}
+
+.map-title .zh {
+  display: block;
+  font: 700 38px/1 var(--sans);
+  color: var(--ink);
+  letter-spacing: 10px;
+}
+
+.map-title .sub {
+  display: block;
+  margin-top: 9px;
+  font: 400 13px/1 var(--sans);
+  color: var(--grey);
+  letter-spacing: 6px;
+}
+
+/* ---------- 返回 ---------- */
+.back {
+  position: absolute;
+  right: 34px;
+  top: 32px;
+  padding: 10px 20px;
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font: 700 14px/1 var(--sans);
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.back:hover {
+  background: var(--red);
+  border-color: var(--red);
+  color: #f7efe0;
+}
+
+.back:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* ---------- 印章节点 ---------- */
+.seal {
+  cursor: pointer;
+  outline: none;
+  transform-box: fill-box;
+}
+
+.seal .hit { fill: transparent; }
+
+/* 外圈底 */
+.seal .ring {
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 3;
+  transition: stroke 180ms ease, fill 180ms ease;
+}
+
+.seal .disc {
+  fill: var(--red);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.seal .emblem {
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+/* 脉冲圈：默认必须显式设 fill:none。
+   SVG 的默认 fill 是黑色，漏了这一行的话未通关的节点会变成一个个黑圆。 */
+.seal .pulse {
+  fill: none;
+  stroke: none;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* ---- 未通关：灰圈 ---- */
+.seal.locked .ring {
+  stroke: var(--grey);
+  stroke-width: 2.6;
+  stroke-dasharray: 5 4;
+}
+
+.seal.locked .glyph {
+  fill: var(--grey);
+}
+
+.seal.locked .name { fill: var(--grey); }
+.seal.locked .meta { fill: rgba(142, 137, 126, 0.7); }
+
+/* ---- 已通关：红实心 + 党徽 ---- */
+.seal.done .ring {
+  stroke: var(--red-deep);
+  stroke-width: 3;
+  fill: none;
+}
+
+.seal.done .disc { opacity: 1; }
+.seal.done .emblem { opacity: 1; }
+.seal.done .glyph { opacity: 0; }
+
+/* ---- 进行中：红圈 + 扩散脉冲 ---- */
+.seal.current .ring {
+  stroke: var(--red-bright);
+  stroke-width: 3.4;
+}
+
+.seal.current .pulse {
+  stroke: var(--red-bright);
+  stroke-width: 2.4;
+  opacity: 1;
+  animation: ripple 2.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+.seal.current .glyph { fill: var(--red); }
+
+@keyframes ripple {
+  0%   { transform: scale(1);   opacity: 0.62; }
+  70%  {                        opacity: 0.10; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+
+/* ---- 鼠标反馈 ---- */
+.seal:not(.locked):hover .ring { stroke-width: 4.2; }
+.seal.locked:hover .ring { stroke: var(--ink); stroke-dasharray: none; }
+.seal:focus-visible .ring { stroke: var(--gold); stroke-width: 4; }
+
+/* ---- 文字 ---- */
+.seal .glyph {
+  fill: var(--red);
+  font-family: var(--sans);
+  font-size: 26px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.seal .name {
+  fill: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-anchor: middle;
+  pointer-events: none;
+  /* 米白描边当光晕，压在地形和路线上也读得清 */
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.seal .meta {
+  fill: rgba(27, 25, 22, 0.55);
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* 序号：构成主义的编号感 */
+.seal .idx {
+  fill: var(--grey);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* 会宁的星形轮廓（未通关时是灰描边） */
+.seal .glyph-star {
+  fill: none;
+  stroke: var(--grey);
+  stroke-width: 2.6;
+  stroke-linejoin: miter;
+  pointer-events: none;
+  transition: fill 180ms ease, stroke 180ms ease;
+}
+
+.seal.done .glyph-star {
+  fill: #f7efe0;
+  stroke: none;
+}
+
+/* 标签朝向：密集处靠左右错开，避免互相压住 */
+.seal .lab { pointer-events: none; }
+.seal .lab.down,
+.seal .lab.up    { text-anchor: middle; }
+.seal .lab.left  { text-anchor: end; }
+.seal .lab.right { text-anchor: start; }
+
+/* ---------- 底部信息条 ---------- */
+.hint {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  padding: 14px 54px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--ink);
+  color: rgba(247, 239, 224, 0.75);
+  font: 400 12px/1 var(--sans);
+  letter-spacing: 3px;
+  pointer-events: none;
+}
+
+.hint .mark { color: var(--red-bright); font-weight: 700; }
+
+/* ---------- 竖屏提示 ---------- */
+.rotate-hint {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #150403;
+  color: #ffeccb;
+  z-index: 99;
+  text-align: center;
+  padding: 24px;
+}
+
+.rotate-hint p {
+  margin: 0;
+  font: 400 15px/1.7 var(--sans);
+  letter-spacing: 0.1em;
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  .rotate-hint { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 1ms !important; }
+  .seal.current .pulse { animation: none; opacity: 0.45; }
+}

@@ -100,16 +100,14 @@
   }
 
   /* ---------- 进入游戏 ----------
-     接入 core 之后把这里换成真正的跳转：
-       location.href = 'game.html'            // 独立页面
-     或 CZ.boot({ level: 'first', fresh: true })  // 同页切换
-     两种都行，先把入口留在这里，别让按钮点了没反应。 */
+     开始 / 继续都先落到行军图，由玩家点印章选关。
+     接 core 之后这里可以换成 CZ.openNode(id) 直接跳某一关。 */
   function enterGame(mode) {
     if (window.CZ && typeof window.CZ.startGame === 'function') {
       window.CZ.startGame(mode);
       return;
     }
-    toast(mode === 'continue' ? '继续：存档入口还没接上' : '开始：序章还没接上');
+    location.href = 'map.html';
   }
 
   btnStart.addEventListener('click', function () {

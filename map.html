@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#e9e2d1">
+<title>行军图 · 长征：拾光</title>
+<link rel="stylesheet" href="core/map.css">
+</head>
+<body>
+
+<div id="stage">
+
+  <svg class="map" viewBox="0 0 1280 720" aria-label="山河行军图，点击印章进入关卡">
+    <defs>
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M40,0 L0,0 L0,40" fill="none" stroke="#1b1916"
+              stroke-width="0.6" opacity="0.075"/>
+      </pattern>
+      <linearGradient id="redline" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0"   stop-color="#8a1a12"/>
+        <stop offset="0.5" stop-color="#c12b22"/>
+        <stop offset="1"   stop-color="#a02018"/>
+      </linearGradient>
+
+      <!-- 党徽：镰刀锤头，几何简化，用于「已通关」印章内 -->
+      <symbol id="emblem" viewBox="-24 -24 48 48">
+        <!-- 镰刀：大弧包住锤子，开口朝右下 -->
+        <path d="M-13,-11 A17,17 0 0,1 15,11 L19.5,7 A21.5,21.5 0 0,0 -17,-15.5 Z"
+              fill="#f7efe0"/>
+        <!-- 镰刀柄 -->
+        <rect x="-22" y="-18" width="11" height="4.6" rx="1"
+              fill="#f7efe0" transform="rotate(42 -16 -16)"/>
+        <!-- 锤柄：右下到左上 -->
+        <rect x="-2.3" y="-14" width="4.6" height="30" rx="1"
+              fill="#f7efe0" transform="rotate(-38)"/>
+        <!-- 锤头：柄的左上端 -->
+        <rect x="-8.6" y="-20" width="17.2" height="7.6" rx="1.6"
+              fill="#f7efe0" transform="rotate(-38)"/>
+      </symbol>
+    </defs>
+
+    <!-- 纸底 + 网格 -->
+    <rect width="1280" height="720" fill="#e9e2d1"/>
+    <rect width="1280" height="720" fill="url(#grid)"/>
+
+    <!-- 构成主义几何元素：斜块、大对角线 -->
+    <g pointer-events="none">
+      <!-- 左上红块，托住标题 -->
+      <path d="M0,0 L330,0 L262,96 L0,96 Z" fill="#c12b22" opacity="0.10"/>
+      <path d="M0,0 L14,0 L14,720 L0,720 Z" fill="#c12b22"/>
+      <!-- 贯穿的细斜线 -->
+      <path d="M-40,700 L1320,60" stroke="#1b1916" stroke-width="1" opacity="0.16"/>
+      <path d="M-40,748 L1320,108" stroke="#1b1916" stroke-width="1" opacity="0.10"/>
+      <!-- 右下几何块 -->
+      <path d="M1280,720 L1280,536 L1076,720 Z" fill="#1b1916" opacity="0.07"/>
+      <!-- 会宁附近的一点分量 -->
+      <circle cx="246" cy="188" r="86" fill="#c12b22" opacity="0.05"/>
+    </g>
+
+    <!-- 等高线（很轻，只是暗示地形） -->
+    <g fill="none" stroke="#1b1916" stroke-width="0.9" opacity="0.10" pointer-events="none">
+      <ellipse cx="1120" cy="612" rx="180" ry="64" transform="rotate(-12 1120 612)"/>
+      <ellipse cx="1120" cy="612" rx="132" ry="44" transform="rotate(-12 1120 612)"/>
+      <ellipse cx="520" cy="318" rx="112" ry="72" transform="rotate(9 520 318)"/>
+      <ellipse cx="520" cy="318" rx="76"  ry="46" transform="rotate(9 520 318)"/>
+      <ellipse cx="900" cy="124" rx="144" ry="48" transform="rotate(4 900 124)"/>
+    </g>
+
+    <!-- ================= 地形场景 ================= -->
+    <!-- 每个节点对应一片几何化的场景符号，压得很淡，只做背景层 -->
+    <g class="terrain" pointer-events="none">
+
+      <!-- 于都 · 湘江：江河水域 -->
+      <path d="M1280,720 L1280,352 L740,720 Z" fill="#c12b22" opacity="0.075"/>
+      <g stroke="#c12b22" stroke-width="1.7" fill="none" opacity="0.20">
+        <path d="M886,700 L948,670 L1010,700 L1072,670 L1134,700 L1196,670"/>
+        <path d="M926,656 L988,626 L1050,656 L1112,626 L1174,656"/>
+        <path d="M1046,612 L1108,582 L1170,612 L1232,582"/>
+        <path d="M986,568 L1048,538 L1110,568 L1172,538"/>
+      </g>
+
+      <!-- 湘江→遵义：连绵丘陵 -->
+      <g stroke="#1b1916" stroke-width="1.8" fill="none" opacity="0.20">
+        <path d="M782,628 L822,578 L862,628 L902,572 L942,628 L982,580
+                 L1022,628 L1062,568 L1102,628"/>
+      </g>
+
+      <!-- 遵义：城郭剪影 -->
+      <g transform="translate(916,550)" fill="#1b1916" opacity="0.16">
+        <rect x="-52" y="20" width="20" height="30"/>
+        <rect x="-26" y="8"  width="15" height="42"/>
+        <rect x="-6"  y="24" width="22" height="26"/>
+        <rect x="22"  y="12" width="17" height="38"/>
+        <path d="M-52,20 L-42,10 L-32,20 Z"/>
+        <path d="M22,12 L30.5,2 L39,12 Z"/>
+      </g>
+
+      <!-- 赤水：分叉河道 -->
+      <g transform="translate(786,454)" stroke="#c12b22" stroke-width="2.4"
+         fill="none" opacity="0.22">
+        <path d="M-112,-18 L-64,-36 L-20,-12 L26,-32 L74,-10"/>
+        <path d="M-78,20 L-36,4 L10,24 L56,6"/>
+      </g>
+
+      <!-- 金沙江：大弧江面 -->
+      <g transform="translate(664,540)" stroke="#c12b22" stroke-width="2.6"
+         fill="none" opacity="0.24">
+        <path d="M-118,50 C-44,12 44,12 118,50"/>
+        <path d="M-102,70 C-32,38 32,38 102,70"/>
+      </g>
+
+      <!-- 泸定桥：两根铁索 + 桥板 -->
+      <g transform="translate(574,428)" stroke="#1b1916" stroke-width="2"
+         fill="none" opacity="0.24">
+        <path d="M-104,32 L104,-18"/>
+        <path d="M-104,48 L104,-2"/>
+        <g stroke-width="1.2" opacity="0.85">
+          <path d="M-72,26 L-72,42"/>
+          <path d="M-36,16 L-36,32"/>
+          <path d="M0,6 L0,22"/>
+          <path d="M36,-4 L36,12"/>
+          <path d="M72,-14 L72,2"/>
+        </g>
+      </g>
+
+      <!-- 雪山群：折线山脊，不画等腰三角（那看着像帐篷） -->
+      <g transform="translate(486,332)">
+        <!-- 远山：淡黑剪影 -->
+        <path d="M-104,54 L-78,18 L-58,34 L-36,-14 L-16,26 L4,6 L22,40 L40,18 L60,54 Z"
+              fill="#1b1916" opacity="0.10"/>
+        <!-- 主山：米白带黑边 -->
+        <path d="M-46,58 L-24,28 L-12,40 L10,-18 L30,22 L42,10 L58,58 Z"
+              fill="#f7efe0" stroke="#1b1916" stroke-width="2.2" stroke-linejoin="miter"/>
+        <!-- 雪线：主山脊上方压一道深色 -->
+        <path d="M10,-18 L18,4 L12,0 L4,8 L-2,0 L-10,6 L-14,-2 L-22,18 L-14,10 Z"
+              fill="#1b1916" opacity="0.20"/>
+      </g>
+
+      <!-- 草地：草丛 -->
+      <g transform="translate(386,268)" stroke="#1b1916" stroke-width="1.4"
+         fill="none" opacity="0.24">
+        <path d="M-96,46 l0,-13 M-88,46 l0,-18 M-80,46 l0,-11"/>
+        <path d="M-64,52 l0,-15 M-56,52 l0,-10 M-48,52 l0,-17"/>
+        <path d="M28,58 l0,-14 M36,58 l0,-20 M44,58 l0,-12"/>
+        <path d="M62,50 l0,-16 M70,50 l0,-11 M78,50 l0,-19"/>
+      </g>
+      <g transform="translate(386,268)" fill="none" stroke="#c12b22"
+         stroke-width="1.6" opacity="0.20">
+        <ellipse cx="-30" cy="34" rx="20" ry="7"/>
+        <ellipse cx="96" cy="26" rx="15" ry="5.5"/>
+      </g>
+
+      <!-- 会宁：放射线 -->
+      <g transform="translate(246,188)" stroke="#c12b22" stroke-width="1.7" opacity="0.15">
+        <path d="M-52,-34 L-104,-70"/>
+        <path d="M-56,-14 L-118,-18"/>
+        <path d="M-44,-50 L-76,-96"/>
+        <path d="M40,32 L92,66"/>
+        <path d="M46,14 L108,20"/>
+      </g>
+    </g>
+
+    <!-- ================= 行军路线 ================= -->
+    <!-- 一条线走到底：赤水前折两下，暗示"四渡"的来回 -->
+    <path d="M1170,592 L1046,498 L916,550 L858,506 L832,528 L786,454
+             L664,540 L574,428 L486,340 L386,268"
+          fill="none" stroke="url(#redline)" stroke-width="9"
+          stroke-linejoin="miter" stroke-linecap="butt"/>
+
+    <!-- 草地到终点：虚线 -->
+    <path d="M386,268 L246,188"
+          fill="none" stroke="#c12b22" stroke-width="7"
+          stroke-dasharray="13 10" stroke-linecap="butt" opacity="0.85"/>
+
+    <!-- 起点：小旗 -->
+    <g transform="translate(1170,592)" pointer-events="none">
+      <path d="M0,0 L0,-46" stroke="#1b1916" stroke-width="3"/>
+      <path d="M2,-44 L30,-35 L2,-26 Z" fill="#c12b22"/>
+      <text x="0" y="24" class="lab down name" style="font-size:13px">于都出发</text>
+      <text x="0" y="40" class="lab down meta">1934.10 · 序章</text>
+    </g>
+
+    <!-- ================= 印章节点 ================= -->
+    <!-- 说明：locked = 未通关（灰虚线圈） / done = 已通关（红实心 + 党徽）
+               current = 进行中（红圈 + 扩散脉冲） -->
+
+    <!-- 01 湘江 2人 -->
+    <g class="seal locked" data-level="hzh,mt" tabindex="0" role="button"
+       aria-label="血战湘江，2 个关卡" transform="translate(1046,498)">
+      <circle class="hit" r="46"/>
+      <circle class="pulse" r="32"/>
+      <circle class="disc" r="30"/>
+      <circle class="ring" r="32"/><use class="emblem" href="#emblem" x="-24.8" y="-24.8" width="49.6" height="49.6"/>
+      <text class="glyph" y="1">湘</text>
+      <text class="idx" x="-42" y="-24">01</text>
+      <text class="lab right name" x="46" y="2">血战湘江</text>
+      <text class="lab right meta" x="46" y="19">2 关 · 1934.11</text>
+    </g>
+
+    <!-- 02 遵义 1人 -->
+    <g class="seal locked" data-level="zsb" tabindex="0" role="button"
+       aria-label="遵义会议" transform="translate(916,550)">
+      <circle class="hit" r="42"/>
+      <circle class="pulse" r="29"/>
+      <circle class="disc" r="27"/>
+      <circle class="ring" r="29"/><use class="emblem" href="#emblem" x="-22.8" y="-22.8" width="45.6" height="45.6"/>
+      <text class="glyph" y="1">遵</text>
+      <text class="idx" x="-38" y="-22">02</text>
+      <text class="lab down name" y="50">遵义会议</text>
+      <text class="lab down meta" y="66">1 关 · 1935.01</text>
+    </g>
+
+    <!-- 03 赤水 4人 -->
+    <g class="seal locked" data-level="sst,nzh,ljm,qrz" tabindex="0" role="button"
+       aria-label="四渡赤水，4 个关卡" transform="translate(786,454)">
+      <circle class="hit" r="48"/>
+      <circle class="pulse" r="36"/>
+      <circle class="disc" r="34"/>
+      <circle class="ring" r="36"/><use class="emblem" href="#emblem" x="-28.1" y="-28.1" width="56.3" height="56.3"/>
+      <text class="glyph" y="1">赤</text>
+      <text class="idx" x="-46" y="-26">03</text>
+      <text class="lab right name" x="52" y="-4">四渡赤水</text>
+      <text class="lab right meta" x="52" y="13">4 关 · 1935.01</text>
+    </g>
+
+    <!-- 04 金沙江 2人 -->
+    <g class="seal locked" data-level="cl,wxh" tabindex="0" role="button"
+       aria-label="巧渡金沙江，2 个关卡" transform="translate(664,540)">
+      <circle class="hit" r="46"/>
+      <circle class="pulse" r="32"/>
+      <circle class="disc" r="30"/>
+      <circle class="ring" r="32"/><use class="emblem" href="#emblem" x="-24.8" y="-24.8" width="49.6" height="49.6"/>
+      <text class="glyph" y="1">金</text>
+      <text class="idx" x="-42" y="-24">04</text>
+      <text class="lab down name" y="53">巧渡金沙江</text>
+      <text class="lab down meta" y="69">2 关 · 1935.05</text>
+    </g>
+
+    <!-- 05 泸定桥 4人 -->
+    <g class="seal locked" data-level="lhdq,zjx,mmx,hry" tabindex="0" role="button"
+       aria-label="飞夺泸定桥，4 个关卡" transform="translate(574,428)">
+      <circle class="hit" r="48"/>
+      <circle class="pulse" r="36"/>
+      <circle class="disc" r="34"/>
+      <circle class="ring" r="36"/><use class="emblem" href="#emblem" x="-28.1" y="-28.1" width="56.3" height="56.3"/>
+      <text class="glyph" y="1">泸</text>
+      <text class="idx" x="-46" y="-26">05</text>
+      <text class="lab left name" x="-50" y="2">飞夺泸定桥</text>
+      <text class="lab left meta" x="-50" y="19">4 关 · 1935.05</text>
+    </g>
+
+    <!-- 06 雪山 2人 -->
+    <g class="seal locked" data-level="jxf,lyc" tabindex="0" role="button"
+       aria-label="翻越夹金山，2 个关卡" transform="translate(486,340)">
+      <circle class="hit" r="46"/>
+      <circle class="pulse" r="32"/>
+      <circle class="disc" r="30"/>
+      <circle class="ring" r="32"/><use class="emblem" href="#emblem" x="-24.8" y="-24.8" width="49.6" height="49.6"/>
+      <text class="glyph" y="1">雪</text>
+      <text class="idx" x="-42" y="-24">06</text>
+      <text class="lab left name" x="-48" y="2">翻越夹金山</text>
+      <text class="lab left meta" x="-48" y="19">2 关 · 1935.06</text>
+    </g>
+
+    <!-- 07 草地 5人 -->
+    <g class="seal locked" data-level="ftm,mhm,zzy,zbw,ldy" tabindex="0" role="button"
+       aria-label="走出松潘草地，5 个关卡" transform="translate(386,268)">
+      <circle class="hit" r="50"/>
+      <circle class="pulse" r="38"/>
+      <circle class="disc" r="36"/>
+      <circle class="ring" r="38"/><use class="emblem" href="#emblem" x="-29.5" y="-29.5" width="59.0" height="59.0"/>
+      <text class="glyph" y="1">草</text>
+      <text class="idx" x="-48" y="-28">07</text>
+      <text class="lab right name" x="52" y="-4">走出草地</text>
+      <text class="lab right meta" x="52" y="13">5 关 · 1935.08</text>
+    </g>
+
+    <!-- 08 会宁：终点星章 -->
+    <g class="seal locked final" data-level="" tabindex="0" role="button"
+       aria-label="会宁会师，终章" transform="translate(246,188)">
+      <circle class="hit" r="56"/>
+      <circle class="pulse" r="44"/>
+      <circle class="disc" r="42"/>
+      <circle class="ring" r="44"/><use class="emblem" href="#emblem" x="-34.1" y="-34.1" width="68.3" height="68.3"/>
+      <path class="glyph-star" d="M0,-30 L8.8,-6.3 L33.9,-6.3 L13.7,8.3
+               L21.3,32.4 L0,18.6 L-21.3,32.4 L-13.7,8.3 L-33.9,-6.3 L-8.8,-6.3 Z"
+            fill="none" stroke="#8e897e" stroke-width="2.6" stroke-linejoin="miter"/>
+      <text class="idx" x="-56" y="-30">08</text>
+      <text class="lab right name" x="52" y="2" style="font-size:17px">会宁会师</text>
+      <text class="lab right meta" x="52" y="19">1936.10 · 终章</text>
+    </g>
+
+  </svg>
+
+  <div class="map-title">
+    <div class="bar"></div>
+    <span class="zh">山河行军图</span>
+    <span class="sub">二万五千里</span>
+  </div>
+
+  <button class="back" id="btn-back" type="button">返回主页面</button>
+
+  <div class="hint">
+    <span>点击印章进入关卡</span>
+    <span><span class="mark">●</span> 进行中　<span class="mark">○</span> 未通关　<span class="mark">◉</span> 已通关</span>
+  </div>
+</div>
+
+<div class="rotate-hint">
+  <p>请把手机横过来<br>画面按 16:9 铺开</p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  function fit() {
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    document.documentElement.style.setProperty('--s', s);
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
+
+  document.getElementById('btn-back').addEventListener('click', function () {
+    location.href = 'index.html';
+  });
+
+  var seals = document.querySelectorAll('.seal');
+
+  /* 三种状态由 .locked / .current / .done 控制，接 core 后由存档决定。
+     现在先给个默认：第一枚是"当前"，其余未通关。
+     加 ?demo=1 会额外把第二枚标成已通关，方便看党徽长什么样。 */
+  if (seals.length) {
+    seals[0].classList.remove('locked');
+    seals[0].classList.add('current');
+
+    if (/[?&]demo=1\b/.test(location.search) && seals[1]) {
+      seals[1].classList.remove('locked');
+      seals[1].classList.add('done');
+    }
+  }
+
+  for (var i = 0; i < seals.length; i++) {
+    (function (el) {
+      function go() {
+        var ids = el.getAttribute('data-level');
+        if (!ids) {
+          console.log('[map] 终章节点，暂未接入');
+          return;
+        }
+        console.log('[map] 进入关卡组：', ids.split(','));
+      }
+      el.addEventListener('click', go);
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+      });
+    })(seals[i]);
+  }
+})();
+</script>
+
+</body>
+</html>
