@@ -61,6 +61,18 @@
 
   var STAGE_W = 1280;
   var STAGE_H = 720;
+
+  /* ---------- 舞台等比缩放 ----------
+     取宽高里较小的比例，让 1280×720 的舞台既放得下、又尽量填满窗口。
+     不设上限：窗口比 1280×720 大时内容跟着放大，否则四周会有黑边。 */
+  function fit() {
+    var s = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+    document.documentElement.style.setProperty('--s', s);
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
+
   /* ---------- 存档 ----------
      8 个挡位，全部存在浏览器本地。真身在 core/save.js，这里只管界面。 */
   var savesEl = document.getElementById('saves');
@@ -176,14 +188,14 @@
     }
 
     if (s.empty) {
-      CZSave.create(s.slot);
+      if (!CZSave.create(s.slot)) { toast('存档写不进去，浏览器可能禁用了本地存储'); return; }
       go();
       return;
     }
 
     // 已有存档：第一下是确认，第二下才真的覆盖
     if (confirmSlot === s.slot) {
-      CZSave.create(s.slot);
+      if (!CZSave.create(s.slot)) { toast('存档写不进去，浏览器可能禁用了本地存储'); return; }
       go();
       return;
     }

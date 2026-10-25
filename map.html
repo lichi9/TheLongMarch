@@ -267,8 +267,10 @@
 
 <!-- 关卡容器：点卡片后在这里加载该成员的关卡（iframe，互不干扰） -->
 <div class="level-host" id="level-host" hidden>
-  <iframe class="level-frame" id="level-frame" title="关卡"></iframe>
-  <button class="level-exit" id="level-exit" type="button">退出关卡</button>
+  <div class="level-stage">
+    <iframe class="level-frame" id="level-frame" title="关卡"></iframe>
+    <button class="level-exit" id="level-exit" type="button">退出关卡</button>
+  </div>
   <div class="level-loading" id="level-loading" hidden>
     <p class="level-loading-text" id="level-loading-text">正在进入关卡…</p>
     <p class="level-loading-sub" id="level-loading-sub"></p>
@@ -300,9 +302,10 @@
   'use strict';
 
   function fit() {
-    /* 上限锁死 1：舞台就是 1280×720，窗口更大时也不要放大，
-       否则 iframe 开合这类尺寸变化会把整张图撑出视口 */
-    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720, 1);
+    /* 等比铺满：取宽高里较小的比例，保证整块舞台既放得下、
+       又尽量填满窗口。这里刻意不设上限——窗口比 1280×720 大时，
+       内容跟着放大，否则四周会留一圈黑边。 */
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
     document.documentElement.style.setProperty('--s', s);
     /* 关卡舞台也是 1280×720，跟地图用同一个缩放比例，
        这样成员按 1280×720 摆的元素在任何屏幕上都对得上位置 */
@@ -566,23 +569,25 @@
 
   levelFrame.addEventListener('load', function () {
     if (!playingId) return;
-    if (levelFrame.src === 'about:blank') return;
+
+    /* 关键：只认「当前这一关」的 load。
+       上一个关卡关闭时会把 src 设成 about:blank，那个 load 是异步的，
+       玩家手快紧接着进下一关时，它会晚一步到达。
+       不比对 URL 的话，就会把新关卡还没加载完的提示层提前关掉。 */
+    var want = 'levels/' + playingId + '/index.html';
+    if ((levelFrame.getAttribute('src') || '') !== want) return;
 
     loadedOk = true;
     clearTimeout(loadTimer);
-
-    /* 同源时能读到内容：空文档 / 纯白页基本都是路径写错或脚本报错 */
-    var bad = false;
-    try {
-      var doc = levelFrame.contentDocument;
-      if (!doc || !doc.body || doc.body.children.length === 0) bad = true;
-    } catch (e) { /* 读不到就交给超时兜底 */ }
-
-    if (bad) { showLoadError('页面是空的'); return; }
     levelLoading.hidden = true;
   });
 
-  levelExit.addEventListener('click', closeLevel);
+  /* 「退出关卡」和关卡内发 cz:exit 走同一条路：
+     关掉关卡、回到这个地点的选关面板，而不是丢在地图上让玩家重新点印章 */
+  levelExit.addEventListener('click', function () {
+    closeLevel();
+    if (currentNode) openNode(currentNode);
+  });
 
   /* ---------- 尾声 ----------
      会宁通关后播黑屏金字，播完自动回开始页 */

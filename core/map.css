@@ -541,25 +541,31 @@ html, body {
 
 .level-host[hidden] { display: none; }
 
-/* 关卡舞台固定 1280×720，再整体缩放——
-   这样成员按 1280×720 设计就有确定的坐标系，
-   不会因为别人屏幕大小不同而错位（和主地图的舞台一致）。 */
-.level-frame {
+/* 关卡舞台：固定 1280×720，再整体缩放到窗口。
+   iframe 和「退出关卡」按钮都放在这一层里，
+   所以按钮永远贴着画面右上角，不会跑到黑边上。
+   成员按 1280×720 设计就有确定的坐标系。 */
+.level-stage {
   position: absolute;
   left: 50%;
   top: 50%;
-  display: block;
   width: 1280px;
   height: 720px;
-  border: 0;
   transform: translate(-50%, -50%) scale(var(--level-s, 1));
   transform-origin: center center;
 }
 
+.level-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .level-exit {
   position: absolute;
-  right: 22px;
-  top: 22px;
+  right: 18px;
+  top: 18px;
   z-index: 2;
   padding: 9px 18px;
   border: 1px solid rgba(246, 236, 214, 0.42);
@@ -668,7 +674,10 @@ html, body {
 /* ---------- 关卡加载 / 失败提示 ---------- */
 .level-loading {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 5;
   display: flex;
   flex-direction: column;

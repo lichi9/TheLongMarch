@@ -75,12 +75,14 @@
     return readSaves()[slot - 1] || null;
   }
 
-  /** 新建（或覆盖）一个挡位，并切过去 */
+  /** 新建（或覆盖）一个挡位，并切过去。
+      写不进去时返回 null——调用方必须检查，否则玩家会以为建了档、
+      实际下次进来是空的（隐私模式、存储被禁用时就会这样）。 */
   function create(slot) {
     var list = readSaves();
     var now = Date.now();
     list[slot - 1] = { createdAt: now, playedAt: now, progress: [] };
-    writeSaves(list);
+    if (!writeSaves(list)) return null;
     setActive(slot);
     return list[slot - 1];
   }
