@@ -34,7 +34,20 @@
       if (!Array.isArray(list)) return blankList();
       // 补齐到 8 个，防止手改或旧数据缺位
       while (list.length < SLOTS) list.push(null);
-      return list.slice(0, SLOTS);
+      list = list.slice(0, SLOTS);
+
+      /* 规范化每个挡位的形状。
+         localStorage 被手工改坏、或哪天数据结构升级后残留的旧数据，
+         都可能缺字段或类型不对——不在这里兜住，summary / pushProgress
+         会直接抛异常，开始页面板整个打不开。 */
+      for (var i = 0; i < list.length; i++) {
+        var s = list[i];
+        if (!s || typeof s !== 'object') { list[i] = null; continue; }
+        if (!Array.isArray(s.progress)) s.progress = [];
+        if (typeof s.createdAt !== 'number') s.createdAt = Date.now();
+        if (typeof s.playedAt !== 'number') s.playedAt = s.createdAt;
+      }
+      return list;
     } catch (e) {
       return blankList();
     }

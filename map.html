@@ -403,19 +403,30 @@
       sc.src = 'levels/' + id + '/meta.js';
       sc.onload = sc.onerror = function () {
         sc.onload = sc.onerror = null;
+        if (sc.parentNode) sc.parentNode.removeChild(sc);   // 执行完就摘掉
         if (--n === 0) done();
       };
       document.head.appendChild(sc);
     });
   }
 
-  /* 卡片先按 id 渲染，meta 到货后再换名字——不阻塞打开面板 */
+  /* 卡片先渲染，名字等 meta 到货再填——
+     填之前留空，避免「id 闪一下变关卡名」；
+     meta 加载失败（onerror）也会走到这里，那时退回显示 id。 */
   function refreshCardNames() {
-    var labels = cardsBox.querySelectorAll('.card-id');
-    for (var i = 0; i < labels.length; i++) {
-      var card = labels[i].parentNode;
-      var name = metaName(card.getAttribute('data-id'));
-      if (name) labels[i].textContent = name;
+    var cards = cardsBox.querySelectorAll('.card');
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var id = card.getAttribute('data-id');
+      var name = metaName(id) || id;
+
+      var label = card.querySelector('.card-id');
+      if (label) label.textContent = name;
+
+      // aria-label 和可见文字保持一致，屏幕阅读器读到的也是关卡名
+      card.setAttribute('aria-label', !card.disabled
+        ? '进入 ' + name + ' 的关卡'
+        : name + ' 尚未解锁，请先完成左边的关卡');
     }
   }
 
@@ -444,9 +455,6 @@
       btn.type = 'button';
       btn.setAttribute('data-id', id);
       btn.disabled = !usable;
-      btn.setAttribute('aria-label', usable
-        ? '进入 ' + id + ' 的关卡'
-        : id + ' 尚未解锁，请先完成左边的关卡');
 
       var pic = document.createElement('span');
       pic.className = 'card-pic';
@@ -466,7 +474,7 @@
 
       var label = document.createElement('span');
       label.className = 'card-id';
-      label.textContent = metaName(id) || id;
+      label.textContent = metaName(id);   // meta 没到货时先空着，refreshCardNames 会填
 
       btn.appendChild(pic);
       btn.appendChild(label);
