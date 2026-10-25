@@ -43,25 +43,62 @@
         <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"
                            xChannelSelector="R" yChannelSelector="G"/>
       </filter>
-
-      <symbol id="emblem" viewBox="-24 -24 48 48">
-        <!-- 镰刀：大弧包住锤子，开口朝右下 -->
-        <path d="M-13,-11 A17,17 0 0,1 15,11 L19.5,7 A21.5,21.5 0 0,0 -17,-15.5 Z"
-              fill="#f7efe0"/>
-        <!-- 镰刀柄 -->
-        <rect x="-22" y="-18" width="11" height="4.6" rx="1"
-              fill="#f7efe0" transform="rotate(42 -16 -16)"/>
-        <!-- 锤柄：右下到左上 -->
-        <rect x="-2.3" y="-14" width="4.6" height="30" rx="1"
-              fill="#f7efe0" transform="rotate(-38)"/>
-        <!-- 锤头：柄的左上端 -->
-        <rect x="-8.6" y="-20" width="17.2" height="7.6" rx="1.6"
-              fill="#f7efe0" transform="rotate(-38)"/>
-      </symbol>
+      <pattern id="p-xiangjiang" width="1" height="1" patternContentUnits="objectBoundingBox">
+        <image href="assets/brand/map/xiangjiang.webp" width="1" height="1"
+               preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <pattern id="p-zunyi" width="1" height="1" patternContentUnits="objectBoundingBox">
+        <image href="assets/brand/map/zunyi.webp" width="1" height="1"
+               preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <pattern id="p-chishui" width="1" height="1" patternContentUnits="objectBoundingBox">
+        <image href="assets/brand/map/chishui.webp" width="1" height="1"
+               preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <pattern id="p-jinshajiang" width="1" height="1" patternContentUnits="objectBoundingBox">
+        <image href="assets/brand/map/jinshajiang.webp" width="1" height="1"
+               preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <pattern id="p-ludingqiao" width="1" height="1" patternContentUnits="objectBoundingBox">
+        <image href="assets/brand/map/ludingqiao.webp" width="1" height="1"
+               preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <pattern id="p-xueshan" width="1" height="1" patternContentUnits="objectBoundingBox">
+        <image href="assets/brand/map/xueshan.webp" width="1" height="1"
+               preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <pattern id="p-caodi" width="1" height="1" patternContentUnits="objectBoundingBox">
+        <image href="assets/brand/map/caodi.webp" width="1" height="1"
+               preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <pattern id="p-huining" width="1" height="1" patternContentUnits="objectBoundingBox">
+        <image href="assets/brand/map/huining.webp" width="1" height="1"
+               preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <!-- 场景图边缘羽化 -->
+      <radialGradient id="softFade" cx="50%" cy="50%" r="50%">
+        <stop offset="0"    stop-color="#fff" stop-opacity="1"/>
+        <stop offset="0.32" stop-color="#fff" stop-opacity="0.62"/>
+        <stop offset="1"    stop-color="#fff" stop-opacity="0"/>
+      </radialGradient>
+      <mask id="soft" maskContentUnits="objectBoundingBox">
+        <rect width="1" height="1" fill="url(#softFade)"/>
+      </mask>
     </defs>
 
     <!-- 宣纸底 -->
     <rect width="1280" height="720" fill="#f2e9d6"/>
+
+    <!-- ============ 场景底层：每个节点对应的水墨小景 ============ -->
+    <image class="scene-img" href="assets/brand/map/yudu.webp" x="970" y="406" width="400" height="372" mask="url(#soft)"/>
+    <image class="scene-img" href="assets/brand/map/xiangjiang.webp" x="846" y="312" width="400" height="372" mask="url(#soft)"/>
+    <image class="scene-img" href="assets/brand/map/zunyi.webp" x="716" y="364" width="400" height="372" mask="url(#soft)"/>
+    <image class="scene-img" href="assets/brand/map/chishui.webp" x="586" y="268" width="400" height="372" mask="url(#soft)"/>
+    <image class="scene-img" href="assets/brand/map/jinshajiang.webp" x="464" y="354" width="400" height="372" mask="url(#soft)"/>
+    <image class="scene-img" href="assets/brand/map/ludingqiao.webp" x="374" y="242" width="400" height="372" mask="url(#soft)"/>
+    <image class="scene-img" href="assets/brand/map/xueshan.webp" x="286" y="154" width="400" height="372" mask="url(#soft)"/>
+    <image class="scene-img" href="assets/brand/map/caodi.webp" x="186" y="82" width="400" height="372" mask="url(#soft)"/>
+    <image class="scene-img" href="assets/brand/map/huining.webp" x="46" y="2" width="400" height="372" mask="url(#soft)"/>
 
     <!-- ============ 抽象山峦：三层色带，不画任何具体地形 ============ -->
     <!-- 远山 -->
@@ -109,7 +146,6 @@
       <path d="M0,0 L0,-46" stroke="#1b1916" stroke-width="3"/>
       <path d="M2,-44 L30,-35 L2,-26 Z" fill="#c12b22"/>
       <text x="0" y="24" class="lab down name" style="font-size:13px">于都出发</text>
-      <text x="0" y="40" class="lab down meta">1934.10 · 序章</text>
     </g>
 
     <!-- ================= 印章节点 ================= -->
@@ -120,122 +156,98 @@
     <g class="seal locked" data-level="hzh,mt" tabindex="0" role="button"
        aria-label="血战湘江，2 个关卡" transform="translate(1046,498)">
       <circle class="hit" r="46"/>
-      <circle class="pulse" r="32"/>
-      <circle class="disc" r="30"/>
-      <circle class="ring" r="32"/><use class="emblem" href="#emblem" x="-24.8" y="-24.8" width="49.6" height="49.6"/>
+      <circle class="ring" r="32"/><circle class="pulse" r="37.0"/>
       <text class="glyph" y="1">湘</text>
       <text class="idx" x="-42" y="-24">01</text>
       <text class="lab right name" x="46" y="2">血战湘江</text>
-      <text class="lab right meta" x="46" y="19">2 关 · 1934.11</text>
     </g>
 
     <!-- 02 遵义 1人 -->
     <g class="seal locked" data-level="zsb" tabindex="0" role="button"
        aria-label="遵义会议" transform="translate(916,550)">
       <circle class="hit" r="42"/>
-      <circle class="pulse" r="29"/>
-      <circle class="disc" r="27"/>
-      <circle class="ring" r="29"/><use class="emblem" href="#emblem" x="-22.8" y="-22.8" width="45.6" height="45.6"/>
+      <circle class="ring" r="29"/><circle class="pulse" r="34.0"/>
       <text class="glyph" y="1">遵</text>
       <text class="idx" x="-38" y="-22">02</text>
       <text class="lab down name" y="50">遵义会议</text>
-      <text class="lab down meta" y="66">1 关 · 1935.01</text>
     </g>
 
     <!-- 03 赤水 4人 -->
     <g class="seal locked" data-level="sst,nzh,ljm,qrz" tabindex="0" role="button"
        aria-label="四渡赤水，4 个关卡" transform="translate(786,454)">
       <circle class="hit" r="48"/>
-      <circle class="pulse" r="36"/>
-      <circle class="disc" r="34"/>
-      <circle class="ring" r="36"/><use class="emblem" href="#emblem" x="-28.1" y="-28.1" width="56.3" height="56.3"/>
+      <circle class="ring" r="36"/><circle class="pulse" r="41.0"/>
       <text class="glyph" y="1">赤</text>
       <text class="idx" x="-46" y="-26">03</text>
       <text class="lab right name" x="52" y="-4">四渡赤水</text>
-      <text class="lab right meta" x="52" y="13">4 关 · 1935.01</text>
     </g>
 
     <!-- 04 金沙江 2人 -->
     <g class="seal locked" data-level="cl,wxh" tabindex="0" role="button"
        aria-label="巧渡金沙江，2 个关卡" transform="translate(664,540)">
       <circle class="hit" r="46"/>
-      <circle class="pulse" r="32"/>
-      <circle class="disc" r="30"/>
-      <circle class="ring" r="32"/><use class="emblem" href="#emblem" x="-24.8" y="-24.8" width="49.6" height="49.6"/>
+      <circle class="ring" r="32"/><circle class="pulse" r="37.0"/>
       <text class="glyph" y="1">金</text>
       <text class="idx" x="-42" y="-24">04</text>
       <text class="lab down name" y="53">巧渡金沙江</text>
-      <text class="lab down meta" y="69">2 关 · 1935.05</text>
     </g>
 
     <!-- 05 泸定桥 4人 -->
     <g class="seal locked" data-level="lhdq,zjx,mmx,hry" tabindex="0" role="button"
        aria-label="飞夺泸定桥，4 个关卡" transform="translate(574,428)">
       <circle class="hit" r="48"/>
-      <circle class="pulse" r="36"/>
-      <circle class="disc" r="34"/>
-      <circle class="ring" r="36"/><use class="emblem" href="#emblem" x="-28.1" y="-28.1" width="56.3" height="56.3"/>
+      <circle class="ring" r="36"/><circle class="pulse" r="41.0"/>
       <text class="glyph" y="1">泸</text>
       <text class="idx" x="-46" y="-26">05</text>
       <text class="lab left name" x="-50" y="2">飞夺泸定桥</text>
-      <text class="lab left meta" x="-50" y="19">4 关 · 1935.05</text>
     </g>
 
     <!-- 06 雪山 2人 -->
     <g class="seal locked" data-level="jxf,lyc" tabindex="0" role="button"
        aria-label="翻越夹金山，2 个关卡" transform="translate(486,340)">
       <circle class="hit" r="46"/>
-      <circle class="pulse" r="32"/>
-      <circle class="disc" r="30"/>
-      <circle class="ring" r="32"/><use class="emblem" href="#emblem" x="-24.8" y="-24.8" width="49.6" height="49.6"/>
+      <circle class="ring" r="32"/><circle class="pulse" r="37.0"/>
       <text class="glyph" y="1">雪</text>
       <text class="idx" x="-42" y="-24">06</text>
       <text class="lab left name" x="-48" y="2">翻越夹金山</text>
-      <text class="lab left meta" x="-48" y="19">2 关 · 1935.06</text>
     </g>
 
     <!-- 07 草地 5人 -->
     <g class="seal locked" data-level="ftm,mhm,zzy,zbw,ldy" tabindex="0" role="button"
        aria-label="走出松潘草地，5 个关卡" transform="translate(386,268)">
       <circle class="hit" r="50"/>
-      <circle class="pulse" r="38"/>
-      <circle class="disc" r="36"/>
-      <circle class="ring" r="38"/><use class="emblem" href="#emblem" x="-29.5" y="-29.5" width="59.0" height="59.0"/>
+      <circle class="ring" r="38"/><circle class="pulse" r="43.0"/>
       <text class="glyph" y="1">草</text>
       <text class="idx" x="-48" y="-28">07</text>
       <text class="lab right name" x="52" y="-4">走出草地</text>
-      <text class="lab right meta" x="52" y="13">5 关 · 1935.08</text>
     </g>
 
     <!-- 08 会宁：终点星章 -->
     <g class="seal locked final" data-level="" tabindex="0" role="button"
        aria-label="会宁会师，终章" transform="translate(246,188)">
       <circle class="hit" r="56"/>
-      <circle class="pulse" r="44"/>
-      <circle class="disc" r="42"/>
-      <circle class="ring" r="44"/><use class="emblem" href="#emblem" x="-34.1" y="-34.1" width="68.3" height="68.3"/>
+      <circle class="ring" r="44"/><circle class="pulse" r="49.0"/>
       <path class="glyph-star" d="M0,-30 L8.8,-6.3 L33.9,-6.3 L13.7,8.3
                L21.3,32.4 L0,18.6 L-21.3,32.4 L-13.7,8.3 L-33.9,-6.3 L-8.8,-6.3 Z"
             fill="none" stroke="#8e897e" stroke-width="2.6" stroke-linejoin="miter"/>
       <text class="idx" x="-56" y="-30">08</text>
       <text class="lab right name" x="52" y="2" style="font-size:17px">会宁会师</text>
-      <text class="lab right meta" x="52" y="19">1936.10 · 终章</text>
     </g>
 
   </svg>
 
-  <div class="map-title">
-    <div class="bar"></div>
-    <span class="zh">山河行军图</span>
-    <span class="sub">二万五千里</span>
-  </div>
-
   <button class="back" id="btn-back" type="button">返回主页面</button>
 
   <div class="hint">
-    <span>点击印章进入关卡</span>
-    <span><span class="mark">●</span> 进行中　<span class="mark">○</span> 未通关　<span class="mark">◉</span> 已通关</span>
+    <span>点击进入关卡</span>
+    <span class="legend">
+      <svg class="lg" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="#c8483a"/><circle cx="9" cy="9" r="8.5" fill="none" stroke="#c8483a" stroke-width="1" opacity=".45"/></svg>进行中
+      <svg class="lg" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" fill="none" stroke="#c8483a" stroke-width="2" stroke-dasharray="3 2.6"/></svg>未通关
+      <svg class="lg" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" fill="none" stroke="#c8483a" stroke-width="2.6"/></svg>已通关
+    </span>
   </div>
+
+  <div class="tip" id="tip" role="status"></div>
 </div>
 
 <div class="rotate-hint">
@@ -259,19 +271,65 @@
   });
 
   var seals = document.querySelectorAll('.seal');
+  var tip = document.getElementById('tip');
+  var stage = document.getElementById('stage');
 
-  /* 三种状态由 .locked / .current / .done 控制，接 core 后由存档决定。
-     现在先给个默认：第一枚是"当前"，其余未通关。
-     加 ?demo=1 会额外把第二枚标成已通关，方便看党徽长什么样。 */
+  /* 三种状态的提示语 */
+  var TIPS = {
+    locked:  '请先完成前面的关卡',
+    done:    '重新体验',
+    current: '继续'
+  };
+
+  function stateOf(el) {
+    if (el.classList.contains('current')) return 'current';
+    if (el.classList.contains('done')) return 'done';
+    return 'locked';
+  }
+
+  /* 把视口坐标换算到 1280×720 的舞台坐标 */
+  function toStage(clientX, clientY) {
+    var r = stage.getBoundingClientRect();
+    var k = r.width / 1280 || 1;
+    return { x: (clientX - r.left) / k, y: (clientY - r.top) / k };
+  }
+
+  function showTip(el, ev) {
+    if (!tip) return;
+    tip.textContent = TIPS[stateOf(el)];
+    var p = toStage(ev.clientX, ev.clientY);
+    tip.style.left = p.x + 'px';
+    tip.style.top = p.y + 'px';
+    tip.classList.add('show');
+  }
+
+  function hideTip() {
+    if (tip) tip.classList.remove('show');
+  }
+
+  /* 默认：第一枚是"当前"，其余未通关。
+     ?demo=1 演示完整进度：第一枚已通关、第二枚进行中，其余未通关。 */
   if (seals.length) {
     seals[0].classList.remove('locked');
     seals[0].classList.add('current');
 
-    if (/[?&]demo=1\b/.test(location.search) && seals[1]) {
-      seals[1].classList.remove('locked');
-      seals[1].classList.add('done');
+    if (/[?&]demo=1\b/.test(location.search)) {
+      seals[0].classList.remove('current');
+      seals[0].classList.add('done');
+      if (seals[1]) {
+        seals[1].classList.remove('locked');
+        seals[1].classList.add('current');
+      }
+      if (seals[2]) {
+        seals[2].classList.remove('locked');
+        seals[2].classList.add('done');
+      }
     }
   }
+
+
+
+
 
   for (var i = 0; i < seals.length; i++) {
     (function (el) {
@@ -284,6 +342,14 @@
         console.log('[map] 进入关卡组：', ids.split(','));
       }
       el.addEventListener('click', go);
+      el.addEventListener('mouseenter', function (e) { showTip(el, e); });
+      el.addEventListener('mousemove', function (e) { showTip(el, e); });
+      el.addEventListener('mouseleave', hideTip);
+      el.addEventListener('focus', function () {
+        var r = el.getBoundingClientRect();
+        showTip(el, { clientX: r.left + r.width / 2, clientY: r.top });
+      });
+      el.addEventListener('blur', hideTip);
       el.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
       });

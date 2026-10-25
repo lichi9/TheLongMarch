@@ -120,33 +120,30 @@ html, body {
 .seal {
   cursor: pointer;
   outline: none;
-  transform-box: fill-box;
+  /* 不在 g 上做缩放：g 的包围盒含标签文字，缩放中心会偏，
+     而且 CSS 的 scale 独立属性在 SVG <g> 上不可靠。
+     缩放只作用在圆环本身（圆的包围盒中心就是圆心，绝不会移位）。 */
 }
 
 .seal .hit { fill: transparent; }
 
-/* 外圈底：默认给宣纸色。SVG 的默认 fill 是黑色，
-   不写的话未通关节点会变成一排黑点 */
+/* 场景底层：铺在地图上的水墨小景 */
+.scene-img {
+  opacity: 0.42;
+  filter: saturate(0.45) brightness(1.06);
+}
+
+/* 外圈 */
 .seal .ring {
-  fill: rgba(242, 233, 214, 0.86);
+  fill: none;
   stroke: var(--red);
   stroke-width: 3;
-  transition: stroke 180ms ease, fill 180ms ease;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: stroke-width 200ms ease, stroke 200ms ease, rotate 280ms cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
-.seal .disc {
-  fill: var(--red);
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-
-.seal .emblem {
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-
-/* 脉冲圈：默认必须显式设 fill:none。
-   SVG 的默认 fill 是黑色，漏了这一行的话未通关的节点会变成一个个黑圆。 */
+/* 脉冲圈：显式 fill:none，否则 SVG 默认黑色填充，未通关时就成黑点 */
 .seal .pulse {
   fill: none;
   stroke: none;
@@ -155,133 +152,144 @@ html, body {
   transform-origin: center;
 }
 
-/* ---- 未通关：宣纸底 + 朱砂虚线圈 ---- */
-.seal.locked .ring {
-  stroke: var(--red);
-  stroke-width: 2.6;
-  stroke-dasharray: 5 4;
-  fill: rgba(242, 233, 214, 0.86);
-}
-
-.seal.locked .glyph { fill: rgba(178, 58, 44, 0.72); }
-.seal.locked .name { fill: var(--ink); }
-.seal.locked .meta { fill: rgba(43, 43, 38, 0.62); }
-
-/* ---- 已通关：红实心 + 党徽 ---- */
-.seal.done .ring {
-  stroke: var(--red-deep);
-  stroke-width: 3;
-  fill: rgba(178, 58, 44, 0.94);
-}
-
-.seal.done .disc { opacity: 0; }
-.seal.done .emblem { opacity: 1; }
-.seal.done .glyph { opacity: 0; }
-
-/* ---- 进行中：红圈 + 扩散脉冲 ---- */
-.seal.current .ring {
-  stroke: var(--red-bright);
-  stroke-width: 3.6;
-  fill: rgba(242, 233, 214, 0.92);
-}
-
-.seal.current .pulse {
-  stroke: var(--red-bright);
-  stroke-width: 2.4;
-  opacity: 1;
-  animation: ripple 2.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
-}
-
-.seal.current .glyph { fill: var(--red); }
-
-@keyframes ripple {
-  0%   { transform: scale(1);   opacity: 0.62; }
-  70%  {                        opacity: 0.10; }
-  100% { transform: scale(1.85); opacity: 0; }
-}
-
-/* ---- 鼠标反馈 ---- */
-.seal:not(.locked):hover .ring { stroke-width: 4.2; }
-.seal.locked:hover .ring { stroke: var(--ink); stroke-dasharray: none; }
-.seal:focus-visible .ring { stroke: var(--gold); stroke-width: 4; }
-
-/* ---- 文字 ---- */
+/* 字：白字深描边，压在任何插画上都读得清 */
 .seal .glyph {
-  fill: var(--red);
+  fill: #fff8ea;
+  stroke: rgba(90, 22, 14, 0.92);
+  stroke-width: 3.6;
+  paint-order: stroke;
+  stroke-linejoin: round;
   font-family: var(--brush);
-  font-size: 30px;
+  font-size: 31px;
   font-weight: 700;
   text-anchor: middle;
   dominant-baseline: central;
   pointer-events: none;
-  transition: opacity 180ms ease;
 }
 
-.seal .name {
-  fill: var(--ink);
-  font-family: var(--sans);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-anchor: middle;
-  pointer-events: none;
-  /* 米白描边当光晕，压在地形和路线上也读得清 */
-  paint-order: stroke;
-  stroke: var(--paper);
-  stroke-width: 4;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.seal .meta {
-  fill: rgba(43, 43, 38, 0.6);
-  font-family: var(--song);
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  text-anchor: middle;
-  pointer-events: none;
-  paint-order: stroke;
-  stroke: #f2e9d6;
-  stroke-width: 3.5;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-/* 序号：构成主义的编号感 */
-.seal .idx {
-  fill: var(--red);
-  font-family: var(--song);
-  font-size: 12px;
-  paint-order: stroke;
-  stroke: #f2e9d6;
-  stroke-width: 3;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-anchor: middle;
-  pointer-events: none;
-}
-
-/* 会宁的星形轮廓（未通关时是灰描边） */
+/* 会宁的星形：同样白描边 */
 .seal .glyph-star {
-  fill: rgba(242, 233, 214, 0.9);
-  stroke: var(--red);
+  fill: rgba(240, 230, 207, 0.28);
+  stroke: #fff8ea;
   stroke-width: 3;
   stroke-linejoin: miter;
   pointer-events: none;
-  transition: fill 180ms ease, stroke 180ms ease;
 }
 
-.seal.done .glyph-star {
-  fill: #f7efe0;
-  stroke: none;
+/* ---- 未通关：红色虚线 ---- */
+.seal.locked .ring {
+  stroke: var(--red);
+  stroke-width: 2.8;
+  stroke-dasharray: 7 6;
 }
 
-/* 标签朝向：密集处靠左右错开，避免互相压住 */
+.seal.locked .scene { opacity: 0.55; }
+
+/* ---- 已通关：红色实线圈 ---- */
+.seal.done .ring {
+  stroke: var(--red);
+  stroke-width: 4;
+}
+
+/* ---- 进行中：红圈 + 扩散脉冲 ---- */
+.seal.current .ring {
+  stroke: var(--red-bright);
+  stroke-width: 5;
+  filter: drop-shadow(0 0 5px rgba(200, 72, 58, 0.65));
+}
+
+.seal.current .pulse {
+  stroke: var(--red-bright);
+  stroke-width: 3.2;
+  opacity: 0.8;
+  animation: ripple 2.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+@keyframes ripple {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  70%  {                         opacity: 0.12; }
+  100% { transform: scale(1.78); opacity: 0; }
+}
+
+/* ---- 悬停：圆环微微放大并旋转 ---- */
+.seal .ring,
+.seal .pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1),
+              stroke-width 200ms ease;
+}
+
+.seal:hover .ring,
+.seal:focus-visible .ring {
+  transform: scale(1.14) rotate(7deg);
+  stroke-width: 5;
+}
+
+.seal:hover .pulse,
+.seal:focus-visible .pulse {
+  transform: scale(1.14) rotate(7deg);
+}
+
+/* ---- 名称标签 ---- */
+.seal .name {
+  fill: var(--ink);
+  font-family: var(--song);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #f2e9d6;
+  stroke-width: 5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* 标签朝向：密集处靠左右错开 */
 .seal .lab { pointer-events: none; }
 .seal .lab.down,
 .seal .lab.up    { text-anchor: middle; }
 .seal .lab.left  { text-anchor: end; }
 .seal .lab.right { text-anchor: start; }
+
+/* 序号 */
+.seal .idx {
+  fill: var(--red);
+  font-family: var(--song);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #f2e9d6;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+/* ---------- 悬停提示 ---------- */
+.tip {
+  position: absolute;
+  z-index: 8;
+  padding: 7px 14px;
+  border-radius: 2px;
+  background: rgba(38, 32, 26, 0.92);
+  color: #f6ecd6;
+  font: 400 13px/1 var(--song);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, -8px);
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.tip.show {
+  opacity: 1;
+  transform: translate(-50%, -14px);
+}
 
 /* ---------- 底部信息条 ---------- */
 .hint {
@@ -300,7 +308,19 @@ html, body {
   pointer-events: none;
 }
 
-.hint .mark { color: var(--red-bright); font-weight: 700; }
+.hint .legend {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  letter-spacing: 2px;
+}
+
+.hint .lg {
+  width: 17px;
+  height: 17px;
+  margin-right: 7px;
+  vertical-align: -3px;
+}
 
 /* ---------- 竖屏提示 ---------- */
 .rotate-hint {
