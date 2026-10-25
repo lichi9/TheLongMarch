@@ -5,16 +5,19 @@
    ============================================================ */
 
 :root {
-  --paper:      #e9e2d1;
-  --paper-dim:  #dcd3bd;
-  --red:        #c12b22;
+  --paper:      #f2e9d6;
+  --paper-dim:  #e6d9bd;
+  --red:        #b23a2c;
   --red-deep:   #8a1a12;
-  --red-bright: #e03a2c;
-  --ink:        #1b1916;
+  --red-bright: #c8483a;
+  --ink:        #2b2b26;
   --grey:       #8e897e;
   --gold:       #c9a24a;
 
   --sans: "SimHei", "Heiti SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+  /* 国风：标题用行楷，标注用宋体 */
+  --brush: "STXingkai", "华文行楷", "STKaiti", "KaiTi", serif;
+  --song: "Songti SC", "STSong", "SimSun", serif;
 }
 
 * { box-sizing: border-box; }
@@ -53,9 +56,15 @@ html, body {
 /* ---------- 标题：构成主义的大字块 ---------- */
 .map-title {
   position: absolute;
-  left: 54px;
-  top: 30px;
+  left: 0;
+  top: 26px;
+  padding: 14px 110px 16px 54px;
   pointer-events: none;
+  /* 题跋：左实右虚，压在山上也读得清 */
+  background: linear-gradient(90deg,
+    rgba(242, 233, 214, 0.92) 0%,
+    rgba(242, 233, 214, 0.74) 58%,
+    rgba(242, 233, 214, 0) 100%);
 }
 
 .map-title .bar {
@@ -67,16 +76,17 @@ html, body {
 
 .map-title .zh {
   display: block;
-  font: 700 38px/1 var(--sans);
+  font: 700 46px/1.1 var(--brush);
   color: var(--ink);
-  letter-spacing: 10px;
+  letter-spacing: 6px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .map-title .sub {
   display: block;
-  margin-top: 9px;
-  font: 400 13px/1 var(--sans);
-  color: var(--grey);
+  margin-top: 10px;
+  font: 400 14px/1 var(--song);
+  color: rgba(43, 43, 38, 0.6);
   letter-spacing: 6px;
 }
 
@@ -115,9 +125,10 @@ html, body {
 
 .seal .hit { fill: transparent; }
 
-/* 外圈底 */
+/* 外圈底：默认给宣纸色。SVG 的默认 fill 是黑色，
+   不写的话未通关节点会变成一排黑点 */
 .seal .ring {
-  fill: none;
+  fill: rgba(242, 233, 214, 0.86);
   stroke: var(--red);
   stroke-width: 3;
   transition: stroke 180ms ease, fill 180ms ease;
@@ -144,35 +155,34 @@ html, body {
   transform-origin: center;
 }
 
-/* ---- 未通关：灰圈 ---- */
+/* ---- 未通关：宣纸底 + 朱砂虚线圈 ---- */
 .seal.locked .ring {
-  stroke: var(--grey);
+  stroke: var(--red);
   stroke-width: 2.6;
   stroke-dasharray: 5 4;
+  fill: rgba(242, 233, 214, 0.86);
 }
 
-.seal.locked .glyph {
-  fill: var(--grey);
-}
-
-.seal.locked .name { fill: var(--grey); }
-.seal.locked .meta { fill: rgba(142, 137, 126, 0.7); }
+.seal.locked .glyph { fill: rgba(178, 58, 44, 0.72); }
+.seal.locked .name { fill: var(--ink); }
+.seal.locked .meta { fill: rgba(43, 43, 38, 0.62); }
 
 /* ---- 已通关：红实心 + 党徽 ---- */
 .seal.done .ring {
   stroke: var(--red-deep);
   stroke-width: 3;
-  fill: none;
+  fill: rgba(178, 58, 44, 0.94);
 }
 
-.seal.done .disc { opacity: 1; }
+.seal.done .disc { opacity: 0; }
 .seal.done .emblem { opacity: 1; }
 .seal.done .glyph { opacity: 0; }
 
 /* ---- 进行中：红圈 + 扩散脉冲 ---- */
 .seal.current .ring {
   stroke: var(--red-bright);
-  stroke-width: 3.4;
+  stroke-width: 3.6;
+  fill: rgba(242, 233, 214, 0.92);
 }
 
 .seal.current .pulse {
@@ -198,8 +208,8 @@ html, body {
 /* ---- 文字 ---- */
 .seal .glyph {
   fill: var(--red);
-  font-family: var(--sans);
-  font-size: 26px;
+  font-family: var(--brush);
+  font-size: 30px;
   font-weight: 700;
   text-anchor: middle;
   dominant-baseline: central;
@@ -224,24 +234,27 @@ html, body {
 }
 
 .seal .meta {
-  fill: rgba(27, 25, 22, 0.55);
-  font-family: var(--sans);
+  fill: rgba(43, 43, 38, 0.6);
+  font-family: var(--song);
   font-size: 11px;
   letter-spacing: 0.5px;
   text-anchor: middle;
   pointer-events: none;
   paint-order: stroke;
-  stroke: var(--paper);
-  stroke-width: 3;
+  stroke: #f2e9d6;
+  stroke-width: 3.5;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
 /* 序号：构成主义的编号感 */
 .seal .idx {
-  fill: var(--grey);
-  font-family: var(--sans);
-  font-size: 11px;
+  fill: var(--red);
+  font-family: var(--song);
+  font-size: 12px;
+  paint-order: stroke;
+  stroke: #f2e9d6;
+  stroke-width: 3;
   font-weight: 700;
   letter-spacing: 1px;
   text-anchor: middle;
@@ -250,9 +263,9 @@ html, body {
 
 /* 会宁的星形轮廓（未通关时是灰描边） */
 .seal .glyph-star {
-  fill: none;
-  stroke: var(--grey);
-  stroke-width: 2.6;
+  fill: rgba(242, 233, 214, 0.9);
+  stroke: var(--red);
+  stroke-width: 3;
   stroke-linejoin: miter;
   pointer-events: none;
   transition: fill 180ms ease, stroke 180ms ease;

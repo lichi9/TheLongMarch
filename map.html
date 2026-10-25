@@ -13,17 +13,37 @@
 
   <svg class="map" viewBox="0 0 1280 720" aria-label="山河行军图，点击印章进入关卡">
     <defs>
-      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-        <path d="M40,0 L0,0 L0,40" fill="none" stroke="#1b1916"
-              stroke-width="0.6" opacity="0.075"/>
-      </pattern>
       <linearGradient id="redline" x1="0" y1="1" x2="1" y2="0">
-        <stop offset="0"   stop-color="#8a1a12"/>
-        <stop offset="0.5" stop-color="#c12b22"/>
-        <stop offset="1"   stop-color="#a02018"/>
+        <stop offset="0"   stop-color="#8f2519"/>
+        <stop offset="0.5" stop-color="#b23a2c"/>
+        <stop offset="1"   stop-color="#9b2b1d"/>
       </linearGradient>
 
-      <!-- 党徽：镰刀锤头，几何简化，用于「已通关」印章内 -->
+      <!-- 三层山的墨色，越远越淡 -->
+      <linearGradient id="peakFar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#8a7a62" stop-opacity="0.30"/>
+        <stop offset="1" stop-color="#8a7a62" stop-opacity="0.05"/>
+      </linearGradient>
+      <linearGradient id="peakMid" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#7d6d57" stop-opacity="0.34"/>
+        <stop offset="1" stop-color="#7d6d57" stop-opacity="0.04"/>
+      </linearGradient>
+      <linearGradient id="peakNear" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#6b5c47" stop-opacity="0.30"/>
+        <stop offset="1" stop-color="#6b5c47" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="water" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#b23a2c" stop-opacity="0.16"/>
+        <stop offset="1" stop-color="#b23a2c" stop-opacity="0.03"/>
+      </linearGradient>
+
+      <!-- 枯笔：让朱砂线带一点毛笔飞白 -->
+      <filter id="drybrush" x="-8%" y="-8%" width="116%" height="116%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.08 0.4" numOctaves="3" seed="12" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"
+                           xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+
       <symbol id="emblem" viewBox="-24 -24 48 48">
         <!-- 镰刀：大弧包住锤子，开口朝右下 -->
         <path d="M-13,-11 A17,17 0 0,1 15,11 L19.5,7 A21.5,21.5 0 0,0 -17,-15.5 Z"
@@ -40,125 +60,36 @@
       </symbol>
     </defs>
 
-    <!-- 纸底 + 网格 -->
-    <rect width="1280" height="720" fill="#e9e2d1"/>
-    <rect width="1280" height="720" fill="url(#grid)"/>
+    <!-- 宣纸底 -->
+    <rect width="1280" height="720" fill="#f2e9d6"/>
 
-    <!-- 构成主义几何元素：斜块、大对角线 -->
-    <g pointer-events="none">
-      <!-- 左上红块，托住标题 -->
-      <path d="M0,0 L330,0 L262,96 L0,96 Z" fill="#c12b22" opacity="0.10"/>
-      <path d="M0,0 L14,0 L14,720 L0,720 Z" fill="#c12b22"/>
-      <!-- 贯穿的细斜线 -->
-      <path d="M-40,700 L1320,60" stroke="#1b1916" stroke-width="1" opacity="0.16"/>
-      <path d="M-40,748 L1320,108" stroke="#1b1916" stroke-width="1" opacity="0.10"/>
-      <!-- 右下几何块 -->
-      <path d="M1280,720 L1280,536 L1076,720 Z" fill="#1b1916" opacity="0.07"/>
-      <!-- 会宁附近的一点分量 -->
-      <circle cx="246" cy="188" r="86" fill="#c12b22" opacity="0.05"/>
-    </g>
+    <!-- ============ 抽象山峦：三层色带，不画任何具体地形 ============ -->
+    <!-- 远山 -->
+    <path d="M0,246 C150,212 296,268 452,236 C608,204 754,262 910,232
+             C1066,202 1180,250 1280,224 L1280,720 L0,720 Z"
+          fill="url(#peakFar)"/>
+    <!-- 中山 -->
+    <path d="M0,338 C140,300 300,356 462,322 C624,288 786,346 948,314
+             C1110,282 1200,330 1280,306 L1280,720 L0,720 Z"
+          fill="url(#peakMid)"/>
+    <!-- 近山 -->
+    <path d="M0,452 C170,416 330,470 500,438 C670,406 836,460 1006,430
+             C1146,406 1220,442 1280,424 L1280,720 L0,720 Z"
+          fill="url(#peakNear)"/>
 
-    <!-- 等高线（很轻，只是暗示地形） -->
-    <g fill="none" stroke="#1b1916" stroke-width="0.9" opacity="0.10" pointer-events="none">
-      <ellipse cx="1120" cy="612" rx="180" ry="64" transform="rotate(-12 1120 612)"/>
-      <ellipse cx="1120" cy="612" rx="132" ry="44" transform="rotate(-12 1120 612)"/>
-      <ellipse cx="520" cy="318" rx="112" ry="72" transform="rotate(9 520 318)"/>
-      <ellipse cx="520" cy="318" rx="76"  ry="46" transform="rotate(9 520 318)"/>
-      <ellipse cx="900" cy="124" rx="144" ry="48" transform="rotate(4 900 124)"/>
-    </g>
+    <!-- 山脊线：只勾最上层，克制 -->
+    <path d="M0,246 C150,212 296,268 452,236 C608,204 754,262 910,232
+             C1066,202 1180,250 1280,224"
+          fill="none" stroke="#7d6d57" stroke-width="1.4" opacity="0.28"/>
+    <path d="M0,338 C140,300 300,356 462,322 C624,288 786,346 948,314
+             C1110,282 1200,330 1280,306"
+          fill="none" stroke="#5c5548" stroke-width="1.4" opacity="0.22"/>
 
-    <!-- ================= 地形场景 ================= -->
-    <!-- 每个节点对应一片几何化的场景符号，压得很淡，只做背景层 -->
-    <g class="terrain" pointer-events="none">
-
-      <!-- 于都 · 湘江：江河水域 -->
-      <path d="M1280,720 L1280,352 L740,720 Z" fill="#c12b22" opacity="0.075"/>
-      <g stroke="#c12b22" stroke-width="1.7" fill="none" opacity="0.20">
-        <path d="M886,700 L948,670 L1010,700 L1072,670 L1134,700 L1196,670"/>
-        <path d="M926,656 L988,626 L1050,656 L1112,626 L1174,656"/>
-        <path d="M1046,612 L1108,582 L1170,612 L1232,582"/>
-        <path d="M986,568 L1048,538 L1110,568 L1172,538"/>
-      </g>
-
-      <!-- 湘江→遵义：连绵丘陵 -->
-      <g stroke="#1b1916" stroke-width="1.8" fill="none" opacity="0.20">
-        <path d="M782,628 L822,578 L862,628 L902,572 L942,628 L982,580
-                 L1022,628 L1062,568 L1102,628"/>
-      </g>
-
-      <!-- 遵义：城郭剪影 -->
-      <g transform="translate(916,550)" fill="#1b1916" opacity="0.16">
-        <rect x="-52" y="20" width="20" height="30"/>
-        <rect x="-26" y="8"  width="15" height="42"/>
-        <rect x="-6"  y="24" width="22" height="26"/>
-        <rect x="22"  y="12" width="17" height="38"/>
-        <path d="M-52,20 L-42,10 L-32,20 Z"/>
-        <path d="M22,12 L30.5,2 L39,12 Z"/>
-      </g>
-
-      <!-- 赤水：分叉河道 -->
-      <g transform="translate(786,454)" stroke="#c12b22" stroke-width="2.4"
-         fill="none" opacity="0.22">
-        <path d="M-112,-18 L-64,-36 L-20,-12 L26,-32 L74,-10"/>
-        <path d="M-78,20 L-36,4 L10,24 L56,6"/>
-      </g>
-
-      <!-- 金沙江：大弧江面 -->
-      <g transform="translate(664,540)" stroke="#c12b22" stroke-width="2.6"
-         fill="none" opacity="0.24">
-        <path d="M-118,50 C-44,12 44,12 118,50"/>
-        <path d="M-102,70 C-32,38 32,38 102,70"/>
-      </g>
-
-      <!-- 泸定桥：两根铁索 + 桥板 -->
-      <g transform="translate(574,428)" stroke="#1b1916" stroke-width="2"
-         fill="none" opacity="0.24">
-        <path d="M-104,32 L104,-18"/>
-        <path d="M-104,48 L104,-2"/>
-        <g stroke-width="1.2" opacity="0.85">
-          <path d="M-72,26 L-72,42"/>
-          <path d="M-36,16 L-36,32"/>
-          <path d="M0,6 L0,22"/>
-          <path d="M36,-4 L36,12"/>
-          <path d="M72,-14 L72,2"/>
-        </g>
-      </g>
-
-      <!-- 雪山群：折线山脊，不画等腰三角（那看着像帐篷） -->
-      <g transform="translate(486,332)">
-        <!-- 远山：淡黑剪影 -->
-        <path d="M-104,54 L-78,18 L-58,34 L-36,-14 L-16,26 L4,6 L22,40 L40,18 L60,54 Z"
-              fill="#1b1916" opacity="0.10"/>
-        <!-- 主山：米白带黑边 -->
-        <path d="M-46,58 L-24,28 L-12,40 L10,-18 L30,22 L42,10 L58,58 Z"
-              fill="#f7efe0" stroke="#1b1916" stroke-width="2.2" stroke-linejoin="miter"/>
-        <!-- 雪线：主山脊上方压一道深色 -->
-        <path d="M10,-18 L18,4 L12,0 L4,8 L-2,0 L-10,6 L-14,-2 L-22,18 L-14,10 Z"
-              fill="#1b1916" opacity="0.20"/>
-      </g>
-
-      <!-- 草地：草丛 -->
-      <g transform="translate(386,268)" stroke="#1b1916" stroke-width="1.4"
-         fill="none" opacity="0.24">
-        <path d="M-96,46 l0,-13 M-88,46 l0,-18 M-80,46 l0,-11"/>
-        <path d="M-64,52 l0,-15 M-56,52 l0,-10 M-48,52 l0,-17"/>
-        <path d="M28,58 l0,-14 M36,58 l0,-20 M44,58 l0,-12"/>
-        <path d="M62,50 l0,-16 M70,50 l0,-11 M78,50 l0,-19"/>
-      </g>
-      <g transform="translate(386,268)" fill="none" stroke="#c12b22"
-         stroke-width="1.6" opacity="0.20">
-        <ellipse cx="-30" cy="34" rx="20" ry="7"/>
-        <ellipse cx="96" cy="26" rx="15" ry="5.5"/>
-      </g>
-
-      <!-- 会宁：放射线 -->
-      <g transform="translate(246,188)" stroke="#c12b22" stroke-width="1.7" opacity="0.15">
-        <path d="M-52,-34 L-104,-70"/>
-        <path d="M-56,-14 L-118,-18"/>
-        <path d="M-44,-50 L-76,-96"/>
-        <path d="M40,32 L92,66"/>
-        <path d="M46,14 L108,20"/>
-      </g>
+    <!-- 右下：江面，横向波纹 -->
+    <path d="M740,720 L1280,600 L1280,720 Z" fill="url(#water)"/>
+    <g stroke="#b23a2c" stroke-width="1.8" fill="none" opacity="0.3">
+      <path d="M768,690 L848,682 L928,690 L1008,682 L1088,690 L1168,682 L1240,690"/>
+      <path d="M820,716 L900,708 L980,716 L1060,708 L1140,716 L1220,708"/>
     </g>
 
     <!-- ================= 行军路线 ================= -->
