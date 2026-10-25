@@ -290,6 +290,7 @@
   <p>请把手机横过来<br>画面按 16:9 铺开</p>
 </div>
 
+<script src="core/save.js"></script>
 <script>
 (function () {
   'use strict';
@@ -305,6 +306,7 @@
   window.addEventListener('orientationchange', fit);
 
   document.getElementById('btn-back').addEventListener('click', function () {
+    if (window.CZSave) CZSave.touch();   // 记一下「上次游玩时间」
     location.href = 'index.html';
   });
 
@@ -443,23 +445,19 @@
   /* ---------- 进度 ----------
      存在 localStorage 的 cz.progress 里，值是【已通关的成员 id】数组。
      一个事件里只要有一个人通关，这个事件就算过了（并联，谁都不卡谁）。 */
-  var PROGRESS_KEY = 'cz.progress';
-
+  /* 进度直接存在当前存档挡位里（真身在 core/save.js）。
+     没有挡位时（比如直接打开 map.html）读到的就是空进度，
+     游戏照样能玩，只是不落盘。 */
   function loadProgress() {
-    try {
-      var raw = localStorage.getItem(PROGRESS_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) { return []; }
+    return (window.CZSave && CZSave.activeProgress()) || [];
   }
 
   function saveProgress(list) {
-    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(list)); } catch (e) {}
+    if (window.CZSave) CZSave.setProgress(list);
   }
 
   function markDone(id) {
-    var list = loadProgress();
-    if (list.indexOf(id) < 0) list.push(id);
-    saveProgress(list);
+    if (window.CZSave) CZSave.pushProgress(id);
   }
 
   /* 按进度刷新节点：已通关 = done，第一个没过的 = current，后面全 locked */
@@ -505,7 +503,10 @@
 
   function enterLevel(id) {
     playingId = id;
-    levelFrame.src = 'levels/' + id + '/test/index.html';
+    /* 约定：入口固定为 levels/<id>/index.html。
+       成员只要保证这个文件存在、能在里面 postMessage 通关即可，
+       主程序不用为任何一个人改代码。 */
+    levelFrame.src = 'levels/' + id + '/index.html';
     levelHost.hidden = false;
     closePanel();
   }

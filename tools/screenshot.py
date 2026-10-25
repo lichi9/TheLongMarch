@@ -67,7 +67,7 @@ def shot(page, out, w=1280, h=720, query=''):
         '--run-all-compositor-stages-before-draw',
         '--force-device-scale-factor=1',
         '--window-size=%d,%d' % (w, h),
-        '--virtual-time-budget=5000',
+        '--virtual-time-budget=12000',   # 给足时间，否则入场动画会停在半透明中间态
         '--screenshot=' + str(ROOT / out),
         url,
     ]
