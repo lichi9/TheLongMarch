@@ -375,6 +375,50 @@
   var lastFocus = null;
   var currentNode = null;   // 当前打开的是哪个地点，通关后要回到它
 
+  /* ---------- 关卡名 ----------
+     成员在自己文件夹里放 meta.js 定义卡片上显示的名字。
+     file:// 下 fetch / XHR 会被 CORS 拦（origin 是 null），
+     只有动态插 <script> 能读到本地文件，所以走这条路。
+     没有 meta.js 的关卡自动退回用 id，不会报错。 */
+  var metaLoaded = {};
+
+  function metaName(id) {
+    var m = window.CZ_META && window.CZ_META[id];
+    return (m && m.name) ? m.name : '';
+  }
+
+  function loadMetas(ids, done) {
+    var todo = [];
+    ids.forEach(function (id) {
+      if (metaLoaded[id]) return;
+      metaLoaded[id] = true;
+      todo.push(id);
+    });
+
+    if (!todo.length) { done(); return; }
+
+    var n = todo.length;
+    todo.forEach(function (id) {
+      var sc = document.createElement('script');
+      sc.src = 'levels/' + id + '/meta.js';
+      sc.onload = sc.onerror = function () {
+        sc.onload = sc.onerror = null;
+        if (--n === 0) done();
+      };
+      document.head.appendChild(sc);
+    });
+  }
+
+  /* 卡片先按 id 渲染，meta 到货后再换名字——不阻塞打开面板 */
+  function refreshCardNames() {
+    var labels = cardsBox.querySelectorAll('.card-id');
+    for (var i = 0; i < labels.length; i++) {
+      var card = labels[i].parentNode;
+      var name = metaName(card.getAttribute('data-id'));
+      if (name) labels[i].textContent = name;
+    }
+  }
+
   function openNode(el) {
     currentNode = el;
     var raw = el.getAttribute('data-level') || '';
@@ -398,6 +442,7 @@
       var btn = document.createElement('button');
       btn.className = 'card' + (isDone ? ' is-done' : '') + (usable ? '' : ' is-locked');
       btn.type = 'button';
+      btn.setAttribute('data-id', id);
       btn.disabled = !usable;
       btn.setAttribute('aria-label', usable
         ? '进入 ' + id + ' 的关卡'
@@ -421,7 +466,7 @@
 
       var label = document.createElement('span');
       label.className = 'card-id';
-      label.textContent = id;
+      label.textContent = metaName(id) || id;
 
       btn.appendChild(pic);
       btn.appendChild(label);
@@ -444,6 +489,7 @@
     stage.classList.add('is-dim');
     hideTip();
 
+    loadMetas(ids, refreshCardNames);
   }
 
   function closePanel() {

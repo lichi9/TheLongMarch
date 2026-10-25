@@ -46,6 +46,7 @@ TheLongMarch/
 │  └─ <缩写>/
 │     ├─ index.html        入口页（主程序加载的就是它）
 │     ├─ level.js          关卡逻辑
+│     ├─ meta.js           关卡名（显示在选关卡片上）
 │     ├─ style.css         关卡样式
 │     ├─ cover.webp        选关面板的封面
 │     ├─ assets/           关卡素材（必须入库）
