@@ -39,7 +39,7 @@ html, body {
   position: relative;
   flex: none;
   width: 322px;
-  padding: 58px 42px 44px;
+  padding: 52px 42px 40px;
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(120, 95, 60, .18);
@@ -64,8 +64,8 @@ html, body {
 }
 
 .spine-title {
-  margin: 20px 0 16px;
-  font-size: 46px;
+  margin: 16px 0 12px;
+  font-size: 44px;
   line-height: 1.15;
   letter-spacing: 8px;
   color: #8a1a12;
@@ -74,16 +74,53 @@ html, body {
 .spine-sub {
   margin: 0;
   font-size: 13px;
-  line-height: 2;
+  line-height: 1.9;
   letter-spacing: 1px;
   color: #6b5c47;
+}
+
+/* 出席者 */
+.roster-cap {
+  margin: 26px 0 6px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #9a7a58;
+}
+
+.roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.roster li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dotted rgba(150, 120, 80, .22);
+}
+
+.roster b {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  color: #423426;
+}
+
+.roster span {
+  font-size: 11px;
+  letter-spacing: .5px;
+  color: #9a7a58;
+  white-space: nowrap;
 }
 
 /* 朱印 */
 .seal {
   margin-top: auto;
-  width: 96px;
-  height: 96px;
+  width: 88px;
+  height: 88px;
   border: 2px solid #a8322a;
   color: #a8322a;
   display: flex;
@@ -91,7 +128,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1;
   letter-spacing: 2px;
   transform: rotate(-5deg);
@@ -103,7 +140,7 @@ html, body {
 .desk {
   flex: 1;
   min-width: 0;
-  padding: 46px 58px 40px;
+  padding: 44px 58px 38px;
   display: flex;
   flex-direction: column;
 }
@@ -111,8 +148,8 @@ html, body {
 .desk-head {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 18px;
   font-size: 12px;
   letter-spacing: 2px;
   color: #7d6d57;
@@ -120,17 +157,23 @@ html, body {
 
 .step-no { color: #8a1a12; }
 
+.day {
+  padding-left: 14px;
+  border-left: 1px solid rgba(150, 120, 80, .3);
+  color: #9a7a58;
+}
+
 .dots {
   list-style: none;
   display: flex;
-  gap: 8px;
+  gap: 7px;
   margin: 0;
   padding: 0;
 }
 
 .dots li {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border: 1px solid #b9a88c;
   border-radius: 50%;
 }
@@ -161,7 +204,7 @@ html, body {
   position: relative;
   flex: 1;
   min-height: 0;
-  padding: 36px 42px 32px;
+  padding: 34px 42px 30px;
   display: flex;
   flex-direction: column;
   background: #fbf5e6;
@@ -178,9 +221,9 @@ html, body {
 }
 
 .prompt {
-  margin: 0 0 22px;
-  font-size: 24px;
-  line-height: 1.65;
+  margin: 0 0 20px;
+  font-size: 23px;
+  line-height: 1.6;
   letter-spacing: .5px;
   color: #3a2c1f;
 }
@@ -190,21 +233,21 @@ html, body {
 .options {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .opt {
   display: flex;
-  gap: 14px;
+  gap: 13px;
   align-items: flex-start;
   width: 100%;
-  padding: 15px 18px;
+  padding: 13px 17px;
   text-align: left;
   background: #fffdf7;
   border: 1px solid #ddcdad;
   color: #423426;
   font-family: inherit;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.55;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
@@ -224,8 +267,8 @@ html, body {
 .mark {
   flex: none;
   color: #8a1a12;
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.65;
 }
 
 .opt-text { flex: 1; }
@@ -240,11 +283,25 @@ html, body {
 
 .opt.is-wrong .mark { color: #b9a88c; }
 
-/* 记对：朱笔一圈 */
+/* 记对：朱笔一圈，盖一个「录」 */
 .opt.is-right {
   border-color: #8a1a12;
   background: #fdf0e2;
   box-shadow: inset 0 0 0 1px rgba(138, 26, 18, .14);
+}
+
+.opt.is-right::after {
+  content: '录';
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #a8322a;
+  border-radius: 50%;
+  color: #a8322a;
+  font-size: 13px;
+  line-height: 24px;
+  text-align: center;
+  transform: rotate(-8deg);
 }
 
 .opt:disabled { opacity: 1; }
@@ -253,10 +310,10 @@ html, body {
 
 .note {
   margin: auto 0 0;
-  padding: 16px 0 0;
-  min-height: 54px;
+  padding: 14px 0 0;
+  min-height: 50px;
   border-top: 1px dashed #ddcdad;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.8;
   color: #6b5c47;
 }
@@ -266,8 +323,8 @@ html, body {
 
 .next {
   align-self: flex-end;
-  margin-top: 14px;
-  padding: 12px 26px;
+  margin-top: 12px;
+  padding: 11px 26px;
   border: 0;
   background: #8a1a12;
   color: #f9f0da;
@@ -287,7 +344,7 @@ html, body {
 
 [hidden] { display: none !important; }
 
-/* ---------- 闭幕：决议 ---------- */
+/* ---------- 闭幕：会议纪要 ---------- */
 
 .verdict {
   display: flex;
@@ -303,32 +360,46 @@ html, body {
 }
 
 .verdict-title {
-  margin: 12px 0 20px;
-  font-size: 40px;
+  margin: 10px 0 16px;
+  font-size: 36px;
   letter-spacing: 8px;
   color: #8a1a12;
 }
 
-.verdict-list {
+.recap {
+  list-style: none;
   margin: 0;
-  padding-left: 20px;
+  padding: 0;
 }
 
-.verdict-list li {
-  margin: 10px 0;
-  font-size: 18px;
-  line-height: 1.7;
+.recap li {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(160, 130, 90, .16);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.rec-no {
+  flex: none;
+  width: 56px;
+  letter-spacing: 1px;
+  color: #8a1a12;
+}
+
+.rec-text {
+  flex: 1;
   color: #423426;
 }
 
-.verdict-list li::marker { color: #a8322a; }
-
 .verdict-note {
-  margin: 20px 0 0;
-  padding-top: 16px;
+  margin: 16px 0 0;
+  padding-top: 14px;
   border-top: 1px dashed #ddcdad;
-  font-size: 15px;
-  line-height: 1.8;
+  font-size: 14px;
+  line-height: 1.75;
   color: #6b5c47;
 }
 
@@ -338,9 +409,9 @@ html, body {
 .hall.is-done .sheet::after {
   content: '归档';
   position: absolute;
-  right: 30px;
-  bottom: 22px;
-  font-size: 64px;
+  right: 26px;
+  bottom: 18px;
+  font-size: 58px;
   letter-spacing: 10px;
   color: rgba(168, 50, 42, .13);
   transform: rotate(-8deg);

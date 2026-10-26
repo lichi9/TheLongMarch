@@ -1,8 +1,9 @@
 /* ============================================================
    遵义会议 · 会场记录
 
-   玩法：你是会议记录员。三天会议按四项议程推进，每一项要在
-   几个说法里挑出与史实相符的那一条记下来；记错会留下涂改。
+   玩法：你是会议记录员。会议按议程一项项推进，每一项要在几个
+   说法里挑出与史实相符的那一条记下来；记错会留下涂改。
+   六项议程走完，会议纪要归档，通关。
 
    接入方式（见 docs/level-api.md）：
      - 入口 levels/zsb/index.html
@@ -15,11 +16,36 @@
 
   var LETTERS = ['甲', '乙', '丙'];
 
-  /* 四项议程。ok: true 的那条才是会议记录该写下的。 */
+  /* 六项议程。ok: true 的那条才是会议记录该写下的；
+     recap 是收尾时「会议纪要」那一行。 */
   var STEPS = [
     {
+      no: '会前',
+      day: '一九三四年十二月 — 一九三五年一月',
+      prompt: '湘江一战，中央红军从八万六千人减到三万余人。进贵州后一路都在争：仗该怎么打？',
+      options: [
+        {
+          t: '先开个会，把第五次反“围剿”以来的军事路线摊开谈。',
+          ok: true,
+          why: '从通道到黎平、猴场，争论一路没停；到遵义，终于坐下来开政治局扩大会议。',
+          recap: '会前争论不休，到遵义才坐下来总结'
+        },
+        {
+          t: '按原计划北上，与红二、六军团会合。',
+          ok: false,
+          why: '原定路线正撞进敌军重兵，黎平会议已经改了方向。'
+        },
+        {
+          t: '先等共产国际回电，再定下一步。',
+          ok: false,
+          why: '电台联系早已中断，等不来指示。'
+        }
+      ]
+    },
+    {
       no: '第一项',
-      prompt: '博古作第五次反“围剿”的总结报告，把失利归因于敌强我弱。这一句怎么记？',
+      day: '一月十五日',
+      prompt: '博古作关于第五次反“围剿”的总结报告，把失利归因于敌强我弱。这一句怎么记？',
       options: [
         {
           t: '照原话记：责任在客观条件，军事指挥没有问题。',
@@ -29,18 +55,21 @@
         {
           t: '记下分歧：多数同志认为，主因是军事指挥上的错误。',
           ok: true,
-          why: '记下了。会议从这里转向对“左”倾军事路线的批评。'
+          why: '记下了。会议从这里转向对“左”倾军事路线的批评。',
+          recap: '主报告强调客观困难，多数同志不同意'
         }
       ]
     },
     {
       no: '第二项',
-      prompt: '周恩来作副报告，主动承担责任。接下来要有人系统批评军事路线，谁讲？',
+      day: '一月十五日',
+      prompt: '周恩来作副报告，主动承担责任。随后要有人系统批评军事路线，谁来讲？',
       options: [
         {
           t: '张闻天（洛甫）作反报告，毛泽东随后作长篇发言。',
           ok: true,
-          why: '两人的发言把军事指挥上的错误摆到了桌面上。'
+          why: '两人的发言把军事指挥上的错误摆到了桌面上。',
+          recap: '周恩来主动担责，张闻天反报告，毛泽东长篇发言'
         },
         {
           t: '请李德说明堡垒战术的道理。',
@@ -56,12 +85,37 @@
     },
     {
       no: '第三项',
-      prompt: '三天会下来，决议里最关键的一条是——',
+      day: '一月十五日',
+      prompt: '毛泽东讲完，会场沉默了一会儿。接下来谁先开口？',
+      options: [
+        {
+          t: '王稼祥先表态支持，朱德、陈云、刘少奇等随后发言。',
+          ok: true,
+          why: '王稼祥的明确支持，后来被毛泽东称作“关键的一票”。',
+          recap: '王稼祥首先表态，朱德、陈云等相继支持'
+        },
+        {
+          t: '无人表态，会议草草收场。',
+          ok: false,
+          why: '会场不是冷的——支持的声音很快就起来了。'
+        },
+        {
+          t: '李德起立反驳，会议转去争论战术细节。',
+          ok: false,
+          why: '李德为自己的方案辩解，但没能扭转会场。'
+        }
+      ]
+    },
+    {
+      no: '第四项',
+      day: '一月十六日',
+      prompt: '会议进入组织问题。最关键的一条是——',
       options: [
         {
           t: '增选毛泽东为政治局常委，取消“三人团”，仍由朱德、周恩来指挥军事。',
           ok: true,
-          why: '这一条改变了此后红军的行军方式。'
+          why: '这一条改变了此后红军的行军方式。',
+          recap: '增选毛泽东为政治局常委，取消“三人团”'
         },
         {
           t: '撤销朱德、周恩来的指挥权，另派他人接手。',
@@ -76,21 +130,23 @@
       ]
     },
     {
-      no: '第四项',
-      prompt: '会议要把总结写成正式决议。谁来起草？',
+      no: '第五项',
+      day: '一月十七日',
+      prompt: '会议闭幕前还有两件收尾的事：决议由谁起草，会后由谁负总责？',
       options: [
         {
-          t: '委托张闻天起草《中共中央关于反对敌人五次“围剿”的总结的决议》。',
+          t: '委托张闻天起草决议；会后常委分工，由张闻天代替博古负总责。',
           ok: true,
-          why: '决议随后经政治局会议通过，成了全党的口径。'
+          why: '决议随后经政治局会议通过；中央的日常工作改由张闻天主持。',
+          recap: '张闻天起草决议，会后代替博古负总责'
         },
         {
-          t: '由博古起草，维持原有结论。',
+          t: '由博古起草，仍由他负总责。',
           ok: false,
           why: '原有结论正是这场会议要纠正的东西。'
         },
         {
-          t: '暂不起草，等共产国际的指示。',
+          t: '决议暂缓，等共产国际批准。',
           ok: false,
           why: '会议要的是一份自己的总结。'
         }
@@ -111,11 +167,21 @@
       '    <p class="spine-date">1935 · 1 · 15 — 17</p>',
       '    <h1 class="spine-title">遵义会议</h1>',
       '    <p class="spine-sub">贵州 · 遵义老城<br>政治局扩大会议</p>',
+      '    <p class="roster-cap">出席（部分）</p>',
+      '    <ul class="roster">',
+      '      <li><b>博古</b><span>临时中央总负责人</span></li>',
+      '      <li><b>周恩来</b><span>中革军委副主席</span></li>',
+      '      <li><b>张闻天</b><span>政治局委员</span></li>',
+      '      <li><b>毛泽东</b><span>政治局委员</span></li>',
+      '      <li><b>朱德</b><span>红军总司令</span></li>',
+      '      <li><b>王稼祥</b><span>政治局候补委员</span></li>',
+      '    </ul>',
       '    <div class="seal" aria-hidden="true"><span>遵</span><span>义</span></div>',
       '  </aside>',
       '  <section class="desk">',
       '    <header class="desk-head">',
-      '      <span class="step-no js-step">第一项</span>',
+      '      <span class="step-no js-step">会前</span>',
+      '      <span class="day js-day"></span>',
       '      <ol class="dots js-dots"></ol>',
       '      <span class="slips">涂改 <b class="js-err">0</b> 处</span>',
       '    </header>',
@@ -131,12 +197,13 @@
   }
 
   function mount(root, ctx) {
-    var state = { step: 0, mistakes: 0, answered: false, finished: false };
+    var state = { step: 0, mistakes: 0, answered: false, finished: false, records: [] };
     var ui = {};
 
     root.innerHTML = shell();
 
     ui.step = root.querySelector('.js-step');
+    ui.day = root.querySelector('.js-day');
     ui.dots = root.querySelector('.js-dots');
     ui.err = root.querySelector('.js-err');
     ui.sheet = root.querySelector('.js-sheet');
@@ -151,6 +218,7 @@
     ui.dotItems = root.querySelectorAll('.dots li');
 
     ui.next.addEventListener('click', advance);
+    global.document.addEventListener('keydown', onKey);
 
     renderStep();
 
@@ -162,6 +230,7 @@
 
       state.answered = false;
       ui.step.textContent = step.no;
+      ui.day.textContent = step.day;
       ui.prompt.textContent = step.prompt;
       ui.note.textContent = '';
       ui.note.className = 'note js-note';
@@ -214,6 +283,7 @@
       }
 
       state.answered = true;
+      state.records[state.step] = opt.recap;
       btn.className = 'opt is-right';
       lockOptions();
       say(opt.why, 'good');
@@ -243,6 +313,23 @@
       renderStep();
     }
 
+    function onKey(e) {
+      if (state.finished) return;
+      var k = e.key;
+      if (k === 'Enter' && !ui.next.hidden) {
+        e.preventDefault();
+        advance();
+        return;
+      }
+      if (k < '1' || k > '3') return;
+      var idx = Number(k) - 1;
+      var btns = ui.options.querySelectorAll('.opt');
+      if (btns[idx] && !btns[idx].disabled) {
+        e.preventDefault();
+        btns[idx].click();
+      }
+    }
+
     /* ---------- 收尾 ---------- */
 
     function showVerdict() {
@@ -252,23 +339,24 @@
       } else if (state.mistakes <= 2) {
         grade = '涂改 ' + state.mistakes + ' 处，关键的地方都记对了。';
       } else {
-        grade = '涂改 ' + state.mistakes + ' 处——好在决议还是立住了。';
+        grade = '涂改 ' + state.mistakes + ' 处——好在纪要还是立住了。';
       }
 
       var html = ['<div class="verdict">',
         '<p class="verdict-eyebrow">一九三五年一月十七日 · 会议闭幕</p>',
-        '<h2 class="verdict-title">决议立住了</h2>',
-        '<ul class="verdict-list">'];
-      for (var i = 0; i < VERDICT.length; i++) {
-        html.push('<li>' + VERDICT[i] + '</li>');
+        '<h2 class="verdict-title">会议纪要</h2>',
+        '<ol class="recap">'];
+      for (var i = 0; i < STEPS.length; i++) {
+        html.push('<li><span class="rec-no">' + STEPS[i].no + '</span>'
+          + '<span class="rec-text">' + (state.records[i] || '') + '</span></li>');
       }
-      html.push('</ul>');
+      html.push('</ol>');
       html.push('<p class="verdict-note js-grade"></p>');
       html.push('<button class="next js-finish" type="button">结束记录，继续行军</button>');
       html.push('</div>');
 
       ui.sheet.innerHTML = html.join('');
-      ui.sheet.querySelector('.js-grade').textContent = grade;
+      ui.sheet.querySelector('.js-grade').textContent = grade + '　决议：' + VERDICT.join('；') + '。';
       ui.sheet.querySelector('.js-finish').addEventListener('click', finish);
 
       for (var d = 0; d < ui.dotItems.length; d++) {
