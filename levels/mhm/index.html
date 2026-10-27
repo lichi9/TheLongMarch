@@ -9,5 +9,33 @@
 <body>
 <div id="stage"></div>
 <script src="level.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var stage = document.getElementById('stage');
+  var ctx = {
+    hint: function (message) {
+      var help = stage.querySelector('.help');
+      if (help) help.textContent = message;
+    },
+    on: function (element, eventName, handler) {
+      element.addEventListener(eventName, handler);
+    },
+    finish: function (score) {
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'cz:done', score: score }, '*');
+      } else {
+        ctx.hint('通关！你已抵达铁索终点。');
+      }
+    },
+    fail: function (reason) {
+      ctx.hint('任务失败：' + reason + '。刷新页面重新开始。');
+    }
+  };
+
+  window.LEVEL.mount(stage, ctx);
+})();
+</script>
 </body>
 </html>
