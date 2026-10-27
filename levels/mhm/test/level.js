@@ -1,33 +1,64 @@
+/* ============================================================
+   测试关卡 · 点一下屏幕就通关
+
+   这是关卡的最小骨架，照它写你自己的：
+     1. 定义 mount(root, ctx)
+     2. 往 root 里塞你自己的 DOM（root 是普通 div，不是 ShadowRoot）
+     3. 通关时调 ctx.complete()
+
+   直接双击 index.html 就能玩，不需要服务器、不需要构建。
+   ============================================================ */
 (function (global) {
   'use strict';
 
   function mount(root, ctx) {
-    root.innerHTML = '<div class="march"><div class="sky"></div><div class="ridge"></div><div class="trail"></div><div class="history">1935.5.29 · 飞夺泸定桥后</div><div class="supply">炊事桶 · 铜提盒 · 医疗箱</div><div class="goal">铁索终点</div><div class="mud" style="left:260px;top:450px"></div><div class="mud" style="left:450px;top:320px"></div><div class="mud" style="left:640px;top:500px"></div><div class="mud" style="left:800px;top:350px"></div><div class="mud" style="left:990px;top:230px"></div><div class="runner"><i></i><b></b><em></em></div><div class="help">WASD / 方向键移动 · 躲开泥坑，抵达终点</div></div>';
-    var player = root.querySelector('.runner'), x = 70, y = 560, ended = false;
-    var pits = [[260, 450], [450, 320], [640, 500], [800, 350], [990, 230]];
-    function draw() { player.style.left = x + 'px'; player.style.top = y + 'px'; }
-    ctx.hint('使用 WASD 或方向键移动，避开泥坑并抵达铁索终点。');
-    ctx.on(root, 'pointerdown', function () { root.focus(); });
-    root.tabIndex = 0;
-    ctx.on(root, 'keydown', function (e) {
-      if (ended) return;
-      var key = e.key.toLowerCase(), dx = 0, dy = 0;
-      if (key === 'arrowup' || key === 'w') dy = -22;
-      else if (key === 'arrowdown' || key === 's') dy = 22;
-      else if (key === 'arrowleft' || key === 'a') dx = -22;
-      else if (key === 'arrowright' || key === 'd') dx = 22;
-      else return;
-      e.preventDefault();
-      var nx = Math.max(34, Math.min(1246, x + dx)), ny = Math.max(50, Math.min(670, y + dy));
-      for (var i = 0; i < pits.length; i++) {
-        var px = nx - pits[i][0], py = ny - pits[i][1];
-        if (px * px / 8464 + py * py / 4096 < 1) { ended = true; ctx.fail('陷入泥坑'); return; }
+    root.innerHTML =
+      '<div class="probe">' +
+      '  <p class="probe-main">点击屏幕，通关</p>' +
+      '  <p class="probe-sub">测试关卡 · 流程通了就换成你自己的</p>' +
+      '</div>';
+
+    var box = root.querySelector('.probe');
+    var done = false;
+
+    function finish() {
+      if (done) return;
+      done = true;
+
+      // 接入 core 之后，通关由它推进（core 还没写，这里是预留接口）
+      if (ctx && typeof ctx.complete === 'function') {
+        ctx.complete();
+        return;
       }
-      x = nx; y = ny; draw();
-      if (x > 1160 && y < 190) { ended = true; ctx.finish(100); }
-    });
-    draw();
+
+      // 被主游戏用 iframe 嵌进来时：什么都别自己演，
+      // 直接通知外面，过场动画统一由主程序播（保证全站一致）。
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'cz:done' }, '*');
+          return;
+        }
+      } catch (e) {}
+
+      // 只有单独双击打开 index.html 时，才自己收个尾
+      box.classList.add('is-done');
+      box.querySelector('.probe-main').textContent = '通关';
+      box.querySelector('.probe-sub').textContent = '流程已通，把 level.js 换成你自己的吧';
+    }
+
+    box.addEventListener('click', finish);
   }
 
-  global.LEVEL = { mount: mount };
+  global.TEST_LEVEL = { mount: mount };
+
+  // 独立打开时自己挂上去
+  var stage = document.getElementById('stage');
+  if (stage && !stage.dataset.mounted) {
+    stage.dataset.mounted = '1';
+    mount(stage, null);
+  }
 })(window);
+
+  /* 想在关卡里放一个自己的「返回」按钮，就调：
+       window.parent.postMessage({ type: 'cz:exit' }, '*');
+     主程序会关掉关卡、回到选关面板，不算通关。 */
