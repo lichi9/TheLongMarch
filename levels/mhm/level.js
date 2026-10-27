@@ -1,66 +1,33 @@
-/* ============================================================
-   关卡入口 —— 这就是你要改的文件
-
-   主程序用 iframe 加载本文件夹的 index.html，所以只要保证三件事：
-
-     1. index.html 存在（已经有了，一般不用动）
-     2. 画面能画出来（改 style.css 和这个 level.js）
-     3. 通关时 postMessage 一声 —— 见下面的 finish()
-     4. 想自己加「返回」按钮，发 { type: 'cz:exit' } 即可（见文件末尾注释）
-
-   现在它是「点一下就通关」的最小示例。先原样跑通，
-   确认从地图能进、能回，再把里面的东西换成你自己的。
-
-   直接双击 index.html 也能玩，不需要服务器、不需要构建。
-   ============================================================ */
 (function (global) {
   'use strict';
 
   function mount(root, ctx) {
-    root.innerHTML =
-      '<div class="probe">' +
-      '  <p class="probe-main">点击屏幕，通关</p>' +
-      '  <p class="probe-sub">这是示例，换成你自己的关卡</p>' +
-      '</div>';
-
-    var box = root.querySelector('.probe');
-    var done = false;
-
-    function finish() {
-      if (done) return;
-      done = true;
-
-      /* ★ 最重要的一行 ★
-         嵌在游戏里时，通关必须用 postMessage 通知主程序，
-         否则你这边跑完了，地图那边不知道，关卡会一直挂着。 */
-      try {
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({ type: 'cz:done' }, '*');
-          return;
-        }
-      } catch (e) {}
-
-      // 单独双击打开（没有主程序）时，自己收个尾
-      box.classList.add('is-done');
-      box.querySelector('.probe-main').textContent = '通关';
-      box.querySelector('.probe-sub').textContent = '流程已通，开始做你自己的吧';
-    }
-
-    box.addEventListener('click', finish);
-
-    /* ctx.complete() 是留给将来「主程序直接加载脚本」那套方案用的，
-       现在走 iframe，用不上，但先留着别删。 */
-    if (ctx && typeof ctx.complete === 'function') {
-      // 接入后由主程序接管收尾
-    }
+    root.innerHTML = '<div class="march"><div class="sky"></div><div class="ridge"></div><div class="trail"></div><div class="history">1935.5.29 · 飞夺泸定桥后</div><div class="supply">炊事桶 · 铜提盒 · 医疗箱</div><div class="goal">铁索终点</div><div class="mud" style="left:260px;top:450px"></div><div class="mud" style="left:450px;top:320px"></div><div class="mud" style="left:640px;top:500px"></div><div class="mud" style="left:800px;top:350px"></div><div class="mud" style="left:990px;top:230px"></div><div class="runner"><i></i><b></b><em></em></div><div class="help">WASD / 方向键移动 · 躲开泥坑，抵达终点</div></div>';
+    var player = root.querySelector('.runner'), x = 70, y = 560, ended = false;
+    var pits = [[260, 450], [450, 320], [640, 500], [800, 350], [990, 230]];
+    function draw() { player.style.left = x + 'px'; player.style.top = y + 'px'; }
+    ctx.hint('使用 WASD 或方向键移动，避开泥坑并抵达铁索终点。');
+    ctx.on(root, 'pointerdown', function () { root.focus(); });
+    root.tabIndex = 0;
+    ctx.on(root, 'keydown', function (e) {
+      if (ended) return;
+      var key = e.key.toLowerCase(), dx = 0, dy = 0;
+      if (key === 'arrowup' || key === 'w') dy = -22;
+      else if (key === 'arrowdown' || key === 's') dy = 22;
+      else if (key === 'arrowleft' || key === 'a') dx = -22;
+      else if (key === 'arrowright' || key === 'd') dx = 22;
+      else return;
+      e.preventDefault();
+      var nx = Math.max(34, Math.min(1246, x + dx)), ny = Math.max(50, Math.min(670, y + dy));
+      for (var i = 0; i < pits.length; i++) {
+        var px = nx - pits[i][0], py = ny - pits[i][1];
+        if (px * px / 8464 + py * py / 4096 < 1) { ended = true; ctx.fail('陷入泥坑'); return; }
+      }
+      x = nx; y = ny; draw();
+      if (x > 1160 && y < 190) { ended = true; ctx.finish(100); }
+    });
+    draw();
   }
 
   global.LEVEL = { mount: mount };
-
-  // 独立运行时自己挂上去
-  var stage = document.getElementById('stage');
-  if (stage && !stage.dataset.mounted) {
-    stage.dataset.mounted = '1';
-    mount(stage, null);
-  }
 })(window);
