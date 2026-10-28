@@ -1177,51 +1177,57 @@
       area.appendChild(bar);
 
       var alt = 0, holding = false, gust = null, done = false;
+      var guestLeft = 0;      /* 距离下一场风雪的毫秒数 */
 
-      /* 雪山风带 */
-      function blowGust() {
-        if (done || gust) return;
-        var g = el('div', 'climb-gust');
-        area.appendChild(g);
-        var gg = { el: g, left: 900 };
-        gust = gg;
-        tip.textContent = '风雪来了——先停一停，抓稳前面的人！';
-        every(40, function () {
-          if (!gust || gust !== gg) return;
-          gg.left -= 26;
-          g.style.left = gg.left + 'px';
-          if (gg.left < -180) {
-            if (g.parentNode) g.parentNode.removeChild(g);
+      /* 单循环驱动：进度与风雪都在这里推进，不再额外开定时器 */
+      var h = every(40, function () {
+        if (done) return;
+
+        /* ---- 风雪：从右往左扫过，约 1.4 秒走完 ---- */
+        if (gust) {
+          gust.left -= 30;
+          gust.el.style.left = gust.left + 'px';
+          if (gust.left < -260) {
+            if (gust.el.parentNode) gust.el.parentNode.removeChild(gust.el);
             gust = null;
             tip.textContent = '风雪过去了，继续往上。';
           }
-        });
-      }
-      var gustH = every(3200, blowGust);
+        } else if (alt > 8) {
+          guestLeft -= 40;
+          if (guestLeft <= 0) {
+            var g = el('div', 'climb-gust');
+            g.style.left = '580px';
+            area.appendChild(g);
+            gust = { el: g, left: 580 };
+            guestLeft = 6200;               /* 下一场在 6.2 秒后 */
+            tip.textContent = '风雪来了——先停一停，抓稳前面的人！';
+          }
+        }
 
-      var h = every(40, function () {
-        if (done) return;
+        /* ---- 爬升 / 下滑 ---- */
         var d;
-        if (gust) d = holding ? -0.22 : 0;      /* 风雪里硬爬会打滑，停手最稳 */
-        else d = holding ? 0.62 : -0.24;        /* 平常：按住上爬，松手下滑 */
+        if (gust) d = holding ? -0.18 : 0;    /* 风雪里硬爬会打滑，停手最稳 */
+        else d = holding ? 0.72 : -0.22;      /* 平常：按住上爬，松手下滑 */
         alt = Math.max(0, Math.min(100, alt + d));
         team.style.bottom = (14 + alt * 1.55) + 'px';
         team.style.opacity = gust ? '.6' : '1';
         altEl.textContent = '海拔 ' + (3000 + Math.round(alt * 11.1)) + ' 米 / 4,110 米';
-        fill.style.width = alt + '%';
+        fill.style.height = alt + '%';
         if (alt >= 100) {
           done = true;
           holding = false;
+          if (gust) { if (gust.el.parentNode) gust.el.parentNode.removeChild(gust.el); gust = null; }
           altEl.textContent = '海拔 4,110 米 —— 把雪山踩在了脚下';
           chime();
           after(900, win);
         }
       });
+      guestLeft = 4200;   /* 开局给 4.2 秒熟悉手感，再起第一场风雪 */
 
       bind(area, 'pointerdown', function () { holding = true; area.classList.add('pulling'); });
       bind(area, 'pointerup', function () { holding = false; area.classList.remove('pulling'); });
       bind(area, 'pointerleave', function () { holding = false; area.classList.remove('pulling'); });
-      return function () { clearInterval(h); clearInterval(gustH); };
+      return function () { clearInterval(h); };
     }
 
     /* ---------- 玩法2：四渡赤水（躲巡逻点渡口） ---------- */
