@@ -1022,6 +1022,69 @@
   color: #8a8168;
 }
 .ldy21 .relics.full .relics-count { color: #ffd76e; }
+.ldy21 .relic.taken { opacity: .22; }
+
+/* 信物收集卡 */
+.ldy21 .relic-card {
+  position: absolute;
+  left: 50%; top: 54px;
+  width: 400px;
+  margin-left: -200px;
+  padding: 12px 20px 14px;
+  text-align: center;
+  background: linear-gradient(180deg, #f4ead0, #e8d9b4);
+  border: 1px solid #a98c4a;
+  border-radius: 6px;
+  box-shadow: 0 6px 26px rgba(0,0,0,.55), inset 0 0 18px rgba(150,110,40,.12);
+  opacity: 0;
+  transform: translateY(-14px);
+  transition: opacity .5s ease, transform .5s ease;
+  z-index: 45;
+  pointer-events: none;
+}
+.ldy21 .relic-card.show { opacity: 1; transform: translateY(0); }
+.ldy21 .relic-card.bye { opacity: 0; transform: translateY(-10px); }
+.ldy21 .relic-card .rc-k {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: #8a6f3a;
+}
+.ldy21 .relic-card .rc-name {
+  font-size: 24px;
+  letter-spacing: 8px;
+  color: #7a1f16;
+  margin: 2px 0 4px;
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+}
+.ldy21 .relic-card .rc-data {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #5c4d2e;
+}
+
+/* 信物集结：飞向中央火苗 */
+.ldy21 .relic-fly {
+  position: absolute;
+  width: 40px; height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232,212,154,.75);
+  border-radius: 5px;
+  background: rgba(72, 52, 20, .55);
+  box-shadow: 0 0 12px rgba(255,201,95,.3);
+  transition: left 1.2s cubic-bezier(.4,.1,.3,1), top 1.2s cubic-bezier(.4,.1,.3,1), transform 1.2s ease;
+  z-index: 16;
+  pointer-events: none;
+}
+.ldy21 .relic-fly span { font-size: 12px; color: #f0dfb0; }
+.ldy21 .relic-fly i {
+  position: absolute; left: 0; top: 0;
+  width: 100%; height: 100%;
+  border-radius: 5px;
+  background: radial-gradient(circle at 50% 60%, rgba(255,201,95,.4), rgba(255,201,95,0) 70%);
+  pointer-events: none;
+}
 
 /* 旧胶片转场 */
 .ldy21.film-cut { animation: ldy21-film-jitter .42s steps(2) 1; }

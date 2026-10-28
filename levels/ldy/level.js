@@ -1,9 +1,11 @@
 /* ============================================================
-   第21关《星火相传》· 最终章 —— 关卡逻辑 v6
+   第21关《星火相传》· 最终章 —— 关卡逻辑 v7
    ------------------------------------------------------------
-   v6 打磨：修复五星红旗（此前 SVG.flag 缺失）、补旗杆与风声、
-     进八门前的呼吸引导黑场、八件「记忆信物」收集面板、
-     关门时的旧胶片抖动+快门、留言关键词史料回声、留言化星光
+   v7 变更（参考学习强国·纪念长征胜利90周年图解）：
+     信物改为图解实物（步枪/地图/斗笠/船桨/铁索/草鞋/皮带/军号）
+     并各配一条硬数据；关门弹信物收集卡；八门全通信物飞向中央
+     集结成堆；门内文案更新数据；结尾字幕换数字总览+五句排比；
+     留言彩蛋新增草鞋/奇迹回声。
    接入契约：CZ.register({ id:'ldy', mount, unmount })，ctx.finish(score)
    ============================================================ */
 (function (global) {
@@ -13,32 +15,41 @@
 
   /* ============ 八门数据（严格对应游戏 8 站，会宁会师收尾） ============ */
   var DOORS = [
-    { num: '86,000 → 30,000', name: '血战湘江', press: true, relic: '弹壳',
+    { num: '86,000 → 30,000', name: '血战湘江', press: true, relic: '步枪',
+      relicData: '全军 29153 支步马枪，装备率不足 40%，每 3 人 1 支',
       text: '1934年11月底，湘江血战五昼夜，撕开封锁线。长按数字，直面这场减员。' },
-    { num: '转折', name: '遵义会议', relic: '钢笔',
+    { num: '转折', name: '遵义会议', relic: '地图',
+      relicData: '实事求是，从这里校正了方向',
       text: '1935年1月，遵义会议在危急关头挽救了党、挽救了红军、挽救了中国革命。' },
-    { num: '3万 : 40万', name: '四渡赤水', game: 'cross', relic: '竹筏',
+    { num: '3万 : 40万', name: '四渡赤水', game: 'cross', relic: '斗笠',
+      relicData: '3 万余人牵动近 40 万敌军，150 多个团被拖着反复转向',
       text: '三万红军四渡赤水，声东击西，跳出四十万敌军的围追堵截。' },
     { num: '7 只小船', name: '巧渡金沙江', relic: '船桨',
+      relicData: '7 只小船 · 37 名船工 · 九天九夜',
       text: '7只小船、37名船工、九天九夜，两万余人马渡过金沙江，未损一兵一卒。' },
     { num: '22 勇士', name: '飞夺泸定桥', game: 'bridge', relic: '铁索',
+      relicData: '13 根铁索 · 一昼夜兼程 240 里',
       text: '昼夜兼程240里，22名勇士攀着13根铁索夺下泸定桥。铁索之上，是滚烫的信仰。' },
     { num: '4,000+ 米', name: '翻越夹金山', relic: '草鞋',
+      relicData: '翻越 40 余座高山，20 多座雪山海拔 4000 多米',
       text: '海拔四千余米，风雪交加。衣着单薄的官兵手拉着手，把雪山踩在了脚下。' },
     { num: '7 天 7 夜', name: '走出草地', game: 'grass', relic: '皮带',
+      relicData: '穿越 1.52 万平方公里水草地，断粮之后，皮带煮软了分着吃',
       text: '松潘草地六百里沼泽，以野菜充饥、以皮带果腹，七天七夜走出绝境。' },
     { num: '1936.10', name: '会宁会师', relic: '军号',
-      text: '1936年10月，三大主力会宁会师，长征胜利结束。他们用两年，走完了一条信仰之路。' }
+      relicData: '10月9日会宁 · 10月22日将台堡，三大主力会师',
+      text: '1936年10月，三大主力会宁、将台堡会师，长征胜利结束。他们用两年，走完了一条信仰之路。' }
   ];
 
   /* 留言彩蛋：输入里出现这些词，会额外浮现一句史料回声 */
   var ECHOES = [
-    { keys: ['信仰', '理想', '信念'], say: '“我们是幸存者，也是播种机。” —— 长征路上，宣传员把标语写在门板上、石壁上，走到哪里，火种就落在哪里。' },
+    { keys: ['信仰', '理想', '信念'], say: '“长征是历史纪录上的第一次，长征是宣言书，长征是宣传队，长征是播种机。” —— 毛泽东，1935年12月。' },
     { keys: ['青春', '少年', '年轻'], say: '长征队伍里，指挥员平均年龄不足 25 岁，14 至 18 岁的战士占到四成。撕开黑夜的，是一群年轻人。' },
     { keys: ['向前', '前进', '坚持'], say: '“红军不怕远征难，万水千山只等闲。” —— 毛泽东《七律·长征》，1935 年 10 月。' },
-    { keys: ['人民', '百姓', '群众'], say: '“长征是历史纪录上的第一次，长征是宣言书，长征是宣传队，长征是播种机。” —— 毛泽东，1935 年 12 月。' },
+    { keys: ['草鞋', '群众', '百姓', '支援'], say: '出发前，于都群众赶制了 20 万双草鞋、备下 4 天以上的口粮，把房屋让给部队休整。长征路上，人民一直在接力支援。' },
     { keys: ['传承', '接力', '我们'], say: '“每一代人有每一代人的长征，每一代人都要走好自己的长征路。”' },
-    { keys: ['山河', '祖国', '中国'], say: '两万五千里，途经 14 个省，翻越 20 余座大山，渡过 30 多条河流。山河为证。' }
+    { keys: ['山河', '祖国', '中国'], say: '两年，跨越近 100 条江河、翻越 40 余座高山险峰、经历 600 余战。山河为证。' },
+    { keys: ['奇迹', '艰难'], say: '越是艰难，越见奇迹。20.6 万人出发，5.7 万人走到——他们凭什么走到了最后？' }
   ];
 
   var GAME_TIPS = {
@@ -49,7 +60,7 @@
   };
 
   var CN_NUM = ['一', '二', '三', '四', '五', '六', '七', '八'];
-  var FOOT = '据《红军长征史》《中国共产党简史》等整理';
+  var FOOT = '数据据学习强国 · 纪念长征胜利90周年图解及《红军长征史》整理';
 
   var PRESS_FROM = 86000, PRESS_TO = 30000;   /* 湘江：出发与幸存人数 */
 
@@ -71,11 +82,16 @@
   };
 
   var CREDITS = [
-    '历史书太小，装不下一个人的伟大一生；',
-    '历史书又太大，装下了他们所有人的牺牲。',
+    '历时 2 年，行程六万五千里。',
+    '20.6 万人出发，5.7 万人走到。',
     '',
-    '每一代人有每一代人的长征，',
-    '每一代人都要走好自己的长征路。',
+    '近 100 条江河，40 余座高山，600 余战。',
+    '',
+    '双脚丈量山河，信念凝聚队伍，',
+    '纪律保存力量，实事求是校正方向，',
+    '智慧，把绝境打开成通道。',
+    '',
+    '越是艰难，越见奇迹。',
     '',
     '—— 星火相传，吾辈自强 ——',
     { small: '佛山大学易班技术部 · 长征：拾光 · 最终章' }
@@ -515,11 +531,11 @@
       sceneDoors.appendChild(coreFlame);
       refreshGhosts();
 
-      var CX = 640, CY = 424, R = 300;
+      var CX = 640, CY = 418, R = 300;
       DOORS.forEach(function (d, i) {
         var ang = -Math.PI / 2 + (i / DOORS.length) * Math.PI * 2;
         var x = CX + R * Math.cos(ang);
-        var y = CY + R * 0.72 * Math.sin(ang);
+        var y = CY + R * 0.67 * Math.sin(ang);
         var door = el('div', 'door');
         door.style.left = x + 'px';
         door.style.top  = y + 'px';
@@ -587,6 +603,37 @@
         relicsBox.classList.add('full');
         if (c) c.textContent = '行 囊 已 满';
       }
+      /* 收集卡：关门时弹出，展示信物与它的数据 */
+      var card = el('div', 'relic-card',
+        '<div class="rc-k">获 得 信 物</div>' +
+        '<div class="rc-name">' + DOORS[i].relic + '</div>' +
+        '<div class="rc-data">' + DOORS[i].relicData + '</div>');
+      sceneDoors.appendChild(card);
+      after(60, function () { card.classList.add('show'); });
+      after(2300, function () { card.classList.add('bye'); });
+      after(3000, function () { if (card.parentNode) card.parentNode.removeChild(card); });
+    }
+
+    /* 八门全通：信物从行囊飞出，在中央火苗下集结成堆 */
+    function gatherRelics() {
+      var b = stage.getBoundingClientRect();
+      var offs = [[0, 0], [-38, 12], [38, 14], [-66, 26], [66, 24], [-24, 42], [26, 44], [0, 60]];
+      relicEls.forEach(function (chip, i) {
+        if (!chip.classList.contains('got')) return;
+        chip.classList.add('taken');
+        var r = chip.getBoundingClientRect();
+        var fly = el('div', 'relic-fly got', chip.innerHTML);
+        fly.style.left = (r.left - b.left) + 'px';
+        fly.style.top  = (r.top - b.top) + 'px';
+        sceneDoors.appendChild(fly);
+        after(260 + i * 150, function () {
+          var o = offs[i];
+          fly.style.left = (640 + o[0] - 20) + 'px';
+          fly.style.top  = (505 + o[1] - 20) + 'px';
+          fly.style.transform = 'rotate(' + (Math.random() * 26 - 13).toFixed(1) + 'deg)';
+          typeClick();
+        });
+      });
     }
 
     /* 每人通关一扇门，就多走进来一个同伴；火苗也随之变亮 */
@@ -640,11 +687,14 @@
           return;
         }
       }
-      spirit.style.left = '640px'; spirit.style.top = '180px';
-      bubble.style.left = '680px'; bubble.style.top = '150px';
-      bubble.textContent = SPIRIT_LINES.allDone;
-      bubble.classList.add('show');
-      after(2600, toRelay);
+      gatherRelics();
+      after(1700, function () {
+        spirit.style.left = '640px'; spirit.style.top = '180px';
+        bubble.style.left = '680px'; bubble.style.top = '150px';
+        bubble.textContent = SPIRIT_LINES.allDone;
+        bubble.classList.add('show');
+      });
+      after(4600, toRelay);
     }
 
     /* ---------- 门模态框：玩法 → 故事 ---------- */
@@ -1171,7 +1221,7 @@
       });
       box.appendChild(roll);
       sceneRelay.appendChild(box);
-      after(12500, buildGuestbook);
+      after(15500, buildGuestbook);
     }
 
     /* ============ 第四幕：留言簿 ============ */
