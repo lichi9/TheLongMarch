@@ -84,18 +84,16 @@
   };
 
   var CREDITS = [
-    '历时 2 年，行程六万五千里。',
-    '20.6 万人出发，5.7 万人走到。',
+    '历史书太小，',
+    '装不下一个人的伟大一生。',
     '',
-    '近 100 条江河，40 余座高山，600 余战。',
+    '历史书又太大，',
+    '装下了他们所有人的牺牲。',
     '',
-    '双脚丈量山河，信念凝聚队伍，',
-    '纪律保存力量，实事求是校正方向，',
-    '智慧，把绝境打开成通道。',
+    '每一代人有每一代人的长征，',
+    '每一代人都要走好自己的长征路。',
     '',
-    '越是艰难，越见奇迹。',
-    '',
-    '—— 星火相传，吾辈自强 ——',
+    '—— 星 火 相 传 · 吾 辈 自 强 ——',
     { small: '佛山大学易班技术部 · 长征：拾光 · 最终章' }
   ];
 
@@ -137,6 +135,61 @@
 
   var SVG = {
     flag: FLAG_SVG,
+    /* 八件信物：手绘线条 + 半透明填色；未获得时以剪影（currentColor）呈现 */
+    relic: {
+      '步枪': '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M9 34 L38 11" stroke-width="4"/>' +
+        '<path d="M36 13 L42 8" stroke-width="2.2"/>' +
+        '<path d="M10 32 L6 37 L12 42 L17 36 Z" fill="currentColor" fill-opacity=".85" stroke="none"/>' +
+        '<path d="M22 25 L26 29" stroke-width="3"/>' +
+        '<path d="M31 16 L41 22" stroke-width="2.2"/>' +
+        '<path d="M25 21 L29 17" stroke-width="1.4" opacity=".55"/>' +
+        '</svg>',
+      '地图': '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linejoin="round">' +
+        '<path d="M8 11 L19 8 L30 12 L40 9 L40 37 L30 40 L19 36 L8 39 Z" stroke-width="2.2" fill="currentColor" fill-opacity=".12"/>' +
+        '<path d="M19 8 L19 36 M30 12 L30 40" stroke-width="1.4" opacity=".5"/>' +
+        '<path d="M13 30 C17 24 21 27 25 21 C28 17 33 18 36 14" stroke-width="1.8" stroke-dasharray="3 3"/>' +
+        '<circle cx="36.5" cy="13.5" r="2.8" fill="currentColor" stroke="none"/>' +
+        '</svg>',
+      '斗笠': '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linejoin="round">' +
+        '<path d="M24 11 C31 11 38 17 41 25 L7 25 C10 17 17 11 24 11 Z" stroke-width="2.2" fill="currentColor" fill-opacity=".2"/>' +
+        '<path d="M6 25 C6 28 15 31 24 31 C33 31 42 28 42 25" stroke-width="2.2"/>' +
+        '<path d="M24 11 L14 27 M24 11 L24 30 M24 11 L34 27" stroke-width="1.2" opacity=".5"/>' +
+        '<path d="M24 6 L24 11" stroke-width="2"/>' +
+        '</svg>',
+      '船桨': '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round">' +
+        '<path d="M33 8 L18 32" stroke-width="3.4"/>' +
+        '<path d="M18 30 C12 36 9 42 10 44 C14 44 20 42 24 36 Z" fill="currentColor" fill-opacity=".85" stroke-width="1.6" stroke-linejoin="round"/>' +
+        '<path d="M35 6 L38 9" stroke-width="3"/>' +
+        '<path d="M15 36 L20 38" stroke-width="1.2" opacity=".5"/>' +
+        '</svg>',
+      '铁索': '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor">' +
+        '<ellipse cx="13" cy="17" rx="5.6" ry="8.6" stroke-width="2.6" transform="rotate(-28 13 17)"/>' +
+        '<ellipse cx="24" cy="24" rx="5.6" ry="8.6" stroke-width="2.6" transform="rotate(-28 24 24)"/>' +
+        '<ellipse cx="35" cy="31" rx="5.6" ry="8.6" stroke-width="2.6" transform="rotate(-28 35 31)"/>' +
+        '<path d="M30 38 L34 42 M20 31 L17 28" stroke-width="1.4" opacity=".45" stroke-linecap="round"/>' +
+        '</svg>',
+      '草鞋': '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linejoin="round">' +
+        '<path d="M12 20 C7 26 8 35 14 39 C20 43 31 43 36 37 C40 33 39 25 34 20 C29 15 17 15 12 20 Z" stroke-width="2.2" fill="currentColor" fill-opacity=".16"/>' +
+        '<path d="M14 24 L34 22 M13 30 L36 28 M15 35 L34 33" stroke-width="1.5" opacity=".55"/>' +
+        '<path d="M19 20 L23 34 M25 19 L28 34 M31 19 L33 32" stroke-width="1.1" opacity=".4"/>' +
+        '<path d="M19 19 C21 13 28 13 30 18" stroke-width="1.7"/>' +
+        '</svg>',
+      '皮带': '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linejoin="round">' +
+        '<path d="M7 20 L33 20 C37 20 39 23 39 26 C39 29 37 32 33 32 L7 32" stroke-width="2.4" fill="currentColor" fill-opacity=".14"/>' +
+        '<rect x="30" y="16.5" width="11" height="19" rx="2.6" stroke-width="2.2"/>' +
+        '<path d="M35.5 16.5 L35.5 35.5" stroke-width="1.5"/>' +
+        '<circle cx="12" cy="26" r="1.7" fill="currentColor" stroke="none"/>' +
+        '<circle cx="18" cy="26" r="1.7" fill="currentColor" stroke="none"/>' +
+        '<circle cx="24" cy="26" r="1.7" fill="currentColor" stroke="none"/>' +
+        '</svg>',
+      '军号': '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M9 31 L21 31 C26 31 30 27 33 21 L38 12" stroke-width="3"/>' +
+        '<path d="M33 21 L42 16 L45 27 L36 24 Z" fill="currentColor" fill-opacity=".8" stroke-width="1.3"/>' +
+        '<path d="M9 31 C5 31 5 26 9 25 L16 23" stroke-width="2.4"/>' +
+        '<path d="M19 35 C24 39 32 39 36 34" stroke-width="1.5" opacity=".45"/>' +
+        '</svg>'
+    },
     star4: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z" fill="#ffe9a8"/></svg>',
     goldStar: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1 L15 8.5 L23 9.3 L17 14.5 L18.8 22.4 L12 18.2 L5.2 22.4 L7 14.5 L1 9.3 L9 8.5 Z" fill="#ffd76e"/></svg>',
     spirit: '<svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">' +
@@ -296,6 +349,94 @@
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
       osc.connect(g); g.connect(audio.ctx.destination);
       osc.start(t); osc.stop(t + 0.45);
+    } catch (e) {}
+  }
+
+  /* 远处炮声：噪声经低通 + 低频下坠，像隔着一片江水传来的闷响 */
+  function boom(vol) {
+    if (!audio.ctx || !audio.noise) return;
+    try {
+      var t = audio.ctx.currentTime;
+      var src = audio.ctx.createBufferSource();
+      src.buffer = audio.noise;
+      src.playbackRate.value = 0.55;
+      var lp = audio.ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(320, t);
+      lp.frequency.exponentialRampToValueAtTime(90, t + 0.5);
+      var g = audio.ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.19, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.62);
+      src.connect(lp); lp.connect(g); g.connect(audio.ctx.destination);
+      src.start(t); src.stop(t + 0.66);
+
+      var osc = audio.ctx.createOscillator();
+      var g2 = audio.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(58, t);
+      osc.frequency.exponentialRampToValueAtTime(28, t + 0.42);
+      g2.gain.setValueAtTime((vol || 0.19) * 0.9, t);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.connect(g2); g2.connect(audio.ctx.destination);
+      osc.start(t); osc.stop(t + 0.52);
+    } catch (e) {}
+  }
+
+  /* 战地底噪：极低的持续隆隆声，营造“江对岸一直在打”的氛围 */
+  var amb = { src: null, gain: null };
+  function ambStart() {
+    if (!audio.ctx || !audio.noise || amb.src) return;
+    try {
+      var ctx = audio.ctx;
+      var src = ctx.createBufferSource();
+      src.buffer = audio.noise;
+      src.loop = true;
+      var lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 180;
+      var hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 30;
+      var trem = ctx.createOscillator();
+      var tremGain = ctx.createGain();
+      trem.frequency.value = 0.22;
+      tremGain.gain.value = 0.35;
+      var g = ctx.createGain();
+      g.gain.value = 0.05;
+      trem.connect(tremGain); tremGain.connect(g.gain);
+      src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(ctx.destination);
+      src.start(); trem.start();
+      amb = { src: src, gain: g, trem: trem };
+    } catch (e) {}
+  }
+  function ambStop() {
+    if (!amb.src) return;
+    try {
+      amb.gain.gain.cancelScheduledValues(audio.ctx.currentTime);
+      amb.gain.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.2);
+      var s = amb.src, tm = amb.trem;
+      setTimeout(function () { try { s.stop(); tm.stop(); } catch (e) {} }, 700);
+    } catch (e) {}
+    amb = { src: null, gain: null };
+  }
+
+  /* 沉下去的尾音：减员到底后的三个下行长音 */
+  function sadTriad() {
+    if (!audio.ctx) return;
+    try {
+      [174.6, 146.8, 116.5].forEach(function (f, k) {
+        var t = audio.ctx.currentTime + k * 0.55;
+        var osc = audio.ctx.createOscillator();
+        var g = audio.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.075, t + 0.08);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+        osc.connect(g); g.connect(audio.ctx.destination);
+        osc.start(t); osc.stop(t + 1.55);
+      });
     } catch (e) {}
   }
 
@@ -585,7 +726,9 @@
       relicsBox.appendChild(el('div', 'relics-title', '行 囊 · 记 忆 信 物'));
       var row = el('div', 'relics-row');
       DOORS.forEach(function (d) {
-        var chip = el('div', 'relic', '<i></i><span>' + d.relic + '</span>');
+        var chip = el('div', 'relic',
+          '<i></i><b class="r-art">' + (SVG.relic[d.relic] || '') + '</b>');
+        chip.title = d.relic;
         row.appendChild(chip);
         relicEls.push(chip);
       });
@@ -608,6 +751,7 @@
       /* 收集卡：关门时弹出，展示信物与它的数据 */
       var card = el('div', 'relic-card',
         '<div class="rc-k">获 得 信 物</div>' +
+        '<div class="rc-art">' + (SVG.relic[DOORS[i].relic] || '') + '</div>' +
         '<div class="rc-name">' + DOORS[i].relic + '</div>' +
         '<div class="rc-data">' + DOORS[i].relicData + '</div>');
       sceneDoors.appendChild(card);
@@ -826,6 +970,8 @@
       function nextStage() {
         if (step >= stages.length) {
           clearInterval(timer); timer = null;
+          ambStop();
+          sadTriad();
           tip.textContent = '86,000 人出发，过了湘江，只剩 30,000 余人。';
           after(2200, win);
           return;
@@ -833,25 +979,41 @@
         var s = stages[step++];
         killTo(s.keep);
         if (numEl) numEl.textContent = fmt(s.num);
+        /* 一记闷雷 + 两下心跳，越往后越沉 */
+        boom(0.2 + step * 0.02);
         thump();
+        after(170, thump);
         flash.classList.add('on');
         after(180, function () { flash.classList.remove('on'); });
         grid.classList.add('shake-x');
         after(400, function () { grid.classList.remove('shake-x'); });
       }
 
+      /* 底噪 + 零散炮声：长按期间江对岸一直在打 */
+      var boomH = null;
       function start() {
         if (running) return;
         running = true;
         var numEl2 = area.parentNode.querySelector('.big-num');
         if (numEl2) numEl2.classList.add('blood');
+        ambStart();
+        boom(0.16);
+        boomH = setInterval(function () {
+          if (!live || !running) return;
+          boom(0.07 + Math.random() * 0.08);
+        }, 700 + Math.random() * 600);
+        timers.push(boomH);
         nextStage();
         timer = setInterval(function () { if (live) nextStage(); }, 820);
         timers.push(timer);
       }
 
       bind(area, 'pointerdown', start);
-      return function () { if (timer) clearInterval(timer); };
+      return function () {
+        if (timer) clearInterval(timer);
+        if (boomH) clearInterval(boomH);
+        ambStop();
+      };
     }
 
     /* ---------- 玩法1：装备对比与抉择（遵义会议） ---------- */
@@ -1353,7 +1515,7 @@
       box.appendChild(roll);
       sceneRelay.appendChild(box);
       creditsBox = box;
-      after(15500, showToday);
+      after(13200, showToday);
     }
 
     /* ---------- 1936 → 2026：接力的一屏 ---------- */
@@ -1429,18 +1591,38 @@
       var ta = gb.querySelector('textarea');
       var btn = gb.querySelector('.submit-btn');
       var thanks = gb.querySelector('.thanks');
+      var done = false;
 
       bind(btn, 'click', function () {
+        if (done) return;
+        done = true;
         var msg = (ta.value || '').trim() || '先烈们，这盛世如你所愿。';
         copyText(msg);
         ta.value = '';
         var echo = echoFor(msg);
+
+        gb.classList.add('submitted');
+        btn.classList.add('gone');
+        ta.classList.add('gone');
+
         thanks.innerHTML =
-          '<span class="main">你的话语已化作星光，将汇聚成我们共同的五星红旗。</span>' +
-          (echo ? '<span class="echo">' + echo + '</span>' : '');
+          '<div class="thx-main">谢谢你，愿意停下来跟他们说一句话。</div>' +
+          '<div class="thx-sub">你的话语已化作星光，将汇聚成我们共同的五星红旗。</div>' +
+          (echo ? '<div class="echo">' + echo + '</div>' : '') +
+          '<div class="thx-acts">' +
+            '<button class="home-btn">返 回 主 页</button>' +
+            '<span class="stay-tip">（也可以停在这里，多陪他们一会儿）</span>' +
+          '</div>';
         thanks.classList.add('show');
         sparkUp(gb);
-        after(echo ? 7600 : 4200, function () { finish(); });
+
+        var home = thanks.querySelector('.home-btn');
+        bind(home, 'click', function () {
+          home.classList.add('pressed');
+          after(420, function () { finish(); });
+        });
+        /* 兜底：停留超过 45 秒仍不点，也把这一关归档 */
+        after(45000, function () { finish(); });
       });
     }
 
