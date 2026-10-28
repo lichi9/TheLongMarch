@@ -1160,3 +1160,188 @@
   box-shadow: 0 0 12px rgba(255,215,110,.8);
   transform: scale(1.4);
 }
+
+/* ============ v8 新增：装备对比 / 四路会师 / 1936→2026 ============ */
+
+/* 装备对比与抉择（遵义门） */
+.ldy21 .g-gear {
+  padding: 9px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.ldy21 .gear-rows { display: flex; flex-direction: column; }
+.ldy21 .gear-row { display: flex; align-items: stretch; gap: 8px; margin-bottom: 6px; }
+.ldy21 .gear-row .gear-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 3px;
+  background: rgba(255,255,255,.028);
+  border: 1px solid rgba(255,255,255,.06);
+}
+.ldy21 .gear-row .gear-cell em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #8f8468;
+}
+.ldy21 .gear-row .gear-cell b {
+  font-size: 18px;
+  font-weight: normal;
+  color: #cbbd93;
+  margin-top: 1px;
+  letter-spacing: 1px;
+}
+.ldy21 .gear-row .gear-cell.us b { color: #d8523f; }
+.ldy21 .gear-row .vs {
+  align-self: center;
+  width: 34px;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #6c634c;
+}
+.ldy21 .gear-ask {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: #e0d2a8;
+}
+.ldy21 .gear-opts {
+  margin-top: 9px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.ldy21 .gear-opt {
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 6px 11px;
+  cursor: pointer;
+  color: #d8cba8;
+  background: rgba(60,45,22,.6);
+  border: 1px solid #6b5730;
+  border-radius: 4px;
+  transition: all .3s ease;
+}
+.ldy21 .gear-opt:hover { border-color: #c9a85f; background: rgba(90,66,28,.7); }
+.ldy21 .gear-opt.no { border-color: #8b3a30; color: #c98a80; }
+.ldy21 .gear-opt.ok {
+  border-color: #ffd76e;
+  color: #ffe9a8;
+  box-shadow: 0 0 16px rgba(255,215,110,.45);
+}
+
+/* 四路红军会师 */
+.ldy21 .g-union { padding: 0; }
+.ldy21 .union-svg {
+  position: absolute;
+  left: 0; top: 0;
+  width: 560px; height: 268px;
+}
+.ldy21 .union-star {
+  position: absolute;
+  left: 262px; top: 118px;
+  width: 32px; height: 32px;
+  opacity: .3;
+  transition: opacity .8s ease, transform .8s ease;
+}
+.ldy21 .union-star svg { width: 100%; height: 100%; }
+.ldy21 .union-star.lit {
+  opacity: 1;
+  transform: scale(1.35);
+  filter: drop-shadow(0 0 16px #ffd76e);
+}
+.ldy21 .union-list {
+  position: absolute;
+  left: 0; bottom: 5px;
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.ldy21 .union-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 9px;
+  border: 1px solid #6b5730;
+  border-radius: 4px;
+  background: rgba(16,11,6,.85);
+  cursor: pointer;
+  transition: all .3s ease;
+}
+.ldy21 .union-chip b { font-size: 11px; font-weight: normal; color: #d8cba8; }
+.ldy21 .union-chip span { font-size: 10px; color: #8f8468; }
+.ldy21 .union-chip:hover { background: rgba(60,45,22,.9); }
+.ldy21 .union-chip.ok {
+  background: rgba(80,60,26,.9);
+  box-shadow: 0 0 10px rgba(255,215,110,.28);
+}
+.ldy21 .union-chip.ok b { color: #ffe9a8; }
+
+/* 1936 → 2026 对照屏 */
+.ldy21 .credits.gone { opacity: 0; transition: opacity 1s ease; }
+.ldy21 .today {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 42%, #16110a 0%, #060403 72%);
+  z-index: 36;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.ldy21 .today.show { opacity: 1; }
+.ldy21 .today.bye { opacity: 0; }
+.ldy21 .today .yrs {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 44px;
+  letter-spacing: 8px;
+  color: #e8d49a;
+}
+.ldy21 .today .yrs i {
+  display: block;
+  width: 320px; height: 1px;
+  background: linear-gradient(90deg, rgba(232,212,154,0), rgba(232,212,154,.75), rgba(232,212,154,0));
+}
+.ldy21 .today .cols {
+  display: flex;
+  gap: 96px;
+  margin-top: 30px;
+}
+.ldy21 .today .col { text-align: center; }
+.ldy21 .today .col h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: normal;
+  letter-spacing: 7px;
+  color: #9a8c68;
+}
+.ldy21 .today .col p {
+  margin: 7px 0;
+  font-size: 17px;
+  letter-spacing: 2px;
+  color: #c9bb95;
+}
+.ldy21 .today .today-line {
+  margin-top: 44px;
+  font-size: 21px;
+  letter-spacing: 5px;
+  color: #ffd76e;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 1.4s ease, transform 1.4s ease;
+}
+.ldy21 .today .today-line.show { opacity: 1; transform: translateY(0); }

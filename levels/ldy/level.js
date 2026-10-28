@@ -18,7 +18,7 @@
     { num: '86,000 → 30,000', name: '血战湘江', press: true, relic: '步枪',
       relicData: '全军 29153 支步马枪，装备率不足 40%，每 3 人 1 支',
       text: '1934年11月底，湘江血战五昼夜，撕开封锁线。长按数字，直面这场减员。' },
-    { num: '转折', name: '遵义会议', relic: '地图',
+    { num: '转折', name: '遵义会议', game: 'gear', relic: '地图',
       relicData: '实事求是，从这里校正了方向',
       text: '1935年1月，遵义会议在危急关头挽救了党、挽救了红军、挽救了中国革命。' },
     { num: '3万 : 40万', name: '四渡赤水', game: 'cross', relic: '斗笠',
@@ -36,7 +36,7 @@
     { num: '7 天 7 夜', name: '走出草地', game: 'grass', relic: '皮带',
       relicData: '穿越 1.52 万平方公里水草地，断粮之后，皮带煮软了分着吃',
       text: '松潘草地六百里沼泽，以野菜充饥、以皮带果腹，七天七夜走出绝境。' },
-    { num: '1936.10', name: '会宁会师', relic: '军号',
+    { num: '1936.10', name: '会宁会师', game: 'union', relic: '军号',
       relicData: '10月9日会宁 · 10月22日将台堡，三大主力会师',
       text: '1936年10月，三大主力会宁、将台堡会师，长征胜利结束。他们用两年，走完了一条信仰之路。' }
   ];
@@ -54,9 +54,11 @@
 
   var GAME_TIPS = {
     xiangjiang: '按住数字，看他们一个一个离开',
+    gear:   '先看清双方家底，再回答那个问题',
     cross:  '敌军在江边巡逻——趁它走远，点渡口过江（共四次）',
     bridge: '狂点「行军」冲向泸定桥！出现金色铁索时立刻抓住',
-    grass:  '点相邻格子前进，深色的是沼泽，把火种送到队尾'
+    grass:  '点相邻格子前进，深色的是沼泽，把火种送到队尾',
+    union:  '四条长征路——点一下，让它们汇聚到会宁'
   };
 
   var CN_NUM = ['一', '二', '三', '四', '五', '六', '七', '八'];
@@ -714,7 +716,7 @@
         '<button class="close-btn hidden">合 上 这 扇 门</button>' +
         '<div class="m-vig"></div>';
       sceneDoors.appendChild(modal);
-      bubble.classList.remove('show');
+      if (bubble) bubble.classList.remove('show');
 
       var gArea = modal.querySelector('.g-area');
       var tipEl = modal.querySelector('.g-tip');
@@ -776,7 +778,7 @@
 
       if (d.game) {
         var games = {
-          cross: gameCross, bridge: gameBridge, grass: gameGrass
+          gear: gameGear, cross: gameCross, bridge: gameBridge, grass: gameGrass, union: gameUnion
         };
         cleanupGame = games[d.game](gArea, tipEl, onWin);
         return;
@@ -850,6 +852,55 @@
 
       bind(area, 'pointerdown', start);
       return function () { if (timer) clearInterval(timer); };
+    }
+
+    /* ---------- 玩法1：装备对比与抉择（遵义会议） ---------- */
+    function gameGear(area, tip, win) {
+      area.classList.add('g-gear');
+      var rows = [
+        ['每连机枪', '不足 2 挺', '敌军每连', '9 挺'],
+        ['全军迫击炮', '38 门', '敌军每营', '6 挺重机枪 · 2 门迫击炮'],
+        ['可用战机', '0 架', '敌军', '全程掌握制空权']
+      ];
+      var box = el('div', 'gear-rows');
+      rows.forEach(function (r) {
+        var row = el('div', 'gear-row');
+        row.innerHTML =
+          '<div class="gear-cell us"><em>' + r[0] + '</em><b>' + r[1] + '</b></div>' +
+          '<div class="vs">对 比</div>' +
+          '<div class="gear-cell them"><em>' + r[2] + '</em><b>' + r[3] + '</b></div>';
+        box.appendChild(row);
+      });
+      area.appendChild(box);
+      area.appendChild(el('div', 'gear-ask', '装备差到这个地步，他们凭什么走到了最后？'));
+
+      var opts = el('div', 'gear-opts');
+      var picks = [
+        { t: '更好的武器', fb: '那时他们几乎没有补给，每支步枪只剩约 49 发子弹。' },
+        { t: '信念、纪律，和人民', ok: true },
+        { t: '更充足的粮食', fb: '草地断粮时，他们煮皮带、吃草根，连皮鼓都煮了。' }
+      ];
+      var answered = false;
+      picks.forEach(function (p) {
+        var b = el('button', 'gear-opt', p.t);
+        bind(b, 'click', function () {
+          if (answered) return;
+          if (p.ok) {
+            answered = true;
+            b.classList.add('ok');
+            chime();
+            tip.textContent = '不是武器，是信念，是纪律，是人民的支持。';
+            after(1500, win);
+          } else {
+            buzz();
+            b.classList.add('no');
+            tip.textContent = p.fb;
+          }
+        });
+        opts.appendChild(b);
+      });
+      area.appendChild(opts);
+      return function () {};
     }
 
     /* ---------- 玩法2：四渡赤水（躲巡逻点渡口） ---------- */
@@ -1012,6 +1063,84 @@
             after(500, function () { cell.el.classList.remove('stuck'); });
           }
           if (me.c === 4 && me.r === 1) win();
+        });
+      });
+      return function () {};
+    }
+
+    /* ---------- 玩法5：四路红军会师（四条线汇聚到会宁） ---------- */
+    function gameUnion(area, tip, win) {
+      area.classList.add('g-union');
+      var NS = 'http://www.w3.org/2000/svg';
+      var routes = [
+        { name: '中央红军', km: '2.5 万里', c: '#d8523f', d: 'M44 196 C132 128 196 214 278 134' },
+        { name: '红二十五军', km: '近万里', c: '#5da368', d: 'M58 36 C146 78 200 58 278 134' },
+        { name: '红四方面军', km: '1 万余里', c: '#c9a03c', d: 'M516 226 C420 196 364 168 278 134' },
+        { name: '红二方面军', km: '2 万余里', c: '#5b8bbd', d: 'M518 42 C424 76 364 92 278 134' }
+      ];
+      var svg = global.document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 560 268');
+      svg.setAttribute('class', 'union-svg');
+      routes.forEach(function (r) {
+        /* 淡色预览线：让玩家知道路在哪 */
+        var pv = global.document.createElementNS(NS, 'path');
+        pv.setAttribute('d', r.d);
+        pv.setAttribute('fill', 'none');
+        pv.setAttribute('stroke', r.c);
+        pv.setAttribute('stroke-width', '2');
+        pv.setAttribute('stroke-dasharray', '3 7');
+        pv.setAttribute('opacity', '.22');
+        svg.appendChild(pv);
+        /* 实际行军线：点击后流动 */
+        var p = global.document.createElementNS(NS, 'path');
+        p.setAttribute('d', r.d);
+        p.setAttribute('fill', 'none');
+        p.setAttribute('stroke', r.c);
+        p.setAttribute('stroke-width', '3');
+        p.setAttribute('stroke-linecap', 'round');
+        p.setAttribute('opacity', '.9');
+        svg.appendChild(p);
+        r.path = p;
+      });
+      area.appendChild(svg);
+
+      var star = el('div', 'union-star', SVG.goldStar);
+      area.appendChild(star);
+
+      var list = el('div', 'union-list');
+      var done = 0, finished = false;
+      routes.forEach(function (r) {
+        var chip = el('div', 'union-chip',
+          '<b>' + r.name + '</b><span>' + r.km + '</span>');
+        chip.style.borderColor = r.c;
+        bind(chip, 'click', function () {
+          if (r.done || finished) return;
+          r.done = true;
+          chip.classList.add('ok');
+          r.path.style.strokeDashoffset = 0;
+          chime();
+          done++;
+          if (done < 4) {
+            tip.textContent = '已有 ' + done + ' 路红军走向会宁……';
+          } else {
+            finished = true;
+            tip.textContent = '四路红军，走到了一起。';
+            star.classList.add('lit');
+            after(1500, win);
+          }
+        });
+        list.appendChild(chip);
+      });
+      area.appendChild(list);
+
+      /* 路径长度要等布局完成才拿得到 */
+      after(60, function () {
+        routes.forEach(function (r) {
+          var len = 420;
+          try { len = r.path.getTotalLength() || 420; } catch (e) {}
+          r.path.style.strokeDasharray = len;
+          r.path.style.strokeDashoffset = len;
+          r.path.style.transition = 'stroke-dashoffset 1.5s ease';
         });
       });
       return function () {};
@@ -1212,6 +1341,8 @@
       after(2200, showCredits);
     }
 
+    var creditsBox = null;
+
     function showCredits() {
       var box = el('div', 'credits');
       var roll = el('div', 'roll');
@@ -1221,7 +1352,31 @@
       });
       box.appendChild(roll);
       sceneRelay.appendChild(box);
-      after(15500, buildGuestbook);
+      creditsBox = box;
+      after(15500, showToday);
+    }
+
+    /* ---------- 1936 → 2026：接力的一屏 ---------- */
+    function showToday() {
+      if (creditsBox) creditsBox.classList.add('gone');
+      var box = el('div', 'today');
+      box.innerHTML =
+        '<div class="yrs"><span>1936</span><i></i><span>2026</span></div>' +
+        '<div class="cols">' +
+          '<div class="col"><h4>当 年</h4>' +
+            '<p>8.68 万人出发</p><p>29153 支步马枪</p><p>可用战机 0 架</p></div>' +
+          '<div class="col"><h4>今 天</h4>' +
+            '<p>4 支军种 + 4 支兵种</p><p>10 艘万吨级驱逐舰</p><p>3 型电磁弹射舰载机</p></div>' +
+        '</div>' +
+        '<div class="today-line">你们没走完的路，我们接着走。</div>';
+      sceneRelay.appendChild(box);
+      after(120, function () { box.classList.add('show'); });
+      after(1500, function () {
+        var ln = box.querySelector('.today-line');
+        if (ln) ln.classList.add('show');
+      });
+      after(7000, function () { box.classList.add('bye'); });
+      after(8200, buildGuestbook);
     }
 
     /* ============ 第四幕：留言簿 ============ */
