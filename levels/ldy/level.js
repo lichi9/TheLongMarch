@@ -13,6 +13,16 @@
 
   var ID = 'ldy';
 
+  /* 本文件所在目录（file:// 下 img 相对路径会随页面位置漂移，以脚本自身位置为准最稳） */
+  var BASE = (function () {
+    try {
+      var s = global.document && (global.document.currentScript ||
+        global.document.scripts[global.document.scripts.length - 1]);
+      var src = (s && s.src) || '';
+      return src.slice(0, src.lastIndexOf('/') + 1);
+    } catch (e) { return ''; }
+  })();
+
   /* ============ 八门数据（严格对应游戏 8 站，会宁会师收尾） ============ */
   var DOORS = [
     { num: '86,000 → 30,000', name: '血战湘江', press: true, relic: '步枪',
@@ -247,6 +257,24 @@
       union:  '<path d="M60 230 Q200 120 320 150 M580 230 Q440 120 320 150" stroke="' + moon + '" stroke-width="6" fill="none" opacity=".8"/><path d="M320 150 L320 90" stroke="' + moon + '" stroke-width="5"/><path d="M320 90 L356 100 L320 112 Z" fill="#b04a3a"/>'
     };
     return '<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">' + bg + (map[kind] || map.river) + '</svg>';
+  }
+
+  /* 门内照片：优先用 assets/door1~8.{webp,jpg,png,jpeg}，文件缺失自动回退到手绘插画 */
+  var PHOTO_EXT = ['webp', 'jpg', 'png', 'jpeg'];
+  function setPhoto(area, i) {
+    area.innerHTML = '<div class="photo-stack">' + doorArt(i) + '<img class="door-photo" alt=""></div>';
+    var img = area.querySelector('.door-photo');
+    if (!img) return;
+    var k = 0;
+    function tryExt() {
+      if (k >= PHOTO_EXT.length) {
+        if (img.parentNode) img.parentNode.removeChild(img);
+        return;
+      }
+      img.src = BASE + 'assets/door' + (i + 1) + '.' + PHOTO_EXT[k];
+    }
+    img.addEventListener('error', function () { k++; tryExt(); });
+    tryExt();
   }
 
   /* ============ Web Audio：拟真打字机 / 音效 ============ */
@@ -874,8 +902,8 @@
       var finishedTyping = false;
 
       function typeStory() {
-        /* ★ 照片区：后续把 doorArt(i) 换成历史照片 <img src="assets/xxx.jpg"> 即可 */
-        gArea.innerHTML = doorArt(i);
+        /* 照片区：assets/door1~8 有图就显示照片，没有就用手绘插画 */
+        setPhoto(gArea, i);
         gArea.classList.add('photo');
         after(60, function () { gArea.classList.add('clear'); });
         var p = 0;

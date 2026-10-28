@@ -1511,3 +1511,17 @@
   pointer-events: none;
   will-change: left;
 }
+
+/* ============ 门内照片层（有图用图，无图落回手绘插画） ============ */
+.ldy21 .door-modal .photo .photo-stack { position: absolute; inset: 0; }
+.ldy21 .door-modal .photo .door-photo {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  background: #0b0906;
+  filter: blur(10px) grayscale(1);
+  transition: filter 1.4s ease;
+  z-index: 2;
+}
+.ldy21 .door-modal .photo.clear .door-photo { filter: blur(0) grayscale(1) contrast(1.05); }
