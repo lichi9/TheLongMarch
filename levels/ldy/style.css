@@ -1417,3 +1417,97 @@
   transition: opacity 1.4s ease, transform 1.4s ease;
 }
 .ldy21 .today .today-line.show { opacity: 1; transform: translateY(0); }
+
+/* ============ 巧渡金沙江：接应小船 ============ */
+.ldy21 .g-ferry7 {
+  background: linear-gradient(180deg, #0d1a22 0%, #14303c 52%, #0a161d 100%);
+  overflow: hidden;
+}
+.ldy21 .f7-water {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 62%;
+  background:
+    repeating-linear-gradient(180deg, rgba(190,220,230,.05) 0 1px, rgba(0,0,0,0) 1px 9px),
+    linear-gradient(180deg, rgba(24,60,74,.45), rgba(8,20,26,.9));
+  animation: ldy21-water 5s linear infinite;
+}
+@keyframes ldy21-water {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 9px, 0 0; }
+}
+.ldy21 .f7-bank {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 58px;
+  background: linear-gradient(90deg, #33291a 40%, rgba(51,41,26,0));
+  color: #cbbd93; font-size: 12px; letter-spacing: 5px; writing-mode: vertical-rl;
+  display: flex; align-items: center; justify-content: center;
+  border-right: 1px dashed rgba(203,189,147,.32);
+  z-index: 3;
+}
+.ldy21 .f7-boat {
+  position: absolute;
+  width: 72px; height: 34px;
+  will-change: left;
+  transition: opacity .4s ease, transform .4s ease;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.55));
+  cursor: pointer;
+  z-index: 2;
+}
+.ldy21 .f7-boat svg { width: 100%; height: 100%; display: block; }
+.ldy21 .f7-boat.docked { opacity: 0; transform: translate(-14px, 8px) scale(.9); }
+.ldy21 .f7-dots {
+  position: absolute; left: 70px; bottom: 12px;
+  display: flex; gap: 6px; z-index: 4;
+}
+.ldy21 .f7-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 1px solid rgba(203,189,147,.45);
+  background: rgba(0,0,0,.3);
+  transition: all .4s ease;
+}
+.ldy21 .f7-dot.got {
+  background: #ffd76e; border-color: #ffd76e;
+  box-shadow: 0 0 9px rgba(255,215,110,.85);
+}
+.ldy21 .f7-count {
+  position: absolute; right: 16px; bottom: 10px;
+  color: #cbbd93; font-size: 14px; letter-spacing: 2px; z-index: 4;
+}
+
+/* ============ 翻越夹金山：按住上爬 ============ */
+.ldy21 .g-climb {
+  background: linear-gradient(180deg, #0b1119 0%, #232a38 62%, #39414f 100%);
+  overflow: hidden;
+}
+.ldy21 .climb-mtn { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; }
+.ldy21 .climb-team {
+  position: absolute; left: 118px; bottom: 14px; width: 78px; height: 140px;
+  filter: drop-shadow(0 0 9px rgba(255,215,110,.4));
+  transition: opacity .35s ease;
+}
+.ldy21 .climb-team svg { width: 100%; height: 100%; display: block; }
+.ldy21 .g-climb.pulling .climb-team { animation: ldy21-climb-bob .55s ease-in-out infinite; }
+@keyframes ldy21-climb-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-5px) rotate(-1.2deg); }
+}
+.ldy21 .climb-alt {
+  position: absolute; left: 14px; top: 10px;
+  color: #e8ecf4; font-size: 17px; letter-spacing: 2px;
+  text-shadow: 0 1px 5px rgba(0,0,0,.85);
+}
+.ldy21 .climb-bar {
+  position: absolute; right: 16px; top: 14px; width: 8px; height: 200px;
+  background: rgba(255,255,255,.1); border-radius: 4px; overflow: hidden;
+}
+.ldy21 .climb-fill {
+  position: absolute; bottom: 0; left: 0; width: 100%; height: 0%;
+  background: linear-gradient(180deg, #ffe9a8, #d9a441);
+  box-shadow: 0 0 10px rgba(255,215,110,.7);
+  transition: height .12s linear;
+}
+.ldy21 .climb-gust {
+  position: absolute; top: -10%; left: 900px; width: 260px; height: 120%;
+  background: linear-gradient(100deg, rgba(232,236,244,0), rgba(232,236,244,.45) 45%, rgba(232,236,244,0));
+  filter: blur(3px);
+  pointer-events: none;
+  will-change: left;
+}

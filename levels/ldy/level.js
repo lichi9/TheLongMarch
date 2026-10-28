@@ -24,13 +24,13 @@
     { num: '3万 : 40万', name: '四渡赤水', game: 'cross', relic: '斗笠',
       relicData: '3 万余人牵动近 40 万敌军，150 多个团被拖着反复转向',
       text: '三万红军四渡赤水，声东击西，跳出四十万敌军的围追堵截。' },
-    { num: '7 只小船', name: '巧渡金沙江', relic: '船桨',
+    { num: '7 只小船', name: '巧渡金沙江', game: 'ferry7', relic: '船桨',
       relicData: '7 只小船 · 37 名船工 · 九天九夜',
       text: '7只小船、37名船工、九天九夜，两万余人马渡过金沙江，未损一兵一卒。' },
     { num: '22 勇士', name: '飞夺泸定桥', game: 'bridge', relic: '铁索',
       relicData: '13 根铁索 · 一昼夜兼程 240 里',
       text: '昼夜兼程240里，22名勇士攀着13根铁索夺下泸定桥。铁索之上，是滚烫的信仰。' },
-    { num: '4,000+ 米', name: '翻越夹金山', relic: '草鞋',
+    { num: '4,000+ 米', name: '翻越夹金山', game: 'climb', relic: '草鞋',
       relicData: '翻越 40 余座高山，20 多座雪山海拔 4000 多米',
       text: '海拔四千余米，风雪交加。衣着单薄的官兵手拉着手，把雪山踩在了脚下。' },
     { num: '7 天 7 夜', name: '走出草地', game: 'grass', relic: '皮带',
@@ -56,7 +56,9 @@
     xiangjiang: '按住数字，看他们一个一个离开',
     gear:   '先看清双方家底，再回答那个问题',
     cross:  '敌军在江边巡逻——趁它走远，点渡口过江（共四次）',
+    ferry7: '船靠岸的瞬间点「接应」——七只小船，一只都不能少',
     bridge: '狂点「行军」冲向泸定桥！出现金色铁索时立刻抓住',
+    climb:  '按住屏幕往上爬，松手会下滑——风雪来时先停一停',
     grass:  '点相邻格子前进，深色的是沼泽，把火种送到队尾',
     union:  '四条长征路——点一下，让它们汇聚到会宁'
   };
@@ -922,7 +924,8 @@
 
       if (d.game) {
         var games = {
-          gear: gameGear, cross: gameCross, bridge: gameBridge, grass: gameGrass, union: gameUnion
+          gear: gameGear, cross: gameCross, bridge: gameBridge, grass: gameGrass,
+          union: gameUnion, ferry7: gameFerry7, climb: gameClimb
         };
         cleanupGame = games[d.game](gArea, tipEl, onWin);
         return;
@@ -1063,6 +1066,162 @@
       });
       area.appendChild(opts);
       return function () {};
+    }
+
+    /* ---------- 玩法：巧渡金沙江（七只小船，靠岸即接应） ---------- */
+    function gameFerry7(area, tip, win) {
+      area.classList.add('g-ferry7');
+      var water = el('div', 'f7-water');
+      area.appendChild(water);
+      area.appendChild(el('div', 'f7-bank', '皎 平 渡 口'));
+
+      var dots = el('div', 'f7-dots');
+      var marks = [];
+      for (var i = 0; i < 7; i++) {
+        var m = el('div', 'f7-dot');
+        dots.appendChild(m);
+        marks.push(m);
+      }
+      area.appendChild(dots);
+      var counter = el('div', 'f7-count', '0 / 7 只');
+      area.appendChild(counter);
+
+      var boats = [], docked = 0, done = false;
+
+      function spawn() {
+        if (done || boats.length >= 2) return;
+        var b = el('div', 'f7-boat');
+        b.innerHTML =
+          '<svg viewBox="0 0 72 34" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M6 18 L66 18 L56 30 L16 30 Z" fill="#7a5a30"/>' +
+            '<path d="M6 18 L66 18 L62 21 L10 21 Z" fill="#a1793f"/>' +
+            '<rect x="34" y="2" width="3" height="16" fill="#6b4c26"/>' +
+            '<path d="M37 3 L60 10 L37 14 Z" fill="#d8cba8" opacity=".85"/>' +
+            '<rect x="20" y="11" width="5" height="9" rx="2" fill="#3c2c17"/>' +
+            '<rect x="48" y="11" width="5" height="9" rx="2" fill="#3c2c17"/>' +
+          '</svg>';
+        b.style.top = (34 + Math.random() * 96) + 'px';
+        b.style.left = '560px';
+        area.appendChild(b);
+        boats.push({ el: b, x: 560, v: 1.5 + Math.random() * 0.8 });
+      }
+
+      var h = every(30, function () {
+        for (var k = boats.length - 1; k >= 0; k--) {
+          var b = boats[k];
+          b.x -= b.v;
+          b.el.style.left = b.x + 'px';
+          if (b.x < 52) {
+            if (b.el.parentNode) b.el.parentNode.removeChild(b.el);
+            boats.splice(k, 1);
+            buzz();
+            tip.textContent = '船漂过去了……船工摆摆手，又划了回来。';
+          }
+        }
+      });
+      var spawner = every(1500, spawn);
+      after(200, spawn);
+
+      /* 点到靠岸窗口内的船 = 接应成功 */
+      bind(area, 'pointerdown', function (e) {
+        if (done) return;
+        var best = null, bestX = 999;
+        boats.forEach(function (b) { if (b.x < bestX) { bestX = b.x; best = b; } });
+        if (!best) return;
+        if (bestX > 215) {
+          buzz();
+          tip.textContent = '还太远——等它靠到渡口再伸手。';
+          return;
+        }
+        if (bestX < 60) return;
+        best.el.classList.add('docked');
+        chime();
+        docked++;
+        marks[docked - 1].classList.add('got');
+        counter.textContent = docked + ' / 7 只';
+        var idx = boats.indexOf(best);
+        if (idx >= 0) boats.splice(idx, 1);
+        after(420, function () { if (best.el.parentNode) best.el.parentNode.removeChild(best.el); });
+        if (docked >= 7) {
+          done = true;
+          tip.textContent = '七只小船，九天九夜，两万人马渡过金沙江。';
+          after(800, win);
+        } else {
+          tip.textContent = '第 ' + docked + ' 只靠岸！还有 ' + (7 - docked) + ' 只要接。';
+        }
+      });
+      return function () { clearInterval(h); clearInterval(spawner); };
+    }
+
+    /* ---------- 玩法：翻越夹金山（按住上爬，风雪停手） ---------- */
+    function gameClimb(area, tip, win) {
+      area.classList.add('g-climb');
+      var NS = 'http://www.w3.org/2000/svg';
+      var mtn = global.document.createElementNS(NS, 'svg');
+      mtn.setAttribute('viewBox', '0 0 560 268');
+      mtn.setAttribute('class', 'climb-mtn');
+      mtn.innerHTML =
+        '<path d="M0 268 L150 44 L300 268 Z" fill="#2a303e"/>' +
+        '<path d="M112 92 L150 44 L190 96 L172 88 L150 102 L128 86 Z" fill="#e6ebf3"/>' +
+        '<path d="M280 268 L430 82 L560 268 Z" fill="#20252f"/>' +
+        '<path d="M392 134 L430 82 L470 138 L450 128 L430 142 L410 126 Z" fill="#d7dee9"/>';
+      area.appendChild(mtn);
+
+      var team = el('div', 'climb-team', SVG.soldier);
+      area.appendChild(team);
+      var altEl = el('div', 'climb-alt', '海拔 3,000 米');
+      area.appendChild(altEl);
+      var bar = el('div', 'climb-bar');
+      var fill = el('div', 'climb-fill');
+      bar.appendChild(fill);
+      area.appendChild(bar);
+
+      var alt = 0, holding = false, gust = null, done = false;
+
+      /* 雪山风带 */
+      function blowGust() {
+        if (done || gust) return;
+        var g = el('div', 'climb-gust');
+        area.appendChild(g);
+        var gg = { el: g, left: 900 };
+        gust = gg;
+        tip.textContent = '风雪来了——先停一停，抓稳前面的人！';
+        every(40, function () {
+          if (!gust || gust !== gg) return;
+          gg.left -= 26;
+          g.style.left = gg.left + 'px';
+          if (gg.left < -180) {
+            if (g.parentNode) g.parentNode.removeChild(g);
+            gust = null;
+            tip.textContent = '风雪过去了，继续往上。';
+          }
+        });
+      }
+      var gustH = every(3200, blowGust);
+
+      var h = every(40, function () {
+        if (done) return;
+        var d;
+        if (gust) d = holding ? -0.22 : 0;      /* 风雪里硬爬会打滑，停手最稳 */
+        else d = holding ? 0.62 : -0.24;        /* 平常：按住上爬，松手下滑 */
+        alt = Math.max(0, Math.min(100, alt + d));
+        team.style.bottom = (14 + alt * 1.55) + 'px';
+        team.style.opacity = gust ? '.6' : '1';
+        altEl.textContent = '海拔 ' + (3000 + Math.round(alt * 11.1)) + ' 米 / 4,110 米';
+        fill.style.width = alt + '%';
+        if (alt >= 100) {
+          done = true;
+          holding = false;
+          altEl.textContent = '海拔 4,110 米 —— 把雪山踩在了脚下';
+          chime();
+          after(900, win);
+        }
+      });
+
+      bind(area, 'pointerdown', function () { holding = true; area.classList.add('pulling'); });
+      bind(area, 'pointerup', function () { holding = false; area.classList.remove('pulling'); });
+      bind(area, 'pointerleave', function () { holding = false; area.classList.remove('pulling'); });
+      return function () { clearInterval(h); clearInterval(gustH); };
     }
 
     /* ---------- 玩法2：四渡赤水（躲巡逻点渡口） ---------- */
