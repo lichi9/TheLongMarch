@@ -3,11 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>关卡</title>
+<title>四渡赤水 · 连线</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="stage"></div>
+
+<div id="stage">
+  <div id="board">
+    <img src="assets/sidu-chishui.jpg" id="mapBg" alt="">
+    <canvas id="canvas" width="1120" height="640"></canvas>
+
+    <header class="head">
+      <h1>四渡赤水 · 连线</h1>
+      <p class="info">先点左侧的事件，再点右侧对应的结果；四条线全部连对即可过关。</p>
+    </header>
+
+    <div class="row">
+      <div class="col" id="left"></div>
+      <div class="col" id="right"></div>
+    </div>
+
+    <div class="btns">
+      <button id="resetBtn" type="button">重新开始</button>
+      <button id="answerBtn" type="button">查看答案</button>
+    </div>
+    <div id="result"></div>
+  </div>
+</div>
+
 <script src="level.js"></script>
 </body>
 </html>

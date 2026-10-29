@@ -1,21 +1,28 @@
-/* 关卡样式
+/* 四渡赤水 · 连线 —— levels/ljm/style.css
 
    ★ 舞台固定 1280 × 720
-   主程序负责把这一层缩放去适配窗口，所以按 1280×720 摆位置就行，
-   不用自己写响应式，也不用管别人屏幕多大。
+   主程序负责把这一层整体缩放去适配窗口，所以这里按 1280×720 摆位置，
+   不写响应式、不读 window.innerWidth。
 
-     想铺满      → width / height: 100%
-     想精确摆放  → 直接用像素，比如 left: 320px
+   本文件跑在独立 iframe 里，html / body 选择器可以放心用。 */
 
-   （这一份跑在 iframe 里，html / body 选择器可以放心用。） */
+* {
+  box-sizing: border-box;
+}
 
-* { box-sizing: border-box; }
-
-html, body {
+html,
+body {
   margin: 0;
   height: 100%;
   overflow: hidden;
   background: #17120e;
+}
+
+body {
+  font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  color: #2e241b;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #stage {
@@ -24,44 +31,203 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: radial-gradient(circle at 50% 42%, #2c2319 0%, #17120e 72%);
 }
 
-.probe {
-  width: 100%;
-  height: 100%;
+/* ---------- 画布：1120 × 640 居中 ---------- */
+#board {
+  position: relative;
+  width: 1120px;
+  height: 640px;
+  padding: 24px 44px 18px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  cursor: pointer;
-  background: radial-gradient(circle at 50% 45%, #f4ead4 0%, #e6d7b6 70%, #d5c29b 100%);
-  transition: background 260ms ease;
-  -webkit-user-select: none;
-  user-select: none;
+  background: #f4ecd9;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(120, 92, 55, 0.35);
+  transition: box-shadow 0.3s ease;
 }
 
-.probe:hover {
-  background: radial-gradient(circle at 50% 45%, #f8f0dc 0%, #ecdfc2 70%, #dccaa4 100%);
+#board.is-done {
+  box-shadow:
+    0 0 0 4px #c8a15a,
+    0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
-.probe-main {
-  margin: 0;
-  font: 700 34px/1.3 "STXingkai", "华文行楷", "KaiTi", serif;
+#mapBg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.18;
+  filter: sepia(0.35);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---------- 标题 ---------- */
+.head {
+  position: relative;
+  z-index: 3;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+h1 {
+  margin: 0 0 5px;
+  font: 700 32px/1.2 "STXingkai", "华文行楷", "KaiTi", serif;
   color: #8a1a12;
   letter-spacing: 4px;
 }
 
-.probe-sub {
+.info {
   margin: 0;
-  font: 400 13px/1.6 "Songti SC", "STSong", "SimSun", serif;
-  color: rgba(60, 45, 34, 0.62);
+  font-size: 14px;
   letter-spacing: 1px;
+  color: #6b5a44;
 }
 
-.probe.is-done {
-  background: radial-gradient(circle at 50% 45%, #b23a2c 0%, #8a1a12 100%);
+/* ---------- 连线区 ---------- */
+.row {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
 }
 
-.probe.is-done .probe-main { color: #f9f0da; }
-.probe.is-done .probe-sub  { color: rgba(249, 240, 218, 0.75); }
+.col {
+  width: 410px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+
+.card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 10px 18px;
+  border: 2px solid #c9b891;
+  border-radius: 10px;
+  background: rgba(255, 252, 244, 0.9);
+  font-size: 16px;
+  line-height: 1.45;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+#left .card {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+#right .card {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: #a98d5b;
+  box-shadow: 0 6px 14px rgba(80, 55, 25, 0.16);
+}
+
+.card.selected {
+  border-color: #c62828;
+  background: #fff1ee;
+  box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.14);
+}
+
+.card.correct {
+  border-color: #2c6e49;
+  background: #e9f3ea;
+  color: #245c3d;
+  cursor: default;
+}
+
+.card.correct:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.card.wrong {
+  border-color: #a33a2c;
+  background: #fbe9e6;
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+
+/* ---------- 按钮与结果 ---------- */
+.btns {
+  position: relative;
+  z-index: 3;
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+button {
+  padding: 9px 22px;
+  border: 0;
+  border-radius: 8px;
+  background: #8a1a12;
+  color: #f9f0da;
+  font-family: inherit;
+  font-size: 15px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+button:hover {
+  background: #a3251a;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:focus-visible {
+  outline: 2px solid #c8a15a;
+  outline-offset: 3px;
+}
+
+#result {
+  position: relative;
+  z-index: 3;
+  height: 22px;
+  margin-top: 8px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #2c6e49;
+}
