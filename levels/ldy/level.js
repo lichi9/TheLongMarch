@@ -2309,12 +2309,36 @@
             chime();
             after(1200, function () {
               if (panel.parentNode) panel.parentNode.removeChild(panel);
-              bigEnding(student);
+              starIsYours(student);
             });
           }
         }
       }
       var hitOff = bind(stage, 'pointermove', hit);
+    }
+
+    /* ---------- 第 21 颗星：你画的那一颗，接在二十颗后面 ---------- */
+    function starIsYours(student) {
+      var CX = 640, CY = 300, R = 132, r = 53;
+      var pts = starPoints(CX, CY, R, r).map(function (p) {
+        return p[0].toFixed(1) + ',' + p[1].toFixed(1);
+      }).join(' ');
+      var box = el('div', 'yours',
+        '<div class="yours-star">' +
+          '<svg viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet">' +
+            '<polygon points="' + pts + '" fill="rgba(255,226,130,.14)" ' +
+              'stroke="rgba(255,235,168,.92)" stroke-width="3.2" stroke-linejoin="round"/>' +
+          '</svg>' +
+        '</div>' +
+        '<div class="yours-cap">第 二 十 一 颗 星</div>' +
+        '<div class="yours-line">二十颗星，照亮了来时的路。<br>这一颗，交给你了。</div>');
+      sceneRelay.appendChild(box);
+      after(80, function () { box.classList.add('show'); });
+      after(3400, function () { box.classList.add('bye'); });
+      after(4600, function () {
+        if (box.parentNode) box.parentNode.removeChild(box);
+        bigEnding(student);
+      });
     }
 
     function bigEnding(student) {

@@ -2056,3 +2056,44 @@
   border-radius: 2px;
   transform: rotate(-45deg);
 }
+
+/* ============ 第 21 颗星：你画的那一颗 ============ */
+.ldy21 .yours {
+  position: absolute;
+  left: 0; top: 0; width: 100%; height: 100%;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.3s ease;
+}
+.ldy21 .yours.show { opacity: 1; }
+.ldy21 .yours.bye { opacity: 0; transition: opacity 1.1s ease; }
+.ldy21 .yours-star {
+  position: absolute;
+  left: 0; top: 0; width: 100%; height: 100%;
+  filter: drop-shadow(0 0 26px rgba(255, 226, 130, .5));
+  animation: ldy21-yours-glow 3.6s ease-in-out infinite;
+}
+.ldy21 .yours-star svg { width: 100%; height: 100%; display: block; }
+@keyframes ldy21-yours-glow {
+  0%, 100% { filter: drop-shadow(0 0 18px rgba(255, 226, 130, .34)); }
+  50%      { filter: drop-shadow(0 0 40px rgba(255, 236, 170, .72)); }
+}
+.ldy21 .yours-cap {
+  position: absolute;
+  left: 0; right: 0; top: 466px;
+  text-align: center;
+  font-size: 15px;
+  letter-spacing: 9px;
+  color: #ecd49c;
+  text-shadow: 0 0 20px rgba(255, 212, 112, .55);
+}
+.ldy21 .yours-line {
+  position: absolute;
+  left: 0; right: 0; top: 512px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 2.15;
+  letter-spacing: 2px;
+  color: #b6a88f;
+}
