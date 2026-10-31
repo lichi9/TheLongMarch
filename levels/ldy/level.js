@@ -26,8 +26,8 @@
   /* ============ 八门数据（严格对应游戏 8 站，会宁会师收尾） ============ */
   var DOORS = [
     { num: '86,000 → 30,000', name: '血战湘江', press: true, relic: '步枪',
-      relicData: '全军 29153 支步马枪，装备率不足 40%，每 3 人 1 支',
-      text: '1934年11月底，湘江血战五昼夜，撕开封锁线。长按数字，直面这场减员。' },
+      relicData: '中央红军 29153 支步马枪，平均每百人 40 余支，每支配弹不足 56 发',
+      text: '1934年11月底，湘江血战五昼夜。加上此前三道封锁线的消耗，8.6 万人只剩 3 万。长按数字，直面这场减员。' },
     { num: '转折', name: '遵义会议', game: 'gear', relic: '地图',
       relicData: '实事求是，从这里校正了方向',
       text: '1935年1月，遵义会议在危急关头挽救了党、挽救了红军、挽救了中国革命。' },
@@ -45,7 +45,7 @@
       text: '海拔四千余米，风雪交加。衣着单薄的官兵手拉着手，把雪山踩在了脚下。' },
     { num: '7 天 7 夜', name: '走出草地', game: 'grass', relic: '皮带',
       relicData: '穿越 1.52 万平方公里水草地，断粮之后，皮带煮软了分着吃',
-      text: '松潘草地六百里沼泽，以野菜充饥、以皮带果腹，七天七夜走出绝境。' },
+      text: '松潘草地，方圆数百里的水草地。以野菜充饥、以皮带果腹，七天七夜走出绝境。' },
     { num: '1936.10', name: '会宁会师', game: 'union', relic: '军号',
       relicData: '10月9日会宁 · 10月22日将台堡，三大主力会师',
       text: '1936年10月，三大主力会宁、将台堡会师，长征胜利结束。他们用两年，走完了一条信仰之路。' }
@@ -56,10 +56,10 @@
     { keys: ['信仰', '理想', '信念'], say: '“长征是历史纪录上的第一次，长征是宣言书，长征是宣传队，长征是播种机。” —— 毛泽东，1935年12月。' },
     { keys: ['青春', '少年', '年轻'], say: '长征队伍里，指挥员平均年龄不足 25 岁，14 至 18 岁的战士占到四成。撕开黑夜的，是一群年轻人。' },
     { keys: ['向前', '前进', '坚持'], say: '“红军不怕远征难，万水千山只等闲。” —— 毛泽东《七律·长征》，1935 年 10 月。' },
-    { keys: ['草鞋', '群众', '百姓', '支援'], say: '出发前，于都群众赶制了 20 万双草鞋、备下 4 天以上的口粮，把房屋让给部队休整。长征路上，人民一直在接力支援。' },
+    { keys: ['草鞋', '群众', '百姓', '支援'], say: '出发前，赣南苏区赶制了 20 万双草鞋，群众卸下自家门板给红军架浮桥、把房屋让给部队休整。长征路上，人民一直在接力支援。' },
     { keys: ['传承', '接力', '我们'], say: '“每一代人有每一代人的长征，每一代人都要走好自己的长征路。”' },
     { keys: ['山河', '祖国', '中国'], say: '两年，跨越近 100 条江河、翻越 40 余座高山险峰、经历 600 余战。山河为证。' },
-    { keys: ['奇迹', '艰难'], say: '越是艰难，越见奇迹。20.6 万人出发，5.7 万人走到——他们凭什么走到了最后？' }
+    { keys: ['奇迹', '艰难'], say: '越是艰难，越见奇迹。20.6 万人出发，最后到达陕甘的只有 5.7 万人。其余的人，留在了路上。' }
   ];
 
   var GAME_TIPS = {
@@ -90,7 +90,8 @@
     door:   '跟我来，第一扇门亮了',
     doorN:  '下一扇门在等你',
     last:   '最后一扇门了……',
-    allDone:'八扇门都关上了。现在——把火种交出去吧。',
+    allDone:'八扇门都关上了。还有最后一扇——',
+    ninth:  '前八扇门，是他们的路。这一扇，是你的。',
     relay:  '按住火种，拖到少年手心',
     draw:   '跟着亮光，画一颗星送给他们'
   };
@@ -101,6 +102,10 @@
     '',
     '历史书又太大，',
     '装下了他们所有人的牺牲。',
+    '',
+    '许多人的烈士证明书上，',
+    '只写着五个字——',
+    '北上，无音讯。',
     '',
     '每一代人有每一代人的长征，',
     '每一代人都要走好自己的长征路。',
@@ -649,15 +654,18 @@
       var star = el('div', 'morning-star', SVG.star4);
       sceneIntro.appendChild(star);
 
-      var started = false;
+      var phase = 0;              /* 0 未开始 · 1 二十颗星 · 2 打字 */
+      var advanceMeet = null;     /* 星星段没播完时，再点一次可跳过 */
+
       bind(sceneIntro, 'click', function () {
         audioInit();
-        if (started) return;
-        started = true;
-        hint.classList.add('hidden');
-        typeLines(lines, 0, function () {
-          after(500, function () { star.classList.add('show'); });
-        });
+        if (phase === 0) {
+          phase = 1;
+          hint.classList.add('hidden');
+          starMeet();
+          return;
+        }
+        if (phase === 1 && advanceMeet) advanceMeet();
       });
 
       bind(star, 'click', function (e) {
@@ -679,6 +687,80 @@
           riseFlag();
         });
       });
+
+      /* ---------- 开场点名：二十颗星依次亮起，然后「二十个关卡，八段路」 ---------- */
+      var EIGHT_ROADS = ['血战湘江', '遵义会议', '四渡赤水', '巧渡金沙江',
+                         '飞夺泸定桥', '翻越夹金山', '走出草地', '会宁会师'];
+
+      function starMeet() {
+        var box = el('div', 'starmeet');
+        sceneIntro.appendChild(box);
+
+        var stars = [], names = [];
+        for (var i = 0; i < 20; i++) {
+          var t = i / 19;
+          var sz = 11 + (i % 4) * 2.4;
+          var st = el('div', 'ms', SVG.star4);
+          /* 沿一条缓缓起伏的弧线铺开，像一条走过来的路 */
+          st.style.left = (202 + i * 46 + (i % 3) * 5 - sz / 2) + 'px';
+          st.style.top  = (198 + Math.sin(t * Math.PI * 1.5 - 0.35) * 62 + (i % 2 ? -16 : 12) - sz / 2) + 'px';
+          st.style.width = sz + 'px';
+          st.style.height = sz + 'px';
+          box.appendChild(st);
+          stars.push(st);
+        }
+        var cap = el('div', 'meet-cap', '二十个关卡，八段路。');
+        box.appendChild(cap);
+        var namesBox = el('div', 'meet-names');
+        EIGHT_ROADS.forEach(function (n) {
+          var s = el('span', '', n);
+          namesBox.appendChild(s);
+          names.push(s);
+        });
+        box.appendChild(namesBox);
+
+        var k = 0, revealed = false;
+
+        function startType() {
+          if (box.parentNode) box.parentNode.removeChild(box);
+          if (phase !== 1) return;
+          phase = 2;
+          typeLines(lines, 0, function () {
+            after(500, function () { star.classList.add('show'); });
+          });
+        }
+
+        function reveal(fast) {
+          if (revealed) return;
+          revealed = true;
+          clearInterval(h);
+          stars.forEach(function (s) { s.classList.add('on'); });
+
+          if (fast) {
+            cap.classList.add('show');
+            names.forEach(function (n) { n.classList.add('on'); });
+            after(380, function () { box.classList.add('gone'); });
+            after(900, startType);
+            return;
+          }
+
+          after(320, function () { cap.classList.add('show'); chime(); });
+          after(700, function () {
+            names.forEach(function (n, ni) {
+              after(ni * 125, function () { n.classList.add('on'); });
+            });
+          });
+          after(700 + names.length * 125 + 1350, function () { box.classList.add('gone'); });
+          after(700 + names.length * 125 + 2150, startType);
+        }
+
+        var h = every(130, function () {
+          if (k < stars.length) { stars[k++].classList.add('on'); return; }
+          clearInterval(h);
+          reveal(false);
+        });
+        advanceMeet = function () { reveal(true); };
+      }
     }
 
     function typeLines(box, idx, done) {
@@ -951,7 +1033,56 @@
         bubble.textContent = SPIRIT_LINES.allDone;
         bubble.classList.add('show');
       });
-      after(4600, toRelay);
+      after(4600, ninthDoor);
+    }
+
+    /* ---------- 第九扇门：八门之后，留一扇给你自己 ---------- */
+    function ninthDoor() {
+      if (!live) return;
+      if (bubble) bubble.classList.remove('show');
+      /* 八门与火堆退成背景，只留这一扇空门 */
+      sceneDoors.classList.add('ninth-mode');
+
+      var wrap = el('div', 'ninth');
+      var sky = '<div class="nd-sky">';
+      for (var i = 0; i < (isTouch ? 12 : 22); i++) {
+        sky += '<i style="left:' + (5 + Math.random() * 90).toFixed(1) + '%;top:' +
+               (5 + Math.random() * 90).toFixed(1) + '%;animation-delay:' +
+               (Math.random() * 3.4).toFixed(1) + 's"></i>';
+      }
+      sky += '</div>';
+      wrap.innerHTML =
+        '<div class="nd-door">' + sky + '</div>' +
+        '<div class="nd-cap">这一扇，留给现在的你</div>' +
+        '<div class="nd-tip">点 一 下</div>';
+      wrap.querySelector('.nd-door').style.backgroundImage = 'url(' + BASE + 'assets/door-frame.png)';
+      sceneDoors.appendChild(wrap);
+
+      after(120, function () { wrap.classList.add('show'); });
+      after(1400, function () {
+        if (!live) return;
+        spirit.style.left = '806px'; spirit.style.top = '152px';
+        bubble.style.left = '852px'; bubble.style.top = '122px';
+        bubble.textContent = SPIRIT_LINES.ninth;
+        bubble.classList.add('show');
+      });
+
+      var opened = false;
+      bind(wrap, 'click', function () {
+        if (opened) return;
+        opened = true;
+        if (bubble) bubble.classList.remove('show');
+        wrap.classList.add('open');
+        chime();
+        after(420, chime);
+        after(1500, function () {
+          wrap.classList.add('bye');
+          after(900, function () {
+            if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+            toRelay();
+          });
+        });
+      });
     }
 
     /* ---------- 门模态框：玩法 → 故事 ---------- */
@@ -1048,7 +1179,7 @@
       var grid = el('div', 'xs-grid');
       var TOTAL = 88;
       for (var i = 0; i < TOTAL; i++) grid.appendChild(el('div', 'xs', '<i></i>'));
-      var xsTip = el('div', 'xs-tip', '88 个方阵，每格一千人');
+      var xsTip = el('div', 'xs-tip', '88 个方阵，每格约一千人');
       area.appendChild(grid);
       area.appendChild(xsTip);
       var flash = el('div', 'red-flash');
@@ -1879,7 +2010,8 @@
           after(2400, function () { if (rs.parentNode) rs.parentNode.removeChild(rs); });
         });
       }
-      after(2200, showCredits);
+      /* 画完一颗星，让星空静一会儿——比任何字幕都重 */
+      after(6500, showCredits);
     }
 
     var creditsBox = null;
@@ -1894,10 +2026,10 @@
       box.appendChild(roll);
       sceneRelay.appendChild(box);
       creditsBox = box;
-      after(13200, showToday);
+      after(14200, showToday);
     }
 
-    /* ---------- 1936 → 2026：接力的一屏 ---------- */
+    /* ---------- 1936 → 2026：同一个年纪，不同的命运 ---------- */
     function showToday() {
       if (creditsBox) creditsBox.classList.add('gone');
       var box = el('div', 'today');
@@ -1905,11 +2037,11 @@
         '<div class="yrs"><span>1936</span><i></i><span>2026</span></div>' +
         '<div class="cols">' +
           '<div class="col"><h4>当 年</h4>' +
-            '<p>8.68 万人出发</p><p>29153 支步马枪</p><p>可用战机 0 架</p></div>' +
+            '<p>14 至 18 岁的战士，占到全军四成</p><p>指挥员平均年龄不足 25 岁</p><p>他们中的大多数，没有留下姓名</p></div>' +
           '<div class="col"><h4>今 天</h4>' +
-            '<p>4 支军种 + 4 支兵种</p><p>10 艘万吨级驱逐舰</p><p>3 型电磁弹射舰载机</p></div>' +
+            '<p>这个年纪的人，坐在教室里</p><p>在球场上，在去明天的路上</p><p>正在读这段历史</p></div>' +
         '</div>' +
-        '<div class="today-line">你们没走完的路，我们接着走。</div>';
+        '<div class="today-line">他们倒下时的年纪，正是我们现在的年纪。</div>';
       sceneRelay.appendChild(box);
       after(120, function () { box.classList.add('show'); });
       after(1500, function () {
@@ -1993,6 +2125,15 @@
             '<span class="stay-tip">（也可以停在这里，多陪他们一会儿）</span>' +
           '</div>';
         thanks.classList.add('show');
+
+        /* 这句话先浮在夜空里，停一会儿，再散成星光 */
+        var word = el('div', 'msg-star',
+          msg.length > 34 ? msg.slice(0, 34) + '……' : msg);
+        sceneRelay.appendChild(word);
+        after(80, function () { word.classList.add('show'); });
+        after(5400, function () { word.classList.add('bye'); });
+        after(7200, function () { if (word.parentNode) word.parentNode.removeChild(word); });
+
         sparkUp(gb);
 
         var home = thanks.querySelector('.home-btn');
@@ -2006,20 +2147,27 @@
     }
 
     function copyText(text) {
+      /* 兜底：老式 execCommand 复制（临时输入框挂在自己的舞台里，不碰 body） */
+      var legacy = function () {
+        try {
+          var tmp = el('textarea');
+          tmp.value = text;
+          tmp.style.position = 'fixed'; tmp.style.opacity = '0';
+          stage.appendChild(tmp);
+          tmp.focus();
+          tmp.select();
+          document.execCommand('copy');
+          stage.removeChild(tmp);
+        } catch (e) {}
+      };
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text); return;
+          /* file:// 下浏览器会拒绝写入剪贴板，必须接住这个 Promise，否则控制台报红 */
+          navigator.clipboard.writeText(text).then(function () {}, legacy);
+          return;
         }
       } catch (e) {}
-      try {
-        var tmp = el('textarea');
-        tmp.value = text;
-        tmp.style.position = 'fixed'; tmp.style.opacity = '0';
-        document.body.appendChild(tmp);
-        tmp.select();
-        document.execCommand('copy');
-        document.body.removeChild(tmp);
-      } catch (e) {}
+      legacy();
     }
 
     function finish() {
