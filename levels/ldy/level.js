@@ -886,11 +886,14 @@
           return;
         }
         if (phase === 1 && advanceMeet) advanceMeet();
+        /* 文字打完后，点画面任何地方都能继续：别让玩家非得点中那颗小星星 */
+        if (phase === 2) flyStar();
       });
 
-      bind(star, 'click', function (e) {
-        e.stopPropagation();
-        if (!star.classList.contains('show')) return;
+      var flew = false;
+      function flyStar() {
+        if (flew || !star.classList.contains('show')) return;
+        flew = true;
         var fly = el('div', 'fly-star', SVG.star4);
         fly.style.left = '614px';
         fly.style.top  = '470px';
@@ -906,6 +909,11 @@
           if (fly.parentNode) fly.parentNode.removeChild(fly);
           riseFlag();
         });
+      }
+
+      bind(star, 'click', function (e) {
+        e.stopPropagation();
+        flyStar();
       });
 
       /* ---------- 开场点名：二十颗星依次亮起，然后「二十个关卡，八段路」 ---------- */
@@ -1884,8 +1892,9 @@
           cells.push({ el: cell, r: r, c: c, swamp: false });
         }
       }
-      /* 随机沼泽：避开起点(0,1)终点(4,1)及其邻格 */
-      var forbidden = { '0,1': 1, '1,1': 1, '3,1': 1, '4,1': 1 };
+      /* 随机沼泽：避开起点(0,1)终点(4,1)及其邻格，中间(2,1)也留空，
+         否则上下两行同时被堵时会出现走不到终点的死局 */
+      var forbidden = { '0,1': 1, '1,1': 1, '2,1': 1, '3,1': 1, '4,1': 1 };
       var placed = 0;
       while (placed < 4) {
         var r = Math.floor(Math.random() * ROWS), c = Math.floor(Math.random() * COLS);
@@ -1921,6 +1930,7 @@
         bind(cell.el, 'click', function () {
           var dr = Math.abs(cell.r - me.r), dc = Math.abs(cell.c - me.c);
           if (dr + dc !== 1) return;   /* 只能走相邻格 */
+          var prevR = me.r, prevC = me.c;
           me.r = cell.r; me.c = cell.c;
           place();
           paintReach();
@@ -1928,8 +1938,12 @@
           if (cell.swamp) {
             buzz();
             cell.el.classList.add('stuck');
-            tip.textContent = '陷进泥沼了！战友把你拉了出来……小心深色格子';
+            tip.textContent = '陷进泥沼了！战友又把你拉回原处——小心深色格子';
             after(500, function () { cell.el.classList.remove('stuck'); });
+            /* 真的退回去：说被拉出来，人就不能还站在泥里 */
+            me.r = prevR; me.c = prevC;
+            after(320, function () { if (live) { place(); paintReach(); } });
+            return;
           }
           if (me.c === 4 && me.r === 1) win();
         });
