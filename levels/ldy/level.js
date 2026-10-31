@@ -2053,4 +2053,11 @@
     global.CZ.register({ id: ID, mount: mount });
   }
   global.LEVEL = { mount: mount };
+
+  /* 独立打开（双击 index.html）时自己挂上去 */
+  var soloStage = global.document.getElementById('stage');
+  if (soloStage && !soloStage.dataset.mounted) {
+    soloStage.dataset.mounted = '1';
+    mount(soloStage, null);
+  }
 })(window);
