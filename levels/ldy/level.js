@@ -536,32 +536,196 @@
     } catch (e) {}
   }
 
-  /* 极轻的环境风（一直循环，音量压得很低，营造旷野感） */
-  function windStart() {
-    if (!audio.ctx || !audio.noise || audio.wind) return;
+  /* ============ 环境音床：风 / 火，按场景交叉淡入 ============
+     风不能用振荡器去"模拟"，因为真实的风是噪声通过不同频段滤波器的结果。
+     三层并联：300Hz 低通＝风的体积，520Hz 带通＝穿过缝隙的呜咽，
+     2100Hz 窄带(Q=7)＝垭口的哨音。阵风用 0.12Hz 随机游走推动音量与滤波频率，
+     用正弦 LFO 会像机器在喘气。 */
+  var BED = { built: false, g: null, srcs: [], pink: null, white: null, slow: null,
+              scene: '', crackleT: null };
+
+  var BED_SCENES = {
+    /*         呜咽   体积   哨音   火   */
+    intro:      { wind: .34, low: .58, whistle: .10, fire: 0   },
+    doors:      { wind: .52, low: .60, whistle: .16, fire: 0   },
+    xiangjiang: { wind: .36, low: .45, whistle: .08, fire: 0   },
+    gear:       { wind: .44, low: .58, whistle: .10, fire: 0   },
+    ferry7:     { wind: .50, low: .66, whistle: .06, fire: 0   },
+    cross:      { wind: .70, low: .60, whistle: .34, fire: 0   },
+    bridge:     { wind: .62, low: .58, whistle: .22, fire: 0   },
+    climb:      { wind: .98, low: .55, whistle: .66, fire: 0   },
+    grass:      { wind: .46, low: .72, whistle: .04, fire: 0   },
+    union:      { wind: .56, low: .55, whistle: .18, fire: 0   },
+    ninth:      { wind: .90, low: .52, whistle: .58, fire: 0   },
+    relay:      { wind: .26, low: .44, whistle: .04, fire: .55 },
+    ceremony:   { wind: .14, low: .30, whistle: 0,   fire: .30 },
+    draw:       { wind: .08, low: .20, whistle: 0,   fire: .14 },
+    credits:    { wind: .22, low: .36, whistle: .04, fire: 0   },
+    guestbook:  { wind: .06, low: .14, whistle: 0,   fire: 0   },
+    off:        { wind: 0,   low: 0,   whistle: 0,   fire: 0   }
+  };
+
+  function bedBuild() {
+    if (BED.built || !audio.ctx) return;
     try {
-      var len = Math.floor(audio.ctx.sampleRate * 3);
-      var buf = audio.ctx.createBuffer(1, len, audio.ctx.sampleRate);
-      var d = buf.getChannelData(0), last = 0;
-      for (var i = 0; i < len; i++) {           /* 低通后的噪声 = 风声 */
-        last = last * 0.96 + (Math.random() * 2 - 1) * 0.04;
-        d[i] = last * 6;
+      var ctx = audio.ctx, i, j;
+
+      /* 粉红噪声（Voss-McCartney 近似）：低频比白噪声厚得多，才像空气在动 */
+      var len = Math.floor(ctx.sampleRate * 6);
+      var pink = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (var ch = 0; ch < 2; ch++) {
+        var d = pink.getChannelData(ch);
+        var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        for (i = 0; i < len; i++) {
+          var w = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + w * 0.0555179;
+          b1 = 0.99332 * b1 + w * 0.0750759;
+          b2 = 0.96900 * b2 + w * 0.1538520;
+          b3 = 0.86650 * b3 + w * 0.3104856;
+          b4 = 0.55000 * b4 + w * 0.5329522;
+          b5 = -0.7616 * b5 - w * 0.0168980;
+          d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+          b6 = w * 0.115926;
+        }
       }
-      var src = audio.ctx.createBufferSource();
-      src.buffer = buf; src.loop = true;
-      var lp = audio.ctx.createBiquadFilter();
-      lp.type = 'lowpass'; lp.frequency.value = 520;
-      var g = audio.ctx.createGain();
-      g.gain.value = 0.035;
-      src.connect(lp); lp.connect(g); g.connect(audio.ctx.destination);
+      BED.pink = pink;
+
+      /* 慢速随机游走：驱动阵风。一阶低通把幅度压得极小，必须按 RMS 归一化 */
+      var slen = Math.floor(ctx.sampleRate * 9);
+      var slow = ctx.createBuffer(1, slen, ctx.sampleRate);
+      var sd = slow.getChannelData(0);
+      var lp = 0, kk = 1 - Math.exp(-2 * Math.PI * 0.12 / ctx.sampleRate), sum = 0;
+      for (i = 0; i < slen; i++) {
+        lp += kk * ((Math.random() * 2 - 1) - lp);
+        sd[i] = lp;
+        sum += lp * lp;
+      }
+      var rms = Math.sqrt(sum / slen) || 1, ng = 0.5 / rms;
+      for (j = 0; j < slen; j++) {
+        var v = sd[j] * ng;
+        sd[j] = v > 1 ? 1 : (v < -1 ? -1 : v);
+      }
+      BED.slow = slow;
+
+      /* 火星用的白噪声，1 秒够切很多片 */
+      var white = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 1), ctx.sampleRate);
+      var wd = white.getChannelData(0);
+      for (i = 0; i < wd.length; i++) wd[i] = Math.random() * 2 - 1;
+      BED.white = white;
+
+      var master = ctx.createGain();
+      master.gain.value = 0.9;
+      master.connect(ctx.destination);
+
+      var src = ctx.createBufferSource();
+      src.buffer = pink;
+      src.loop = true;
+
+      var lowLp = ctx.createBiquadFilter();
+      lowLp.type = 'lowpass'; lowLp.frequency.value = 300; lowLp.Q.value = 0.7;
+      var lowG = ctx.createGain(); lowG.gain.value = 0;
+
+      var midBp = ctx.createBiquadFilter();
+      midBp.type = 'bandpass'; midBp.frequency.value = 520; midBp.Q.value = 1.1;
+      var midG = ctx.createGain(); midG.gain.value = 0;
+
+      var hiBp = ctx.createBiquadFilter();
+      hiBp.type = 'bandpass'; hiBp.frequency.value = 2100; hiBp.Q.value = 7;
+      var hiG = ctx.createGain(); hiG.gain.value = 0;
+
+      var fireLp = ctx.createBiquadFilter();
+      fireLp.type = 'lowpass'; fireLp.frequency.value = 190; fireLp.Q.value = 0.6;
+      var fireG = ctx.createGain(); fireG.gain.value = 0;
+
+      src.connect(lowLp); lowLp.connect(lowG); lowG.connect(master);
+      src.connect(midBp); midBp.connect(midG); midG.connect(master);
+      src.connect(hiBp);  hiBp.connect(hiG);  hiG.connect(master);
+      src.connect(fireLp); fireLp.connect(fireG); fireG.connect(master);
       src.start();
-      audio.wind = src;
+
+      /* 阵风同时推动：中频音量、哨音音量、中频中心频率、哨音频率 */
+      var gust = ctx.createBufferSource();
+      gust.buffer = slow;
+      gust.loop = true;
+      var toMid = ctx.createGain();  toMid.gain.value = 0.20;
+      var toHi = ctx.createGain();   toHi.gain.value = 0.05;
+      var toFreq = ctx.createGain(); toFreq.gain.value = 300;
+      var toWh = ctx.createGain();   toWh.gain.value = 600;
+      gust.connect(toMid);  toMid.connect(midG.gain);
+      gust.connect(toHi);   toHi.connect(hiG.gain);
+      gust.connect(toFreq); toFreq.connect(midBp.frequency);
+      gust.connect(toWh);   toWh.connect(hiBp.frequency);
+      gust.start();
+
+      BED.srcs = [src, gust];
+      BED.g = { master: master, wind: midG, low: lowG, whistle: hiG, fire: fireG };
+      BED.built = true;
+    } catch (e) { BED.built = false; }
+  }
+
+  /* 火星爆开：极短噪声，频率/音量/时长全随机，才不像节拍器 */
+  function bedCrackle() {
+    var ctx = audio.ctx;
+    if (!ctx || !BED.white || !BED.g) return;
+    try {
+      var t = ctx.currentTime + 0.01;
+      var s = ctx.createBufferSource();
+      s.buffer = BED.white;
+      s.playbackRate.value = 0.7 + Math.random() * 0.9;
+      var bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 900 + Math.random() * 3400;
+      bp.Q.value = 1.4 + Math.random() * 4;
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(0.012 + Math.random() * 0.05, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.025 + Math.random() * 0.055);
+      s.connect(bp); bp.connect(g); g.connect(BED.g.master);
+      s.start(t, Math.random() * 0.5);
+      s.stop(t + 0.12);
     } catch (e) {}
   }
-  function windStop() {
-    if (!audio.wind) return;
-    try { audio.wind.stop(); } catch (e) {}
-    audio.wind = null;
+  function bedCrackleStart() {
+    if (BED.crackleT) return;
+    function loop() {
+      if (!live) return;
+      bedCrackle();
+      if (Math.random() < 0.2) setTimeout(bedCrackle, 40 + Math.random() * 70);
+      BED.crackleT = setTimeout(loop, 90 + Math.random() * 280);
+    }
+    BED.crackleT = setTimeout(loop, 200);
+  }
+  function bedCrackleStop() {
+    if (BED.crackleT) { clearTimeout(BED.crackleT); BED.crackleT = null; }
+  }
+
+  function bedScene(name) {
+    if (!audio.ctx) return;
+    if (BED.scene === name) return;
+    if (!BED.built) bedBuild();
+    if (!BED.built) return;
+    BED.scene = name;
+    var c = BED_SCENES[name] || BED_SCENES.off;
+    var t = audio.ctx.currentTime, T = 1.1;
+    BED.g.wind.gain.setTargetAtTime(0.50 * c.wind, t, T);
+    BED.g.low.gain.setTargetAtTime(0.46 * c.low, t, T);
+    BED.g.whistle.gain.setTargetAtTime(0.16 * c.whistle, t, T);
+    BED.g.fire.gain.setTargetAtTime(0.34 * c.fire, t, T);
+    if (c.fire > 0) bedCrackleStart(); else bedCrackleStop();
+  }
+
+  function bedStop() {
+    bedCrackleStop();
+    if (!BED.built) return;
+    try {
+      var t = audio.ctx.currentTime;
+      BED.g.master.gain.cancelScheduledValues(t);
+      BED.g.master.gain.setTargetAtTime(0, t, 0.3);
+      var ss = BED.srcs.slice();
+      setTimeout(function () {
+        for (var i = 0; i < ss.length; i++) { try { ss[i].stop(); } catch (e) {} }
+      }, 900);
+    } catch (e) {}
+    BED.built = false; BED.g = null; BED.srcs = []; BED.scene = '';
   }
 
   /* ============ 工具 ============ */
@@ -692,6 +856,7 @@
 
       bind(sceneIntro, 'click', function () {
         audioInit();
+        bedScene('intro');
         if (phase === 0) {
           phase = 1;
           hint.classList.add('hidden');
@@ -817,7 +982,6 @@
       wrap.appendChild(el('div', 'pole'));
       wrap.appendChild(el('div', 'flag', SVG.flag + '<div class="wave"></div>'));
       sceneIntro.appendChild(wrap);
-      windStart();
       void wrap.offsetHeight;
       wrap.classList.add('risen');
       chime();
@@ -833,6 +997,7 @@
 
     function buildDoors() {
       sceneDoors.className = 'abs doors-scene';
+      bedScene('doors');
       /* 万火归一：火星从八扇门的方向升起，缓缓飘向中央火堆 */
       var embers = el('div', 'embers');
       DOORS.forEach(function (dd, di) {
@@ -1072,6 +1237,7 @@
     /* ---------- 第九扇门：星空在门后，推开它，走自己的路 ---------- */
     function ninthDoor() {
       if (!live) return;
+      bedScene('ninth');
       if (bubble) bubble.classList.remove('show');
       /* 八门与火堆退成背景 */
       sceneDoors.classList.add('ninth-mode');
@@ -1185,6 +1351,7 @@
     /* ---------- 门模态框：玩法 → 故事 ---------- */
     function openDoor(i) {
       var d = DOORS[i];
+      bedScene(d.press ? 'xiangjiang' : (d.game || 'doors'));
       var modal = el('div', 'door-modal');
       modal.innerHTML =
         '<div class="kicker">第 ' + CN_NUM[i] + ' 扇 门</div>' +
@@ -1244,6 +1411,7 @@
         closed = true;
         if (cleanupGame) cleanupGame();
         sceneDoors.removeChild(modal);
+        bedScene('doors');
         doorEls[i].classList.remove('locked-anim');
         doorEls[i].classList.add('done');
         sparkToFlame(i);
@@ -1817,6 +1985,7 @@
 
     /* ============ 第三幕：火种接力 + 画星光 ============ */
     function toRelay() {
+      bedScene('relay');
       if (bubble) bubble.classList.remove('show');
       sceneDoors.classList.add('hidden');
       sceneRelay.className = 'abs relay-scene';
@@ -1954,6 +2123,7 @@
     }
 
     function ceremony(soldier, student, dlg, flame) {
+      bedScene('ceremony');
       if (bubble) bubble.classList.remove('show');
       if (spirit) spirit.style.opacity = '0';
 
@@ -2043,6 +2213,7 @@
     }
 
     function drawStarEnding(student) {
+      bedScene('draw');
       if (bubble) bubble.classList.remove('show');
       spirit.style.left = '150px'; spirit.style.top = '150px'; spirit.style.opacity = '.5';
       bubble.style.left = '195px'; bubble.style.top = '120px';
@@ -2131,7 +2302,7 @@
       box.appendChild(roll);
       sceneRelay.appendChild(box);
       creditsBox = box;
-      windStop();   /* 落幕归于安静：环境风到字幕为止 */
+      bedScene('credits');   /* 落幕归于安静：风收到最轻，只剩空气 */
       after(14200, showToday);
     }
 
@@ -2196,6 +2367,7 @@
     }
 
     function buildGuestbook() {
+      bedScene('guestbook');
       /* 字幕与今昔层直接从 DOM 移除（不只是透明）：
          低配机器上旧帧残影会让它们"透"到留言簿后面 */
       if (creditsBox && creditsBox.parentNode) creditsBox.parentNode.removeChild(creditsBox);
@@ -2285,6 +2457,7 @@
 
     /* ---------- 谢幕熄灯：全屏暗下，只剩那颗星和一团火苗，呼吸一次再灭 ---------- */
     function douseOut() {
+      bedScene('off');
       var d = el('div', 'douse',
         '<div class="douse-star">' + SVG.star4 + '</div>' +
         '<div class="douse-flame">' + SVG.flame + '</div>');
@@ -2314,7 +2487,7 @@
         live = false;
         timers.forEach(clearOne);
         timers = [];
-        windStop();
+        bedStop();
         if (stage.parentNode) stage.parentNode.removeChild(stage);
       }
     };
