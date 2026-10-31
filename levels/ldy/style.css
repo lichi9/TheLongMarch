@@ -482,23 +482,6 @@
   opacity: calc(.32 + var(--p, 0) * .58);
   pointer-events: none;
 }
-/* 门板中央的「未点亮的星」：细金线浮雕，缓缓呼吸——第 21 颗星是你 */
-.ldy21 .ninth .nd-emblem {
-  position: absolute;
-  left: 50%; top: 33.5%;
-  width: 60px; height: 60px;
-  margin: -30px 0 0 -30px;
-  pointer-events: none;
-  opacity: .5;
-  filter: drop-shadow(0 0 7px rgba(255, 214, 110, .55));
-  animation: ldy21-emblem 3.4s ease-in-out infinite;
-}
-.ldy21 .ninth.pushing .nd-emblem { opacity: .95; animation-play-state: paused; }
-@keyframes ldy21-emblem {
-  0%, 100% { opacity: .38; }
-  50%      { opacity: .68; }
-}
-
 /* 门板：绕左轴被推开，scaleX 收缩即露出后面的星空 */
 .ldy21 .ninth .nd-door {
   position: absolute;
@@ -1196,6 +1179,7 @@
 .ldy21 .flame.at-chest {
   animation: ldy21-bob 1.4s ease-in-out infinite;
   filter: drop-shadow(0 0 18px #ffd76e) brightness(1.15);
+  pointer-events: none;   /* 火已入心口：不再可抓，防止留言簿时误触重演仪式 */
 }
 
 .ldy21 .relay-tip {

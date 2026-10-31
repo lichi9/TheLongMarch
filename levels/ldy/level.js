@@ -585,7 +585,9 @@
     }
     function bind(node, ev, fn) {
       node.addEventListener(ev, fn);
-      timers.push({ remove: function () { node.removeEventListener(ev, fn); } });
+      var h = { remove: function () { node.removeEventListener(ev, fn); } };
+      timers.push(h);
+      return h;   /* 返回解绑句柄：场景结束时主动调 h.remove()，防监听残留 */
     }
     function clearOne(h) {
       if (typeof h === 'number') { clearTimeout(h); clearInterval(h); }
@@ -1099,14 +1101,11 @@
         '<div class="nd-stage">' + sky +
           '<div class="nd-door"></div>' +
           '<div class="nd-seam"></div>' +
-          '<div class="nd-emblem"><svg viewBox="-30 -30 60 60">' +
-            '<polygon points="0,-26 5.9,-8.1 24.7,-8 9.5,3.1 15.3,21 0,10 -15.3,21 -9.5,3.1 -24.7,-8 -5.9,-8.1" ' +
-            'fill="none" stroke="#ffd98c" stroke-width="1.6" stroke-linejoin="round"/>' +
-          '</svg></div>' +
         '</div>' +
         '<div class="nd-cap">这一扇，留给现在的你</div>' +
         '<div class="nd-tip">按 住 门 ，往 右 推 开</div>';
-      wrap.querySelector('.nd-door').style.backgroundImage = 'url(' + BASE + 'assets/door-frame.png)';
+      /* 第九门专用门图：火炬传火（assets/door9.jpg），八门仍用 door-frame.png */
+      wrap.querySelector('.nd-door').style.backgroundImage = 'url(' + BASE + 'assets/door9.jpg)';
       sceneDoors.appendChild(wrap);
 
       after(120, function () { wrap.classList.add('show'); });
@@ -1126,6 +1125,8 @@
       function openNow() {
         if (opened) return;
         opened = true;
+        if (pushOff) pushOff.remove();   /* 开门即解绑推门监听 */
+        if (upOff) upOff.remove();
         prog = 1;
         paint();
         if (bubble) bubble.classList.remove('show');
@@ -1148,11 +1149,12 @@
         wrap.classList.add('pushing');
         e.preventDefault();
       });
-      bind(stage, 'pointermove', function (e) {
+      var pushOff = bind(stage, 'pointermove', function (e) {
         if (!pushing || opened) return;
         var dx = evStage(e).x - startX;
         maxDx = Math.max(maxDx, dx);
-        var next = Math.min(1, Math.max(0, dx / 170));
+        /* 推满所需距离 170→110px，手感更轻快 */
+        var next = Math.min(1, Math.max(0, dx / 110));
         if (next !== prog) {
           prog = next;
           paint();
@@ -1160,7 +1162,7 @@
           if (prog >= creakAt) { creakAt += 0.34; pluck(96 + prog * 70, 0.05); }
         }
       });
-      bind(stage, 'pointerup', function () {
+      var upOff = bind(stage, 'pointerup', function () {
         if (!pushing || opened) return;
         pushing = false;
         wrap.classList.remove('pushing');
@@ -1173,7 +1175,7 @@
           prog = 0; paint();
           return;
         }
-        if (prog >= 0.86) { openNow(); return; }
+        if (prog >= 0.78) { openNow(); return; }
         /* 没推够：门缓缓合回去 */
         prog = 0;
         paint();
@@ -1850,8 +1852,9 @@
       var target = { x: 886, y: 388, r: 95 };
       handHint.style.left = (target.x - 34) + 'px';
       handHint.style.top  = (target.y - 34) + 'px';
-      var dragging = false, offX = 0, offY = 0;
+      var dragging = false, homed = false, offX = 0, offY = 0;
       function down(e) {
+        if (homed) return;   /* 火种已交付：之后任何触碰都不再响应（否则留言簿时碰到会重演仪式） */
         dragging = true;
         flame.classList.add('drag');
         var p = evStage(e);
@@ -1860,19 +1863,20 @@
         e.preventDefault();
       }
       function move(e) {
-        if (!dragging) return;
+        if (!dragging || homed) return;
         var p = evStage(e);
         flame.style.left = (p.x - offX) + 'px';
         flame.style.top  = (p.y - offY) + 'px';
         e.preventDefault();
       }
       function up() {
-        if (!dragging) return;
+        if (!dragging || homed) return;
         dragging = false;
         flame.classList.remove('drag');
         var x = parseFloat(flame.style.left), y = parseFloat(flame.style.top);
         var dx = x - target.x, dy = y - target.y;
         if (Math.sqrt(dx * dx + dy * dy) < target.r) {
+          homed = true;
           flame.classList.add('homed');
           flame.style.left = (target.x - 23) + 'px';
           flame.style.top  = (target.y - 23) + 'px';
@@ -2083,6 +2087,7 @@
           idx++;
           if (idx < 10) dots[idx].classList.add('now');
           if (idx >= 10) {
+            if (hitOff) hitOff.remove();   /* 画完即解绑：不让描星监听活到留言簿 */
             panel.querySelector('.draw-fill').style.opacity = '1';
             chime();
             after(1200, function () {
@@ -2092,7 +2097,7 @@
           }
         }
       }
-      bind(stage, 'pointermove', hit);
+      var hitOff = bind(stage, 'pointermove', hit);
     }
 
     function bigEnding(student) {
@@ -2126,6 +2131,7 @@
       box.appendChild(roll);
       sceneRelay.appendChild(box);
       creditsBox = box;
+      windStop();   /* 落幕归于安静：环境风到字幕为止 */
       after(14200, showToday);
     }
 
@@ -2190,6 +2196,12 @@
     }
 
     function buildGuestbook() {
+      /* 字幕与今昔层直接从 DOM 移除（不只是透明）：
+         低配机器上旧帧残影会让它们"透"到留言簿后面 */
+      if (creditsBox && creditsBox.parentNode) creditsBox.parentNode.removeChild(creditsBox);
+      var today = sceneRelay.querySelector('.today');
+      if (today && today.parentNode) today.parentNode.removeChild(today);
+
       var gb = el('div', 'guestbook');
       gb.innerHTML =
         '<h2>星 火 留 言 簿</h2>' +
