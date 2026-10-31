@@ -35,8 +35,8 @@
       relicData: '3 万余人牵动近 40 万敌军，150 多个团被拖着反复转向',
       text: '三万红军四渡赤水，声东击西，跳出四十万敌军的围追堵截。' },
     { num: '7 只小船', name: '巧渡金沙江', game: 'ferry7', relic: '船桨',
-      relicData: '7 只小船 · 37 名船工 · 九天九夜',
-      text: '7只小船、37名船工、九天九夜，两万余人马渡过金沙江，未损一兵一卒。' },
+      relicData: '7 只小船 · 37 名船工 · 七天七夜',
+      text: '7只小船、37名船工、七天七夜，两万余人渡过金沙江，未损一兵一卒。' },
     { num: '22 勇士', name: '飞夺泸定桥', game: 'bridge', relic: '铁索',
       relicData: '13 根铁索 · 一昼夜兼程 240 里',
       text: '昼夜兼程240里，22名勇士攀着13根铁索夺下泸定桥。铁索之上，是滚烫的信仰。' },
@@ -66,7 +66,7 @@
     xiangjiang: '按住数字，看他们一个一个离开',
     gear:   '先看清双方家底，再回答那个问题',
     cross:  '敌军在江边巡逻——趁它走远，点渡口过江（共四次）',
-    ferry7: '船靠岸的瞬间点「接应」——七只小船，一只都不能少',
+    ferry7: '船一靠岸就点它——七只船来回摆渡，把两万人送过江',
     bridge: '狂点「行军」冲向泸定桥！出现金色铁索时立刻抓住',
     climb:  '按住屏幕往上爬，松手会下滑——风雪来时先停一停',
     grass:  '点相邻格子前进，深色的是沼泽，把火种送到队尾',
@@ -319,21 +319,6 @@
       osc.start(t); osc.stop(t + 0.07);
     } catch (e) {}
   }
-  function typeReturn() {
-    if (!audio.ctx) return;
-    try {
-      var t = audio.ctx.currentTime;
-      var osc = audio.ctx.createOscillator();
-      var g = audio.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(1320, t);
-      osc.frequency.exponentialRampToValueAtTime(880, t + 0.18);
-      g.gain.setValueAtTime(0.09, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-      osc.connect(g); g.connect(audio.ctx.destination);
-      osc.start(t); osc.stop(t + 0.22);
-    } catch (e) {}
-  }
   function chime() {
     if (!audio.ctx) return;
     try {
@@ -348,6 +333,30 @@
         g.gain.exponentialRampToValueAtTime(0.001, t + k * 0.09 + 0.9);
         osc.connect(g); g.connect(audio.ctx.destination);
         osc.start(t + k * 0.09); osc.stop(t + k * 0.09 + 1);
+      });
+    } catch (e) {}
+  }
+  /* 军号（交接仪式：敬礼/升空时）——两音冲锋号质感 */
+  function horn(soft) {
+    if (!audio.ctx) return;
+    try {
+      var t = audio.ctx.currentTime;
+      var seq = soft ? [[392, 0, .5], [523.25, .45, 1.1]] : [[392, 0, .4], [523.25, .38, .8]];
+      seq.forEach(function (n) {
+        var osc = audio.ctx.createOscillator();
+        var g = audio.ctx.createGain();
+        var lp = audio.ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 1400;
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(n[0] * 0.985, t + n[1]);
+        osc.frequency.linearRampToValueAtTime(n[0], t + n[1] + 0.12);
+        g.gain.setValueAtTime(0.0001, t + n[1]);
+        g.gain.linearRampToValueAtTime(soft ? 0.05 : 0.09, t + n[1] + 0.06);
+        g.gain.setValueAtTime(soft ? 0.05 : 0.09, t + n[1] + n[2] - 0.18);
+        g.gain.exponentialRampToValueAtTime(0.001, t + n[1] + n[2]);
+        osc.connect(lp); lp.connect(g); g.connect(audio.ctx.destination);
+        osc.start(t + n[1]); osc.stop(t + n[1] + n[2] + 0.02);
       });
     } catch (e) {}
   }
@@ -560,6 +569,46 @@
     var stage = el('div', 'ldy21');
     root.appendChild(stage);
 
+    /* ============ 手机/小屏适配 ============ */
+    /* 舞台固定 1280×720，小屏整体等比缩放居中；触屏设备降载防卡 */
+    var stageScale = 1;
+    var isTouch = false;
+    try {
+      isTouch = !!(global.matchMedia && global.matchMedia('(pointer: coarse)').matches);
+    } catch (e) {}
+    if (isTouch) stage.classList.add('touch');
+
+    function fitStage() {
+      var vw = global.innerWidth || 1280, vh = global.innerHeight || 720;
+      var s = Math.min(vw / 1280, vh / 720);
+      if (s >= 0.995) {
+        stageScale = 1;
+        stage.style.position = '';
+        stage.style.left = '0px';
+        stage.style.top = '0px';
+        stage.style.transform = 'none';
+      } else {
+        /* 小屏：脱离文档流，相对视口等比缩放居中（容器尺寸不可靠） */
+        stageScale = s;
+        stage.style.position = 'fixed';
+        stage.style.left = '50%';
+        stage.style.top = '50%';
+        stage.style.transform = 'translate(-50%,-50%) scale(' + s.toFixed(4) + ')';
+      }
+    }
+    fitStage();
+    bind(global, 'resize', fitStage);
+    bind(global, 'orientationchange', fitStage);
+
+    /* 事件坐标 → 舞台坐标（缩放后 rect 已按比例变化，除回去即可） */
+    function evStage(e) {
+      var r = stage.getBoundingClientRect();
+      return {
+        x: (e.clientX - r.left) / stageScale,
+        y: (e.clientY - r.top) / stageScale
+      };
+    }
+
     var sceneIntro  = el('div', 'abs hidden');
     var sceneDoors  = el('div', 'abs hidden');
     var sceneRelay  = el('div', 'abs hidden');
@@ -570,9 +619,9 @@
     /* ============ 第一幕：星空 ============ */
     function buildIntro() {
       sceneIntro.className = 'abs starfield';
-      /* 银河带 + 三层视差星空（纯代码，可动） */
+      /* 银河带 + 三层视差星空（纯代码，可动）；触屏设备减量防卡 */
       sceneIntro.appendChild(el('div', 'milkyway'));
-      var counts = [70, 46, 26];
+      var counts = isTouch ? [40, 24, 14] : [70, 46, 26];
       counts.forEach(function (n, layer) {
         var ly = el('div', 'starlayer l' + (layer + 1));
         for (var i = 0; i < n; i++) {
@@ -643,7 +692,6 @@
         typeClick();
         if (p >= text.length) {
           clearInterval(h);
-          typeReturn();
           after(420, function () { typeLines(box, idx + 1, done); });
         }
       });
@@ -670,21 +718,29 @@
 
     function buildDoors() {
       sceneDoors.className = 'abs doors-scene';
-      /* 漂浮火星 */
+      /* 万火归一：火星从八扇门的方向升起，缓缓飘向中央火堆 */
       var embers = el('div', 'embers');
-      for (var e = 0; e < 26; e++) {
-        var em = el('div', 'ember');
-        em.style.left = (Math.random() * 100) + '%';
-        em.style.top  = (55 + Math.random() * 45) + '%';
-        em.style.animationDuration = (7 + Math.random() * 7) + 's';
-        em.style.animationDelay = (Math.random() * 8) + 's';
-        embers.appendChild(em);
-      }
+      DOORS.forEach(function (dd, di) {
+        var ang = -Math.PI / 2 + (di / DOORS.length) * Math.PI * 2;
+        for (var k = 0; k < (isTouch ? 1 : 2); k++) {
+          var em = el('div', 'ember');
+          var sx = 640 + Math.cos(ang) * 300 + (Math.random() * 56 - 28);
+          var sy = 418 + Math.sin(ang) * 201 + (Math.random() * 44 - 22);
+          em.style.left = sx + 'px';
+          em.style.top = sy + 'px';
+          em.style.setProperty('--tx', (640 - sx) + 'px');
+          em.style.setProperty('--ty', (488 - sy) + 'px');
+          em.style.animationDuration = (6.5 + Math.random() * 3.5) + 's';
+          em.style.animationDelay = (Math.random() * 9) + 's';
+          embers.appendChild(em);
+        }
+      });
       sceneDoors.appendChild(embers);
       sceneDoors.appendChild(el('div', 'grain'));
       sceneDoors.appendChild(el('div', 'vignette'));
 
-      sceneDoors.appendChild(el('div', 'doors-title', '火 苗 会 带 你 走 完 这 条 路'));
+      sceneDoors.appendChild(el('div', 'doors-title',
+        '<em>火</em> <em>苗</em> 会 带 你 走 完 这 条 路'));
 
       /* 中央：一小队战士虚影（随通关逐个数出现）+ 火苗 */
       var ghosts = el('div', 'ghosts');
@@ -712,8 +768,10 @@
         var door = el('div', 'door');
         door.style.left = x + 'px';
         door.style.top  = y + 'px';
+        door.style.backgroundImage = 'url(' + BASE + 'assets/door-frame.png)';
         door.style.animationDelay = (i * 0.35) + 's, ' + (i * 0.4) + 's';
         door.innerHTML =
+          '<div class="star-halo"></div>' +
           '<div class="num">' + d.num + '</div>' +
           '<div class="name">' + d.name + '</div>' +
           '<div class="gold-star">' + SVG.goldStar + '</div>';
@@ -733,6 +791,15 @@
       sceneDoors.appendChild(bubble);
 
       buildRelics();
+
+      /* 视差：鼠标移动时火星与战士虚影轻微错位，画面有纵深（触屏关闭，省性能） */
+      if (!isTouch) bind(stage, 'pointermove', function (e) {
+        var r = stage.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width - 0.5;
+        var py = (e.clientY - r.top) / r.height - 0.5;
+        sceneDoors.style.setProperty('--px', px.toFixed(3));
+        sceneDoors.style.setProperty('--py', py.toFixed(3));
+      });
 
       /* 呼吸引导：进八门前先黑场三秒，把情绪按下去 */
       breatheBox = el('div', 'breathe', '<span>深呼吸。<br><em>我们回到 1934 年。</em></span>');
@@ -771,9 +838,15 @@
       var chip = relicEls[i];
       if (!chip || chip.classList.contains('got')) return;
       chip.classList.add('got');
+      chip.classList.add('pop');
+      after(700, function () { chip.classList.remove('pop'); });
       var n = sceneDoors.querySelectorAll('.relic.got').length;
       var c = sceneDoors.querySelector('.relics-count');
-      if (c) c.textContent = n + ' / ' + DOORS.length;
+      if (c) {
+        c.textContent = n + ' / ' + DOORS.length;
+        c.classList.add('pop');
+        after(600, function () { c.classList.remove('pop'); });
+      }
       if (n === DOORS.length && relicsBox) {
         relicsBox.classList.add('full');
         if (c) c.textContent = '行 囊 已 满';
@@ -799,8 +872,8 @@
         chip.classList.add('taken');
         var r = chip.getBoundingClientRect();
         var fly = el('div', 'relic-fly got', chip.innerHTML);
-        fly.style.left = (r.left - b.left) + 'px';
-        fly.style.top  = (r.top - b.top) + 'px';
+        fly.style.left = ((r.left - b.left) / stageScale) + 'px';
+        fly.style.top  = ((r.top - b.top) / stageScale) + 'px';
         sceneDoors.appendChild(fly);
         after(260 + i * 150, function () {
           var o = offs[i];
@@ -812,6 +885,20 @@
       });
     }
 
+    /* 关门飞星：一颗火星从门里飞出，落进中央火堆 */
+    function sparkToFlame(i) {
+      var d = doorEls[i];
+      if (!d) return;
+      var x = parseFloat(d.style.left);
+      var y = parseFloat(d.style.top) - 18;
+      var s = el('div', 'door-spark');
+      s.style.left = x + 'px';
+      s.style.top = y + 'px';
+      sceneDoors.appendChild(s);
+      after(60, function () { s.style.left = '640px'; s.style.top = '488px'; });
+      after(1000, function () { if (s.parentNode) s.parentNode.removeChild(s); });
+    }
+
     /* 每人通关一扇门，就多走进来一个同伴；火苗也随之变亮 */
     function refreshGhosts() {
       var gh = sceneDoors.querySelectorAll('.ghost');
@@ -819,9 +906,9 @@
       for (var i = 0; i < gh.length; i++) gh[i].classList.toggle('in', i <= n);
       var flame = sceneDoors.querySelector('.core-flame');
       if (flame) {
-        var sc = 1 + n * 0.12;
+        var sc = 1 + n * 0.17;
         flame.style.transform = 'scale(' + sc + ')';
-        flame.style.filter = 'drop-shadow(0 0 ' + (10 + n * 3) + 'px #ffca5f)';
+        flame.style.filter = 'drop-shadow(0 0 ' + (12 + n * 4) + 'px #ffca5f)';
       }
     }
 
@@ -912,7 +999,6 @@
           typeClick();
           if (p >= d.text.length) {
             clearInterval(h);
-            typeReturn();
             finishedTyping = true;
             footEl.classList.add('show');
             closeBtn.classList.remove('hidden');
@@ -935,6 +1021,7 @@
         sceneDoors.removeChild(modal);
         doorEls[i].classList.remove('locked-anim');
         doorEls[i].classList.add('done');
+        sparkToFlame(i);
         refreshGhosts();
         addRelic(i);
         filmCut();
@@ -1096,7 +1183,7 @@
       return function () {};
     }
 
-    /* ---------- 玩法：巧渡金沙江（七只小船，靠岸即接应） ---------- */
+    /* ---------- 玩法：巧渡金沙江（七只船往返摆渡，抢运两万人） ---------- */
     function gameFerry7(area, tip, win) {
       area.classList.add('g-ferry7');
       var water = el('div', 'f7-water');
@@ -1111,74 +1198,76 @@
         marks.push(m);
       }
       area.appendChild(dots);
-      var counter = el('div', 'f7-count', '0 / 7 只');
+
+      var PER = 3000;
+      function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+      var counter = el('div', 'f7-count', '已渡 0 / 21,000 人');
       area.appendChild(counter);
 
-      var boats = [], docked = 0, done = false;
+      var boats = [], got = 0, done = false;
 
-      function spawn() {
-        if (done || boats.length >= 2) return;
-        var b = el('div', 'f7-boat');
-        b.innerHTML =
-          '<svg viewBox="0 0 72 34" xmlns="http://www.w3.org/2000/svg">' +
-            '<path d="M6 18 L66 18 L56 30 L16 30 Z" fill="#7a5a30"/>' +
-            '<path d="M6 18 L66 18 L62 21 L10 21 Z" fill="#a1793f"/>' +
-            '<rect x="34" y="2" width="3" height="16" fill="#6b4c26"/>' +
-            '<path d="M37 3 L60 10 L37 14 Z" fill="#d8cba8" opacity=".85"/>' +
-            '<rect x="20" y="11" width="5" height="9" rx="2" fill="#3c2c17"/>' +
-            '<rect x="48" y="11" width="5" height="9" rx="2" fill="#3c2c17"/>' +
-          '</svg>';
-        b.style.top = (34 + Math.random() * 96) + 'px';
-        b.style.left = '560px';
-        area.appendChild(b);
-        boats.push({ el: b, x: 560, v: 1.5 + Math.random() * 0.8 });
+      /* 七只船从一开始就在江上，来回摆渡 —— 不用等刷新 */
+      for (var bi = 0; bi < 7; bi++) {
+        (function (bi) {
+          var b = el('div', 'f7-boat',
+            '<svg viewBox="0 0 72 34" xmlns="http://www.w3.org/2000/svg">' +
+              '<path d="M6 18 L66 18 L56 30 L16 30 Z" fill="#7a5a30"/>' +
+              '<path d="M6 18 L66 18 L62 21 L10 21 Z" fill="#a1793f"/>' +
+              '<rect x="34" y="2" width="3" height="16" fill="#6b4c26"/>' +
+              '<path d="M37 3 L60 10 L37 14 Z" fill="#d8cba8" opacity=".85"/>' +
+              '<rect x="20" y="11" width="5" height="9" rx="2" fill="#3c2c17"/>' +
+              '<rect x="48" y="11" width="5" height="9" rx="2" fill="#3c2c17"/>' +
+            '</svg>');
+          var x = 508 - bi * 66 - Math.random() * 18;
+          var y = 34 + (bi % 3) * 34 + Math.random() * 12;
+          b.style.top = y + 'px';
+          b.style.left = x + 'px';
+          area.appendChild(b);
+          var boat = { el: b, x: x, dir: -1, v: 2.4 + Math.random() * 1.0 };
+          boats.push(boat);
+          bind(b, 'pointerdown', function (e) {
+            if (e.stopPropagation) e.stopPropagation();
+            catchBoat(boat);
+          });
+        })(bi);
+      }
+
+      /* 船靠到渡口伸手接应：装满 3000 人过江，船工掉头再划回去 */
+      function catchBoat(boat) {
+        if (done) return;
+        if (boat.dir > 0 || boat.x > 236) {
+          buzz();
+          tip.textContent = '它正往回划——等船靠到渡口再伸手。';
+          return;
+        }
+        boat.dir = 1;
+        got++;
+        marks[got - 1].classList.add('got');
+        counter.textContent = '已渡 ' + fmt(got * PER) + ' / 21,000 人';
+        boat.el.classList.add('cargo');
+        after(650, function () { boat.el.classList.remove('cargo'); });
+        chime();
+        if (got >= 7) {
+          done = true;
+          counter.textContent = '已渡 21,000 / 21,000 人';
+          tip.textContent = '七只小船，三十七名船工，七天七夜，两万多人渡过金沙江。';
+          after(1000, win);
+        } else {
+          tip.textContent = '第 ' + got + ' 只船满载 3,000 人离岸，船工掉头又划回去。';
+        }
       }
 
       var h = every(30, function () {
-        for (var k = boats.length - 1; k >= 0; k--) {
+        for (var k = 0; k < boats.length; k++) {
           var b = boats[k];
-          b.x -= b.v;
+          b.x += b.dir * b.v;
+          if (b.x < 46) { b.x = 46; b.dir = 1; }
+          if (b.x > 508) { b.x = 508; b.dir = -1; }
           b.el.style.left = b.x + 'px';
-          if (b.x < 52) {
-            if (b.el.parentNode) b.el.parentNode.removeChild(b.el);
-            boats.splice(k, 1);
-            buzz();
-            tip.textContent = '船漂过去了……船工摆摆手，又划了回来。';
-          }
         }
       });
-      var spawner = every(1500, spawn);
-      after(200, spawn);
-
-      /* 点到靠岸窗口内的船 = 接应成功 */
-      bind(area, 'pointerdown', function (e) {
-        if (done) return;
-        var best = null, bestX = 999;
-        boats.forEach(function (b) { if (b.x < bestX) { bestX = b.x; best = b; } });
-        if (!best) return;
-        if (bestX > 215) {
-          buzz();
-          tip.textContent = '还太远——等它靠到渡口再伸手。';
-          return;
-        }
-        if (bestX < 60) return;
-        best.el.classList.add('docked');
-        chime();
-        docked++;
-        marks[docked - 1].classList.add('got');
-        counter.textContent = docked + ' / 7 只';
-        var idx = boats.indexOf(best);
-        if (idx >= 0) boats.splice(idx, 1);
-        after(420, function () { if (best.el.parentNode) best.el.parentNode.removeChild(best.el); });
-        if (docked >= 7) {
-          done = true;
-          tip.textContent = '七只小船，九天九夜，两万人马渡过金沙江。';
-          after(800, win);
-        } else {
-          tip.textContent = '第 ' + docked + ' 只靠岸！还有 ' + (7 - docked) + ' 只要接。';
-        }
-      });
-      return function () { clearInterval(h); clearInterval(spawner); };
+      tip.textContent = '七只船都在江上，船一靠岸就伸手——它们要来回跑一整夜。';
+      return function () { clearInterval(h); };
     }
 
     /* ---------- 玩法：翻越夹金山（按住上爬，风雪停手） ---------- */
@@ -1512,8 +1601,11 @@
       sceneRelay.appendChild(el('div', 'vignette'));
       sceneRelay.appendChild(el('div', 'relay-tip', '把 火 种 ，交 给 下 一 代'));
       var figs = el('div', 'figures');
-      var soldier = el('div', 'figure soldier', SVG.soldier);
-      var student = el('div', 'figure student', SVG.student);
+      var soldier = el('div', 'figure soldier',
+        '<img src="' + BASE + 'assets/soldier.png" alt="红军小战士">');
+      var student = el('div', 'figure student',
+        '<img src="' + BASE + 'assets/student.png" alt="少年">' +
+        '<div class="chest-flame">' + SVG.flame + '</div>');
       figs.appendChild(soldier);
       figs.appendChild(student);
       sceneRelay.appendChild(figs);
@@ -1530,16 +1622,16 @@
       function down(e) {
         dragging = true;
         flame.classList.add('drag');
-        var r = stage.getBoundingClientRect();
-        offX = e.clientX - r.left - parseFloat(flame.style.left);
-        offY = e.clientY - r.top  - parseFloat(flame.style.top);
+        var p = evStage(e);
+        offX = p.x - parseFloat(flame.style.left);
+        offY = p.y - parseFloat(flame.style.top);
         e.preventDefault();
       }
       function move(e) {
         if (!dragging) return;
-        var r = stage.getBoundingClientRect();
-        flame.style.left = (e.clientX - r.left - offX) + 'px';
-        flame.style.top  = (e.clientY - r.top  - offY) + 'px';
+        var p = evStage(e);
+        flame.style.left = (p.x - offX) + 'px';
+        flame.style.top  = (p.y - offY) + 'px';
         e.preventDefault();
       }
       function up() {
@@ -1582,34 +1674,109 @@
       });
     }
 
+    /* 帽徽闪光：在角色容器内指定位置炸开一颗星 */
+    function spark(figure, x, y) {
+      var s = el('div', 'spark');
+      s.style.left = x + 'px';
+      s.style.top = y + 'px';
+      figure.appendChild(s);
+      after(1000, function () { if (s.parentNode) s.parentNode.removeChild(s); });
+    }
+
+    /* 火星传心：一颗火星从火堆跃起，划一道弧落进少年胸口 */
+    function emberFly(student) {
+      var ember = el('div', 'fly-ember');
+      /* 起点：火堆落点的火苗中心 */
+      ember.style.left = '910px';
+      ember.style.top = '320px';
+      sceneRelay.appendChild(ember);
+      /* 第一段：向上跃起 */
+      after(60, function () {
+        ember.style.left = '942px';
+        ember.style.top = '168px';
+      });
+      /* 第二段：划弧落向胸口 */
+      after(760, function () {
+        ember.style.left = '915px';
+        ember.style.top = '305px';
+      });
+      after(1500, function () {
+        if (ember.parentNode) ember.parentNode.removeChild(ember);
+        var chest = student.querySelector('.chest-flame');
+        if (chest) chest.classList.add('lit');
+        student.classList.add('proud');
+        chime();
+        after(900, function () { student.classList.remove('proud'); });
+      });
+    }
+
+    /* 化作星光升空：一串小光点从老兵位置飘向星空 */
+    function ascendFX(figure) {
+      var box = figure.parentNode || sceneRelay;
+      var r = { x: 330, y: 240 };
+      for (var i = 0; i < 8; i++) {
+        (function (k) {
+          var d = el('div', 'rise-dot');
+          d.style.left = (r.x + 90 + (k % 4) * 22 - 33) + 'px';
+          d.style.top = (r.y + 120 + Math.floor(k / 4) * 60) + 'px';
+          d.style.animationDuration = (1.4 + (k % 3) * 0.35) + 's';
+          d.style.animationDelay = (k * 0.12) + 's';
+          box.appendChild(d);
+          after(2600, function () { if (d.parentNode) d.parentNode.removeChild(d); });
+        })(i);
+      }
+    }
+
     function ceremony(soldier, student, dlg) {
       if (bubble) bubble.classList.remove('show');
       if (spirit) spirit.style.opacity = '0';
 
-      /* 1. 老兵托付 */
+      /* 1. 老兵上前两步，托付旗帜 */
+      after(300, function () { soldier.classList.add('step-up'); });
       say(dlg, '老兵：<b>这面旗，就交到你们手上了。</b>', 3200);
 
-      /* 2. 双方敬礼 */
-      after(900, function () { soldier.classList.add('salute'); });
-      after(1700, function () { student.classList.add('salute'); });
+      /* 2. 老兵敬礼：帽徽闪光 + 军号 */
+      after(2500, function () {
+        soldier.classList.add('salute');
+        horn(false);
+        spark(soldier, 104, 56);
+      });
 
-      /* 3. 少年的回答 */
-      after(4000, function () { say(dlg, '少年：<b>请放心。</b>', 2200); });
+      /* 3. 少年鞠躬回礼 */
+      after(4100, function () { student.classList.add('bow'); });
 
-      /* 4. 老兵转身，走进雾里 */
-      after(6600, function () {
+      /* 4. 少年的回答 + 火星传到少年胸口 */
+      after(5600, function () {
+        say(dlg, '少年：<b>请放心。</b>', 2200);
+        emberFly(student);
+      });
+
+      /* 5. 老兵转身，走进雾里 */
+      after(8000, function () {
         soldier.classList.remove('salute');
         soldier.classList.add('walk');
         after(700, function () { say(dlg, '<em>他没有回头。风把军号声吹得很远。</em>', 3000); });
       });
 
-      /* 5. 留给观众的一句话 */
-      after(10400, function () {
+      /* 6. 雾边忽然回头，再敬一次礼——然后化作星光升空 */
+      after(11200, function () {
+        soldier.classList.remove('walk');
+        soldier.classList.add('look-back');
+        spark(soldier, 104, 56);
+        horn(true);
+      });
+      after(12900, function () {
+        soldier.classList.add('ascend');
+        ascendFX(soldier);
+      });
+
+      /* 7. 留给观众的一句话 */
+      after(15000, function () {
         say(dlg, '山会记得，水会记得，我们也会记得。', 3000);
       });
 
-      /* 6. 画一颗星，送给他们 */
-      after(13600, function () { drawStarEnding(student); });
+      /* 8. 画一颗星，送给他们 */
+      after(18200, function () { drawStarEnding(student); });
     }
 
     /* ---------- 画星光：沿虚线描出五角星 ---------- */
@@ -1656,8 +1823,8 @@
       });
       /* 第 0 点即起点，进入即计数 */
       function hit(e) {
-        var rect = stage.getBoundingClientRect();
-        var x = e.clientX - rect.left, y = e.clientY - rect.top;
+        var p0 = evStage(e);
+        var x = p0.x, y = p0.y;
         var p = pts[idx];
         if (Math.sqrt((x - p[0]) * (x - p[0]) + (y - p[1]) * (y - p[1])) < 38) {
           dots[idx].classList.add('hit');
@@ -1749,8 +1916,8 @@
       var sx = 640, sy = 460;
       try {
         var r = fromEl.getBoundingClientRect(), b = stage.getBoundingClientRect();
-        sx = r.left - b.left + r.width / 2;
-        sy = r.top - b.top + r.height / 2;
+        sx = (r.left - b.left + r.width / 2) / stageScale;
+        sy = (r.top - b.top + r.height / 2) / stageScale;
       } catch (e) {}
       sx = Math.max(140, Math.min(1140, sx));
       sy = Math.max(140, Math.min(620, sy));
