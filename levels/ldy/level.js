@@ -341,6 +341,33 @@
       });
     } catch (e) {}
   }
+  /* 拨弦：画星光时每颗点亮一个音，五声音阶越画越高 */
+  function pluck(freq, vol) {
+    if (!audio.ctx) return;
+    try {
+      var t = audio.ctx.currentTime;
+      var osc = audio.ctx.createOscillator();
+      var g = audio.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.07, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+      osc.connect(g); g.connect(audio.ctx.destination);
+      osc.start(t); osc.stop(t + 0.9);
+      /* 一层八度泛音，音色亮一点，像古筝 */
+      var osc2 = audio.ctx.createOscillator();
+      var g2 = audio.ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.value = freq * 2;
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.exponentialRampToValueAtTime((vol || 0.07) * 0.32, t + 0.015);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc2.connect(g2); g2.connect(audio.ctx.destination);
+      osc2.start(t); osc2.stop(t + 0.55);
+    } catch (e) {}
+  }
+
   /* 军号（交接仪式：敬礼/升空时）——两音冲锋号质感 */
   function horn(soft) {
     if (!audio.ctx) return;
@@ -1036,25 +1063,40 @@
       after(4600, ninthDoor);
     }
 
-    /* ---------- 第九扇门：八门之后，留一扇给你自己 ---------- */
+    /* ---------- 第九扇门：星空在门后，推开它，走自己的路 ---------- */
     function ninthDoor() {
       if (!live) return;
       if (bubble) bubble.classList.remove('show');
-      /* 八门与火堆退成背景，只留这一扇空门 */
+      /* 八门与火堆退成背景 */
       sceneDoors.classList.add('ninth-mode');
 
+      /* 八件信物化作光点，先一步飞入门内——他们走过的路，都收进这扇门 */
+      var flies = sceneDoors.querySelectorAll('.relic-fly');
+      for (var fi = 0; fi < flies.length; fi++) {
+        (function (f, k) {
+          after(150 + k * 110, function () {
+            f.style.left = '586px';
+            f.style.top  = '296px';
+            f.style.transform = 'scale(.3) rotate(24deg)';
+            f.style.opacity = '0';
+          });
+        })(flies[fi], fi);
+      }
+
       var wrap = el('div', 'ninth');
-      var sky = '<div class="nd-sky">';
+      var sky = '<div class="nd-behind">';
       for (var i = 0; i < (isTouch ? 12 : 22); i++) {
-        sky += '<i style="left:' + (5 + Math.random() * 90).toFixed(1) + '%;top:' +
-               (5 + Math.random() * 90).toFixed(1) + '%;animation-delay:' +
+        sky += '<i style="left:' + (5 + Math.random() * 88).toFixed(1) + '%;top:' +
+               (5 + Math.random() * 88).toFixed(1) + '%;animation-delay:' +
                (Math.random() * 3.4).toFixed(1) + 's"></i>';
       }
-      sky += '</div>';
+      sky += '</div><div class="nd-glow"></div><div class="nd-flare"></div>';
       wrap.innerHTML =
-        '<div class="nd-door">' + sky + '</div>' +
+        '<div class="nd-stage">' + sky +
+          '<div class="nd-door"></div>' +
+        '</div>' +
         '<div class="nd-cap">这一扇，留给现在的你</div>' +
-        '<div class="nd-tip">点 一 下</div>';
+        '<div class="nd-tip">按 住 门 ，往 右 推 开</div>';
       wrap.querySelector('.nd-door').style.backgroundImage = 'url(' + BASE + 'assets/door-frame.png)';
       sceneDoors.appendChild(wrap);
 
@@ -1068,20 +1110,64 @@
       });
 
       var opened = false;
-      bind(wrap, 'click', function () {
+      var pushing = false, startX = 0, maxDx = 0, prog = 0, creakAt = 0;
+
+      function paint() { wrap.style.setProperty('--p', prog.toFixed(3)); }
+
+      function openNow() {
         if (opened) return;
         opened = true;
+        prog = 1;
+        paint();
         if (bubble) bubble.classList.remove('show');
         wrap.classList.add('open');
         chime();
-        after(420, chime);
-        after(1500, function () {
-          wrap.classList.add('bye');
-          after(900, function () {
-            if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
-            toRelay();
-          });
+        boom(0.07);
+        after(1250, function () { wrap.classList.add('bye'); });
+        after(2050, function () {
+          if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+          toRelay();
         });
+      }
+
+      bind(wrap, 'pointerdown', function (e) {
+        if (opened) return;
+        pushing = true;
+        startX = evStage(e).x;
+        maxDx = 0;
+        creakAt = 0.34;
+        wrap.classList.add('pushing');
+        e.preventDefault();
+      });
+      bind(stage, 'pointermove', function (e) {
+        if (!pushing || opened) return;
+        var dx = evStage(e).x - startX;
+        maxDx = Math.max(maxDx, dx);
+        var next = Math.min(1, Math.max(0, dx / 170));
+        if (next !== prog) {
+          prog = next;
+          paint();
+          /* 门轴的闷响：每推开三分之一，轻轻一声 */
+          if (prog >= creakAt) { creakAt += 0.34; pluck(96 + prog * 70, 0.05); }
+        }
+      });
+      bind(stage, 'pointerup', function () {
+        if (!pushing || opened) return;
+        pushing = false;
+        wrap.classList.remove('pushing');
+        if (maxDx < 12) {
+          /* 只点不推：门轻轻晃一下，火苗补一句指引 */
+          wrap.classList.add('nudge');
+          after(520, function () { wrap.classList.remove('nudge'); });
+          bubble.textContent = '按住门沿，往右推';
+          bubble.classList.add('show');
+          prog = 0; paint();
+          return;
+        }
+        if (prog >= 0.86) { openNow(); return; }
+        /* 没推够：门缓缓合回去 */
+        prog = 0;
+        paint();
       });
     }
 
@@ -1961,7 +2047,8 @@
         '<div class="draw-hint">从亮起的圆点开始，沿着虚线画一颗星</div>';
       sceneRelay.appendChild(panel);
 
-      /* 依次经过 10 个顶点（顺序），半径容差 38px */
+      /* 依次经过 10 个顶点（顺序），半径容差 38px；五声音阶逐点上行，画一颗星像弹一串音 */
+      var PENTA = [262, 294, 330, 392, 440, 523, 587, 659, 784, 880];
       var idx = 0, dots = [];
       var svg = panel.querySelector('svg');
       pts.forEach(function (p, k) {
@@ -1979,8 +2066,8 @@
         if (Math.sqrt((x - p[0]) * (x - p[0]) + (y - p[1]) * (y - p[1])) < 38) {
           dots[idx].classList.add('hit');
           dots[idx].classList.remove('now');
+          pluck(PENTA[idx], 0.06);
           idx++;
-          typeClick();
           if (idx < 10) dots[idx].classList.add('now');
           if (idx >= 10) {
             panel.querySelector('.draw-fill').style.opacity = '1';
@@ -2138,8 +2225,9 @@
 
         var home = thanks.querySelector('.home-btn');
         bind(home, 'click', function () {
+          if (home.classList.contains('pressed')) return;
           home.classList.add('pressed');
-          after(420, function () { finish(); });
+          after(420, douseOut);
         });
         /* 兜底：停留超过 45 秒仍不点，也把这一关归档 */
         after(45000, function () { finish(); });
@@ -2168,6 +2256,17 @@
         }
       } catch (e) {}
       legacy();
+    }
+
+    /* ---------- 谢幕熄灯：全屏暗下，只剩那颗星和一团火苗，呼吸一次再灭 ---------- */
+    function douseOut() {
+      var d = el('div', 'douse',
+        '<div class="douse-star">' + SVG.star4 + '</div>' +
+        '<div class="douse-flame">' + SVG.flame + '</div>');
+      stage.appendChild(d);
+      after(60, function () { d.classList.add('on'); });
+      after(2500, function () { d.classList.add('out'); });
+      after(3800, finish);
     }
 
     function finish() {

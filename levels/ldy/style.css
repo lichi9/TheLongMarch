@@ -422,7 +422,7 @@
 .ldy21 .door.done .gold-star { opacity: 1; }
 .ldy21 .door .gold-star svg { width: 100%; height: 100%; filter: drop-shadow(0 0 5px #ffd76e); }
 
-/* ============ 第九扇门：留给现在的你 ============ */
+/* ============ 第九扇门：星空在门后，推开它 ============ */
 /* 八门退成背景 */
 .ldy21 .doors-scene.ninth-mode .ghosts,
 .ldy21 .doors-scene.ninth-mode .core-flame,
@@ -438,6 +438,7 @@
   z-index: 24;
   text-align: center;
   cursor: pointer;
+  touch-action: none;
   opacity: 0;
   transform: translateY(14px);
   transition: opacity 1.1s ease, transform 1.1s ease;
@@ -445,36 +446,75 @@
 .ldy21 .ninth.show { opacity: 1; transform: translateY(0); }
 .ldy21 .ninth.bye { opacity: 0; transform: translateY(-12px); }
 
-.ldy21 .ninth .nd-door {
+/* 门与门后的星空 */
+.ldy21 .ninth .nd-stage {
   position: relative;
   width: 216px; height: 324px;
   margin: 0 auto;
-  background-position: center;
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  overflow: hidden;
-  box-shadow: 0 0 42px rgba(255,202,95,.12);
-  transition: box-shadow 1.1s ease;
 }
-/* 门里不是历史照片，是一片星空 */
-.ldy21 .ninth .nd-sky {
+.ldy21 .ninth .nd-behind {
   position: absolute;
-  left: 14px; top: 12px; right: 14px; bottom: 10px;
-  background: radial-gradient(circle at 50% 54%, #0d1a2c 0%, #060a12 78%);
-  transition: background 1.2s ease;
+  left: 0; top: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle at 50% 54%, #101c30 0%, #060a12 78%);
+  overflow: hidden;
 }
-.ldy21 .ninth .nd-sky i {
+.ldy21 .ninth .nd-behind i {
   position: absolute;
   width: 2px; height: 2px;
   border-radius: 50%;
   background: #d6e4ff;
-  opacity: .45;
+  opacity: .5;
   animation: ldy21-twinkle 3.6s ease-in-out infinite;
 }
-.ldy21 .ninth.open .nd-door { box-shadow: 0 0 96px rgba(255,214,110,.55); }
-.ldy21 .ninth.open .nd-sky {
-  background: radial-gradient(circle at 50% 54%, #fff4d2 0%, #ffca5f 24%, #8a5614 58%, #0b1220 100%);
+/* 推得越开，门后的光越亮 */
+.ldy21 .ninth .nd-glow {
+  position: absolute;
+  inset: -8px;
+  background: radial-gradient(ellipse at 60% 50%, rgba(255,214,110,.55), rgba(255,214,110,0) 72%);
+  opacity: var(--p, 0);
+  pointer-events: none;
 }
+/* 门板：绕左轴被推开，scaleX 收缩即露出后面的星空 */
+.ldy21 .ninth .nd-door {
+  position: absolute;
+  left: 0; top: 0; width: 100%; height: 100%;
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  transform-origin: 10px center;
+  transform: translateX(calc(var(--p, 0) * 6px)) scaleX(calc(1 - var(--p, 0) * 0.26));
+  transition: transform .8s ease, filter .8s ease;
+}
+.ldy21 .ninth.pushing .nd-door { transition: filter .3s ease; }
+.ldy21 .ninth.open .nd-door {
+  transform: translateX(6px) scaleX(.74);
+  filter: brightness(1.35);
+}
+/* 开门瞬间：光从门后涌出 */
+.ldy21 .ninth .nd-flare {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 24px; height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,244,210,.95), rgba(255,202,95,.4) 42%, rgba(255,202,95,0) 72%);
+  opacity: 0;
+  transform: scale(.2);
+  pointer-events: none;
+}
+.ldy21 .ninth.open .nd-flare {
+  opacity: 1;
+  transform: scale(24);
+  transition: opacity .45s ease, transform 1.25s cubic-bezier(.3,.55,.4,1);
+}
+/* 只点不推：门晃一下 */
+.ldy21 .ninth.nudge .nd-stage { animation: ldy21-nudge .5s ease; }
+@keyframes ldy21-nudge {
+  0%, 100% { transform: translateX(0); }
+  30%      { transform: translateX(9px); }
+  62%      { transform: translateX(-4px); }
+}
+
 .ldy21 .ninth .nd-cap {
   margin-top: 20px;
   font-size: 19px;
@@ -486,7 +526,7 @@
 .ldy21 .ninth .nd-tip {
   margin-top: 10px;
   font-size: 13px;
-  letter-spacing: 5px;
+  letter-spacing: 4px;
   color: #8a7c5c;
   animation: ldy21-breathe 2.2s ease-in-out infinite;
 }
@@ -1179,6 +1219,38 @@
   to   { transform: translateY(-1720px); }
 }
 
+/* 谢幕熄灯：只剩一颗星和一团火苗 */
+.ldy21 .douse {
+  position: absolute;
+  left: 0; top: 0; width: 100%; height: 100%;
+  z-index: 80;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 46px;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+.ldy21 .douse.on { opacity: 1; }
+.ldy21 .douse.out { opacity: 0; transition: opacity 1.2s ease; }
+.ldy21 .douse-star {
+  width: 60px; height: 60px;
+  opacity: 0;
+  transition: opacity 1.2s ease .8s;
+}
+.ldy21 .douse-star svg { width: 100%; height: 100%; filter: drop-shadow(0 0 16px #ffe9a8); }
+.ldy21 .douse-flame {
+  width: 40px; height: 40px;
+  opacity: 0;
+  transition: opacity 1.2s ease 1.1s;
+  animation: ldy21-bob 1.8s ease-in-out infinite;
+}
+.ldy21 .douse-flame svg { width: 100%; height: 100%; filter: drop-shadow(0 0 12px #ffca5f); }
+.ldy21 .douse.on .douse-star,
+.ldy21 .douse.on .douse-flame { opacity: 1; }
+
 /* ============ 第四幕：留言簿 ============ */
 /* 留言化作夜空里的一行字 */
 .ldy21 .msg-star {
@@ -1507,7 +1579,7 @@
   border-radius: 5px;
   background: rgba(72, 52, 20, .55);
   box-shadow: 0 0 12px rgba(255,201,95,.3);
-  transition: left 1.2s cubic-bezier(.4,.1,.3,1), top 1.2s cubic-bezier(.4,.1,.3,1), transform 1.2s ease;
+  transition: left 1.2s cubic-bezier(.4,.1,.3,1), top 1.2s cubic-bezier(.4,.1,.3,1), transform 1.2s ease, opacity 1s ease .3s;
   z-index: 16;
   pointer-events: none;
 }
