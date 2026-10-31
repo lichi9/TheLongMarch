@@ -284,6 +284,7 @@
 
   /* ============ Web Audio：拟真打字机 / 音效 ============ */
   var audio = { ctx: null, noise: null };
+  var soundMuted = false;   /* 全局静音：教室/展厅里多人同时开，得能一键关 */
   function audioInit() {
     if (audio.ctx) return;
     try {
@@ -295,6 +296,7 @@
       var data = buf.getChannelData(0);
       for (var i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
       audio.noise = buf;
+      if (soundMuted) { try { audio.ctx.suspend(); } catch (e) {} }
     } catch (e) { audio.ctx = null; }
   }
   function typeClick() {
@@ -767,6 +769,26 @@
     var stage = el('div', 'ldy21');
     root.appendChild(stage);
 
+    /* ---------- 静音开关：右下角的小喇叭 ---------- */
+    var SPK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M4.2 9.2v5.6h3.4L13 18.4V5.6L7.6 9.2H4.2z"/>' +
+      '<path class="mw1" d="M16 9.6a3.4 3.4 0 0 1 0 4.8"/>' +
+      '<path class="mw2" d="M18.6 7.2a6.8 6.8 0 0 1 0 9.6"/></svg>';
+    var muteBtn = el('div', 'mute-btn', SPK_SVG);
+    muteBtn.title = '静音 / 取消静音';
+    bind(muteBtn, 'click', function (e) {
+      e.stopPropagation();
+      soundMuted = !soundMuted;
+      if (soundMuted) muteBtn.classList.add('off'); else muteBtn.classList.remove('off');
+      try {
+        if (!audio.ctx) return;
+        if (soundMuted && audio.ctx.state === 'running') audio.ctx.suspend();
+        if (!soundMuted && audio.ctx.state === 'suspended') audio.ctx.resume();
+      } catch (er) {}
+    });
+    stage.appendChild(muteBtn);
+
     /* ============ 手机/小屏适配 ============ */
     /* 舞台固定 1280×720，小屏整体等比缩放居中；触屏设备降载防卡 */
     var stageScale = 1;
@@ -1056,8 +1078,8 @@
           '<div class="name">' + d.name + '</div>' +
           '<div class="gold-star">' + SVG.goldStar + '</div>';
         bind(door, 'click', function () {
-          if (!door.classList.contains('locked-anim')) return;
-          openDoor(i);
+          if (door.classList.contains('locked-anim')) { openDoor(i); return; }
+          if (door.classList.contains('done')) openDoor(i, true);   /* 回望：能再看一眼，但不能重玩 */
         });
         sceneDoors.appendChild(door);
         doorEls.push(door);
@@ -1349,18 +1371,18 @@
     }
 
     /* ---------- 门模态框：玩法 → 故事 ---------- */
-    function openDoor(i) {
+    function openDoor(i, review) {
       var d = DOORS[i];
-      bedScene(d.press ? 'xiangjiang' : (d.game || 'doors'));
+      if (!review) bedScene(d.press ? 'xiangjiang' : (d.game || 'doors'));
       var modal = el('div', 'door-modal');
       modal.innerHTML =
-        '<div class="kicker">第 ' + CN_NUM[i] + ' 扇 门</div>' +
+        '<div class="kicker">第 ' + CN_NUM[i] + ' 扇 门' + (review ? ' · 回 望' : '') + '</div>' +
         '<div class="watermark">' + ('0' + (i + 1)).slice(-2) + '</div>' +
         '<div class="title-row"><div class="door-name">' + d.name + '</div>' +
         '<div class="seal">史料</div></div>' +
         '<div class="big-num">' + d.num + '</div>' +
         '<div class="g-area"></div>' +
-        '<div class="g-tip">' + ((d.press || d.game) ? GAME_TIPS[d.press ? 'xiangjiang' : d.game] : '') + '</div>' +
+        '<div class="g-tip">' + (!review && (d.press || d.game) ? GAME_TIPS[d.press ? 'xiangjiang' : d.game] : '') + '</div>' +
         '<div class="door-text"></div>' +
         '<div class="footnote">' + FOOT + '</div>' +
         '<button class="close-btn hidden">合 上 这 扇 门</button>' +
@@ -1385,6 +1407,14 @@
         setPhoto(gArea, i);
         gArea.classList.add('photo');
         after(60, function () { gArea.classList.add('clear'); });
+        /* 回望模式：文字已经看过，不再一个字一个字打，直接给全文 */
+        if (review) {
+          textEl.textContent = d.text;
+          finishedTyping = true;
+          footEl.classList.add('show');
+          closeBtn.classList.remove('hidden');
+          return;
+        }
         var p = 0;
         var h = every(42, function () {
           textEl.textContent = d.text.slice(0, ++p);
@@ -1411,7 +1441,8 @@
         closed = true;
         if (cleanupGame) cleanupGame();
         sceneDoors.removeChild(modal);
-        bedScene('doors');
+        if (!review) bedScene('doors');
+        if (review) return;   /* 回望：已经发过信物和火星，不再重复 */
         doorEls[i].classList.remove('locked-anim');
         doorEls[i].classList.add('done');
         sparkToFlame(i);
@@ -1425,6 +1456,7 @@
       bind(closeBtn, 'click', close);
 
       /* ---------- 各玩法 ---------- */
+      if (review) { typeStory(); return; }
       if (d.press) {
         cleanupGame = gameXiangjiang(gArea, tipEl, onWin);
         return;
@@ -2460,11 +2492,23 @@
       bedScene('off');
       var d = el('div', 'douse',
         '<div class="douse-star">' + SVG.star4 + '</div>' +
-        '<div class="douse-flame">' + SVG.flame + '</div>');
+        '<div class="douse-flame">' + SVG.flame + '</div>' +
+        '<div class="douse-hint">轻 触 屏 幕 · 熄 灯</div>');
       stage.appendChild(d);
       after(60, function () { d.classList.add('on'); });
-      after(2500, function () { d.classList.add('out'); });
-      after(3800, finish);
+      after(1700, function () { d.classList.add('ready'); });
+      /* 最后一盏灯交给玩家自己熄：不是等动画放完，是亲手把火种交出去 */
+      var out = false;
+      function doOut(e) {
+        if (out) return;
+        out = true;
+        if (e && e.stopPropagation) e.stopPropagation();
+        d.classList.remove('ready');
+        d.classList.add('out');
+        after(1250, finish);
+      }
+      bind(d, 'click', doOut);
+      after(11000, doOut);   /* 兜底：一直不点也自己灭，别把玩家卡在这儿 */
     }
 
     function finish() {

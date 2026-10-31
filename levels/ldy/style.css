@@ -409,7 +409,11 @@
 .ldy21 .door.done {
   opacity: .42;
   filter: grayscale(.7) brightness(.55);
-  cursor: default;
+  cursor: pointer;
+}
+.ldy21 .door.done:hover {
+  opacity: .64;
+  filter: grayscale(.42) brightness(.8);
 }
 .ldy21 .door .gold-star {
   position: absolute;
@@ -1279,6 +1283,26 @@
 .ldy21 .douse.on .douse-star,
 .ldy21 .douse.on .douse-flame { opacity: 1; }
 
+/* 熄灯提示：出现后等玩家自己点 */
+.ldy21 .douse-hint {
+  position: absolute;
+  left: 0; right: 0; bottom: 132px;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 5px;
+  color: #7a6b57;
+  opacity: 0;
+  transition: opacity 1.1s ease;
+}
+.ldy21 .douse.ready { cursor: pointer; }
+.ldy21 .douse.ready .douse-hint {
+  animation: ldy21-douse-hint 3s ease-in-out infinite;
+}
+@keyframes ldy21-douse-hint {
+  0%, 100% { opacity: .28; }
+  50%      { opacity: .82; }
+}
+
 /* ============ 第四幕：留言簿 ============ */
 /* 留言化作夜空里的一行字 */
 .ldy21 .msg-star {
@@ -1999,3 +2023,36 @@
 .ldy21.touch .door { animation: ldy21-door-float 9s ease-in-out infinite; }  /* 浮动放缓 */
 .ldy21.touch .core-flame { animation-duration: 2.4s; }
 .ldy21.touch .ghost .bob { animation-duration: 4.2s; }
+
+/* ============ 静音开关（右下角） ============ */
+.ldy21 .mute-btn {
+  position: absolute;
+  right: 24px; bottom: 20px;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  color: #cbb68c;
+  background: rgba(18, 14, 11, .42);
+  border: 1px solid rgba(203, 182, 140, .18);
+  cursor: pointer;
+  z-index: 60;
+  opacity: .45;
+  transition: opacity .25s ease, background .25s ease, border-color .25s ease;
+}
+.ldy21 .mute-btn:hover {
+  opacity: 1;
+  background: rgba(32, 25, 19, .82);
+  border-color: rgba(203, 182, 140, .48);
+}
+.ldy21 .mute-btn svg { width: 19px; height: 19px; display: block; }
+.ldy21 .mute-btn.off { opacity: .3; }
+.ldy21 .mute-btn.off .mw1,
+.ldy21 .mute-btn.off .mw2 { opacity: 0; }
+.ldy21 .mute-btn.off::after {
+  content: '';
+  position: absolute;
+  width: 21px; height: 1.5px;
+  background: currentColor;
+  border-radius: 2px;
+  transform: rotate(-45deg);
+}
