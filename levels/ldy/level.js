@@ -838,15 +838,9 @@
       var chip = relicEls[i];
       if (!chip || chip.classList.contains('got')) return;
       chip.classList.add('got');
-      chip.classList.add('pop');
-      after(700, function () { chip.classList.remove('pop'); });
       var n = sceneDoors.querySelectorAll('.relic.got').length;
       var c = sceneDoors.querySelector('.relics-count');
-      if (c) {
-        c.textContent = n + ' / ' + DOORS.length;
-        c.classList.add('pop');
-        after(600, function () { c.classList.remove('pop'); });
-      }
+      if (c) c.textContent = n + ' / ' + DOORS.length;
       if (n === DOORS.length && relicsBox) {
         relicsBox.classList.add('full');
         if (c) c.textContent = '行 囊 已 满';
@@ -1599,13 +1593,15 @@
       sceneRelay.appendChild(el('div', 'horizon'));
       sceneRelay.appendChild(el('div', 'grain'));
       sceneRelay.appendChild(el('div', 'vignette'));
-      sceneRelay.appendChild(el('div', 'relay-tip', '把 火 种 ，交 给 下 一 代'));
+      sceneRelay.appendChild(el('div', 'relay-tip', '把 火 种 ，递 到 少 年 手 上'));
       var figs = el('div', 'figures');
+      /* 双层图：fa = 常姿帧，fb = 动作帧（敬礼），换帧即交叉淡入 */
       var soldier = el('div', 'figure soldier',
-        '<img src="' + BASE + 'assets/soldier.png" alt="红军小战士">');
+        '<img class="fa" src="' + BASE + 'assets/soldier.png" alt="老兵">' +
+        '<img class="fb" src="' + BASE + 'assets/soldier-salute.png" alt="">');
       var student = el('div', 'figure student',
-        '<img src="' + BASE + 'assets/student.png" alt="少年">' +
-        '<div class="chest-flame">' + SVG.flame + '</div>');
+        '<img class="fa" src="' + BASE + 'assets/student.png" alt="少年">' +
+        '<img class="fb" src="' + BASE + 'assets/student-salute.png" alt="">');
       figs.appendChild(soldier);
       figs.appendChild(student);
       sceneRelay.appendChild(figs);
@@ -1613,11 +1609,18 @@
       var dlg = el('div', 'dlg');
       sceneRelay.appendChild(dlg);
 
+      /* 少年手心的落点提示（脉动圆环），接住后熄灭 */
+      var handHint = el('div', 'hand-hint');
+      sceneRelay.appendChild(handHint);
+
       var flame = el('div', 'flame', SVG.flame);
-      flame.style.left = '330px'; flame.style.top = '250px';
+      flame.style.left = '560px'; flame.style.top = '438px';
       sceneRelay.appendChild(flame);
 
-      var target = { x: 950, y: 250, r: 90 };
+      /* 目标：少年垂下右手的手心（figures 顶 118，少年 figure 起点 x≈805） */
+      var target = { x: 886, y: 388, r: 95 };
+      handHint.style.left = (target.x - 34) + 'px';
+      handHint.style.top  = (target.y - 34) + 'px';
       var dragging = false, offX = 0, offY = 0;
       function down(e) {
         dragging = true;
@@ -1642,12 +1645,13 @@
         var dx = x - target.x, dy = y - target.y;
         if (Math.sqrt(dx * dx + dy * dy) < target.r) {
           flame.classList.add('homed');
-          flame.style.left = (target.x - 63) + 'px';
-          flame.style.top  = (target.y + 60) + 'px';
+          flame.style.left = (target.x - 23) + 'px';
+          flame.style.top  = (target.y - 23) + 'px';
           chime();
+          handHint.style.opacity = '0';
           var tips = sceneRelay.querySelectorAll('.relay-tip');
           for (var ti = 0; ti < tips.length; ti++) tips[ti].style.opacity = '.35';
-          after(900, function () { ceremony(soldier, student, dlg); });
+          after(900, function () { ceremony(soldier, student, dlg, flame); });
         }
       }
       bind(flame, 'pointerdown', down);
@@ -1683,27 +1687,16 @@
       after(1000, function () { if (s.parentNode) s.parentNode.removeChild(s); });
     }
 
-    /* 火星传心：一颗火星从火堆跃起，划一道弧落进少年胸口 */
-    function emberFly(student) {
-      var ember = el('div', 'fly-ember');
-      /* 起点：火堆落点的火苗中心 */
-      ember.style.left = '910px';
-      ember.style.top = '320px';
-      sceneRelay.appendChild(ember);
-      /* 第一段：向上跃起 */
-      after(60, function () {
-        ember.style.left = '942px';
-        ember.style.top = '168px';
+    /* 火入心口：少年手心那团火缓缓升起、缩小，落进胸口——先接到手上，再记在心里 */
+    function flameToChest(flame, student) {
+      flame.classList.add('to-chest');
+      after(40, function () {
+        /* 胸口位置：少年 figure（起点 x≈805, y≈118）内 50%,44% */
+        flame.style.left = '912px';
+        flame.style.top  = '292px';
       });
-      /* 第二段：划弧落向胸口 */
-      after(760, function () {
-        ember.style.left = '915px';
-        ember.style.top = '305px';
-      });
-      after(1500, function () {
-        if (ember.parentNode) ember.parentNode.removeChild(ember);
-        var chest = student.querySelector('.chest-flame');
-        if (chest) chest.classList.add('lit');
+      after(1150, function () {
+        flame.classList.add('at-chest');
         student.classList.add('proud');
         chime();
         after(900, function () { student.classList.remove('proud'); });
@@ -1727,56 +1720,82 @@
       }
     }
 
-    function ceremony(soldier, student, dlg) {
+    function ceremony(soldier, student, dlg, flame) {
       if (bubble) bubble.classList.remove('show');
       if (spirit) spirit.style.opacity = '0';
 
-      /* 1. 老兵上前两步，托付旗帜 */
+      /* 1. 老兵起步上前（走两步的顿挫起伏） */
       after(300, function () { soldier.classList.add('step-up'); });
-      say(dlg, '老兵：<b>这面旗，就交到你们手上了。</b>', 3200);
+      after(600, function () { say(dlg, '老兵：<b>这颗火种，就交到你们手上了。</b>', 3000); });
 
-      /* 2. 老兵敬礼：帽徽闪光 + 军号 */
-      after(2500, function () {
+      /* 2. 少年注意到老兵走近，微微侧身相迎 */
+      after(2300, function () { student.classList.add('attend'); });
+
+      /* 3. 老兵站定蓄力半拍 → 敬礼 + 帽徽闪光 + 军号 + 轻推镜 */
+      after(4000, function () { soldier.classList.add('brace'); });
+      after(4350, function () {
+        soldier.classList.remove('brace');
         soldier.classList.add('salute');
         horn(false);
-        spark(soldier, 104, 56);
+        spark(soldier, 126, 58);
+        var figs = soldier.parentNode;
+        if (figs) {
+          figs.classList.add('push');
+          after(1100, function () { figs.classList.remove('push'); });
+        }
       });
 
-      /* 3. 少年鞠躬回礼 */
-      after(4100, function () { student.classList.add('bow'); });
+      /* 4. 少年愣了半拍——这一下迟疑是心里一动 */
+      after(5300, function () { student.classList.add('startle'); });
 
-      /* 4. 少年的回答 + 火星传到少年胸口 */
-      after(5600, function () {
+      /* 5. 手心的火缓缓升入胸口（先接到手上，再记在心里），然后才举手回礼 */
+      after(5700, function () { flameToChest(flame, student); });
+      after(7300, function () {
+        student.classList.add('salute');
+      });
+
+      /* 6. 少年的回答 */
+      after(8800, function () {
         say(dlg, '少年：<b>请放心。</b>', 2200);
-        emberFly(student);
       });
 
-      /* 5. 老兵转身，走进雾里 */
-      after(8000, function () {
+      /* 7. 老兵放下手，转身走入雾中 */
+      after(11300, function () {
         soldier.classList.remove('salute');
-        soldier.classList.add('walk');
+        soldier.classList.add('turn');
+      });
+      after(12000, function () {
+        soldier.classList.remove('turn');
+        soldier.classList.add('leave');
         after(700, function () { say(dlg, '<em>他没有回头。风把军号声吹得很远。</em>', 3000); });
       });
 
-      /* 6. 雾边忽然回头，再敬一次礼——然后化作星光升空 */
-      after(11200, function () {
-        soldier.classList.remove('walk');
+      /* 8. 雾边忽然回头，再敬一次礼 */
+      after(14800, function () {
+        soldier.classList.remove('leave');
         soldier.classList.add('look-back');
-        spark(soldier, 104, 56);
+        soldier.classList.add('salute');
+        spark(soldier, 126, 58);
         horn(true);
       });
-      after(12900, function () {
+
+      /* 9. 化作星光升空；少年久久保持敬礼，1.3 秒后才放下手（礼毕） */
+      after(16800, function () {
         soldier.classList.add('ascend');
         ascendFX(soldier);
       });
+      after(18100, function () {
+        student.classList.remove('salute');
+        student.classList.remove('attend');
+      });
 
-      /* 7. 留给观众的一句话 */
-      after(15000, function () {
+      /* 10. 留给观众的一句话 */
+      after(18900, function () {
         say(dlg, '山会记得，水会记得，我们也会记得。', 3000);
       });
 
-      /* 8. 画一颗星，送给他们 */
-      after(18200, function () { drawStarEnding(student); });
+      /* 11. 画一颗星，送给他们 */
+      after(21900, function () { drawStarEnding(student); });
     }
 
     /* ---------- 画星光：沿虚线描出五角星 ---------- */
