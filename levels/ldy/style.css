@@ -25,6 +25,17 @@
 .ldy21 .hidden { display: none !important; }
 
 /* ============ 通用背景板 ============ */
+/* 细颗粒胶片质感 */
+.ldy21 .grain {
+  position: absolute; left: 0; top: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  opacity: .16;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 4px);
+  mix-blend-mode: overlay;
+}
 /* 四角暗角 */
 .ldy21 .vignette {
   position: absolute; left: 0; top: 0;
@@ -49,21 +60,10 @@
   filter: blur(18px);
   pointer-events: none;
 }
-/* 星野：CSS 渐变平铺的静态星（0 个节点），整层缓慢漂移 */
-.ldy21 .stars-bg {
-  position: absolute; left: -120px; top: 0;
-  width: calc(100% + 240px); height: 100%;
-  pointer-events: none;
-  background-image:
-    radial-gradient(rgba(255,255,255,.85) 1px, transparent 1.5px),
-    radial-gradient(rgba(214,228,255,.5) 1px, transparent 1.6px),
-    radial-gradient(rgba(255,240,210,.38) 1.3px, transparent 1.9px);
-  background-size: 230px 190px, 320px 260px, 420px 350px;
-  background-position: 24px 36px, 130px 110px, 70px 200px;
-  animation: ldy21-drift 90s linear infinite;
-}
-/* 会眨的近景星：只留少量，防卡 */
+/* 三层星空，各层独立漂移，形成视差 */
 .ldy21 .starlayer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.ldy21 .starlayer.l1 { animation: ldy21-drift 120s linear infinite; }
+.ldy21 .starlayer.l2 { animation: ldy21-drift 78s linear infinite; }
 .ldy21 .starlayer.l3 { animation: ldy21-drift 46s linear infinite; }
 @keyframes ldy21-drift {
   from { transform: translate3d(0, 0, 0); }
@@ -216,14 +216,6 @@
   margin-left: -2px;
   align-self: flex-start;
   box-shadow: 0 0 60px 12px rgba(222, 41, 22, .42);
-}
-/* 呼吸光晕：静态阴影 + 只动 opacity（合成器友好，不再每帧重画阴影） */
-.ldy21 .flag::before {
-  content: '';
-  position: absolute; inset: -46px;
-  pointer-events: none;
-  box-shadow: 0 0 80px 26px rgba(222, 41, 22, .5);
-  opacity: .4;
   animation: ldy21-flag-glow 2.6s ease-in-out infinite;
 }
 .ldy21 .flag::after {
@@ -245,8 +237,8 @@
 }
 @keyframes ldy21-flag-wave { from { background-position: 0% 0; } to { background-position: 300% 0; } }
 @keyframes ldy21-flag-glow {
-  0%, 100% { opacity: .32; }
-  50%      { opacity: .8; }
+  0%, 100% { box-shadow: 0 0 50px 8px rgba(222,41,22,.4); }
+  50%      { box-shadow: 0 0 80px 20px rgba(222,41,22,.65); }
 }
 
 /* ============ 第二幕：环绕八门 ============ */
@@ -291,17 +283,16 @@
   opacity: .8;
   z-index: 12;
 }
-/* 标题里的「火苗」跟着火堆一起呼吸（只动 opacity，光晕静态） */
+/* 标题里的「火苗」跟着火堆一起呼吸 */
 .ldy21 .doors-title em {
   font-style: normal;
   color: #f0cf87;
-  text-shadow: 0 0 12px rgba(255,202,95,.55);
   animation: ldy21-title-breathe 2.6s ease-in-out infinite;
 }
 .ldy21 .doors-title em:nth-child(2) { animation-delay: .35s; }
 @keyframes ldy21-title-breathe {
-  0%, 100% { opacity: .62; }
-  50%      { opacity: 1; }
+  0%, 100% { color: #b7a87e; text-shadow: 0 0 0 rgba(255,202,95,0); }
+  50%      { color: #ffe0a0; text-shadow: 0 0 12px rgba(255,202,95,.7); }
 }
 
 /* 中央小队虚影 */

@@ -651,22 +651,25 @@
     /* ============ 第一幕：星空 ============ */
     function buildIntro() {
       sceneIntro.className = 'abs starfield';
-      /* 银河带 + 星野：静态星野用 CSS 渐变平铺（0 个动画节点），只留一层少量会眨的近景星 */
+      /* 银河带 + 三层视差星空（纯代码，可动）；触屏设备减量防卡 */
       sceneIntro.appendChild(el('div', 'milkyway'));
-      sceneIntro.appendChild(el('div', 'stars-bg'));
-      var ly = el('div', 'starlayer l3');
-      var starCount = isTouch ? 14 : 30;
-      for (var i = 0; i < starCount; i++) {
-        var s = el('div', 'star');
-        s.style.width = '2.8px';
-        s.style.height = '2.8px';
-        s.style.left = (Math.random() * 100) + '%';
-        s.style.top  = (Math.random() * 100) + '%';
-        s.style.animationDelay = (Math.random() * 4) + 's';
-        s.style.opacity = (0.2 + Math.random() * 0.5).toFixed(2);
-        ly.appendChild(s);
-      }
-      sceneIntro.appendChild(ly);
+      var counts = isTouch ? [40, 24, 14] : [70, 46, 26];
+      counts.forEach(function (n, layer) {
+        var ly = el('div', 'starlayer l' + (layer + 1));
+        for (var i = 0; i < n; i++) {
+          var s = el('div', 'star');
+          var size = layer === 0 ? 1.4 : (layer === 1 ? 2 : 2.8);
+          s.style.width = size + 'px';
+          s.style.height = size + 'px';
+          s.style.left = (Math.random() * 100) + '%';
+          s.style.top  = (Math.random() * 100) + '%';
+          s.style.animationDelay = (Math.random() * 4) + 's';
+          s.style.opacity = (0.2 + Math.random() * 0.5).toFixed(2);
+          ly.appendChild(s);
+        }
+        sceneIntro.appendChild(ly);
+      });
+      sceneIntro.appendChild(el('div', 'grain'));
       sceneIntro.appendChild(el('div', 'vignette'));
 
       var lines = el('div', 'intro-lines');
