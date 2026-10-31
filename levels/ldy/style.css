@@ -1239,13 +1239,50 @@
   width: 1000px;
   top: 720px;
   text-align: center;
-  font-size: 25px;
-  line-height: 2.35;
+  font-family: 'KaiTi', 'STKaiti', '楷体', 'SimSun', serif;
+  font-size: 23px;
+  line-height: 2.15;
   letter-spacing: 4px;
   color: #d8cba8;
   animation: ldy21-roll-up 14s linear forwards;
 }
-.ldy21 .credits .roll .small { font-size: 16px; color: #8f8468; letter-spacing: 2px; }
+.ldy21 .credits .roll .small { font-size: 15px; color: #8f8468; letter-spacing: 2px; }
+/* 分层字幕：不同粗细与颜色（参照落幕视觉稿） */
+.ldy21 .credits .cl-big {
+  font-size: 31px;
+  font-weight: 700;
+  color: #f3ecda;
+  letter-spacing: 6px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, .8);
+}
+.ldy21 .credits .cl-mid {
+  font-size: 23px;
+  color: #d8cba8;
+}
+.ldy21 .credits .cl-dim {
+  font-size: 17px;
+  color: #96896c;
+  letter-spacing: 3px;
+}
+.ldy21 .credits .cl-green {
+  font-size: 24px;
+  font-weight: 700;
+  color: #86d489;
+  text-shadow: 0 0 16px rgba(94, 168, 96, .45);
+}
+.ldy21 .credits .cl-red {
+  font-size: 33px;
+  font-weight: 700;
+  color: #ff4b3c;
+  letter-spacing: 7px;
+  text-shadow: 0 0 20px rgba(255, 60, 40, .4), 0 2px 12px rgba(0, 0, 0, .8);
+}
+.ldy21 .credits .cl-gold {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffd76e;
+  text-shadow: 0 0 16px rgba(255, 195, 84, .4);
+}
 @keyframes ldy21-roll-up {
   from { transform: translateY(0); }
   to   { transform: translateY(-1720px); }

@@ -96,21 +96,25 @@
     draw:   '跟着亮光，画一颗星送给他们'
   };
 
+  /* 落幕字幕：t=文本，c=样式（big 白色粗 / mid 常规 / dim 灰小 /
+     green 绿色 / red 红色口号 / gold 金色） */
   var CREDITS = [
-    '历史书太小，',
-    '装不下一个人的伟大一生。',
+    { t: '历史书太小，', c: 'big' },
+    { t: '装不下一个人的伟大一生。', c: 'dim' },
     '',
-    '历史书又太大，',
-    '装下了他们所有人的牺牲。',
+    { t: '历史书又太大，', c: 'big' },
+    { t: '装下了他们所有人的牺牲。', c: 'dim' },
     '',
-    '许多人的烈士证明书上，',
-    '只写着五个字——',
-    '北上，无音讯。',
+    { t: '许多人的烈士证明书上，', c: 'mid' },
+    { t: '只写着五个字——', c: 'mid' },
+    { t: '北 上 ，无 音 讯 。', c: 'green' },
     '',
-    '每一代人有每一代人的长征，',
-    '每一代人都要走好自己的长征路。',
+    { t: '每一代人有每一代人的长征，', c: 'mid' },
+    { t: '每一代人都要走好自己的长征路。', c: 'gold' },
     '',
-    '—— 星 火 相 传 · 吾 辈 自 强 ——',
+    { t: '缅怀历史，传承红军精神！', c: 'red' },
+    { t: '星火相传，吾辈自强。', c: 'big' },
+    '',
     { small: '佛山大学易班技术部 · 长征：拾光 · 最终章' }
   ];
 
@@ -456,44 +460,6 @@
     } catch (e) {}
   }
 
-  /* 战地底噪：极低的持续隆隆声，营造“江对岸一直在打”的氛围 */
-  var amb = { src: null, gain: null };
-  function ambStart() {
-    if (!audio.ctx || !audio.noise || amb.src) return;
-    try {
-      var ctx = audio.ctx;
-      var src = ctx.createBufferSource();
-      src.buffer = audio.noise;
-      src.loop = true;
-      var lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 180;
-      var hp = ctx.createBiquadFilter();
-      hp.type = 'highpass';
-      hp.frequency.value = 30;
-      var trem = ctx.createOscillator();
-      var tremGain = ctx.createGain();
-      trem.frequency.value = 0.22;
-      tremGain.gain.value = 0.35;
-      var g = ctx.createGain();
-      g.gain.value = 0.05;
-      trem.connect(tremGain); tremGain.connect(g.gain);
-      src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(ctx.destination);
-      src.start(); trem.start();
-      amb = { src: src, gain: g, trem: trem };
-    } catch (e) {}
-  }
-  function ambStop() {
-    if (!amb.src) return;
-    try {
-      amb.gain.gain.cancelScheduledValues(audio.ctx.currentTime);
-      amb.gain.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.2);
-      var s = amb.src, tm = amb.trem;
-      setTimeout(function () { try { s.stop(); tm.stop(); } catch (e) {} }, 700);
-    } catch (e) {}
-    amb = { src: null, gain: null };
-  }
-
   /* 沉下去的尾音：减员到底后的三个下行长音 */
   function sadTriad() {
     if (!audio.ctx) return;
@@ -538,197 +504,10 @@
     } catch (e) {}
   }
 
-  /* ============ 环境音床：风 / 火，按场景交叉淡入 ============
-     风不能用振荡器去"模拟"，因为真实的风是噪声通过不同频段滤波器的结果。
-     三层并联：300Hz 低通＝风的体积，520Hz 带通＝穿过缝隙的呜咽，
-     2100Hz 窄带(Q=7)＝垭口的哨音。阵风用 0.12Hz 随机游走推动音量与滤波频率，
-     用正弦 LFO 会像机器在喘气。 */
-  var BED = { built: false, g: null, srcs: [], pink: null, white: null, slow: null,
-              scene: '', crackleT: null };
-
-  var BED_SCENES = {
-    /*         呜咽   体积   哨音   火   */
-    intro:      { wind: .34, low: .58, whistle: .10, fire: 0   },
-    doors:      { wind: .52, low: .60, whistle: .16, fire: 0   },
-    xiangjiang: { wind: .36, low: .45, whistle: .08, fire: 0   },
-    gear:       { wind: .44, low: .58, whistle: .10, fire: 0   },
-    ferry7:     { wind: .50, low: .66, whistle: .06, fire: 0   },
-    cross:      { wind: .70, low: .60, whistle: .34, fire: 0   },
-    bridge:     { wind: .62, low: .58, whistle: .22, fire: 0   },
-    climb:      { wind: .98, low: .55, whistle: .66, fire: 0   },
-    grass:      { wind: .46, low: .72, whistle: .04, fire: 0   },
-    union:      { wind: .56, low: .55, whistle: .18, fire: 0   },
-    ninth:      { wind: .90, low: .52, whistle: .58, fire: 0   },
-    relay:      { wind: .26, low: .44, whistle: .04, fire: .55 },
-    ceremony:   { wind: .14, low: .30, whistle: 0,   fire: .30 },
-    draw:       { wind: .08, low: .20, whistle: 0,   fire: .14 },
-    credits:    { wind: .22, low: .36, whistle: .04, fire: 0   },
-    guestbook:  { wind: .06, low: .14, whistle: 0,   fire: 0   },
-    off:        { wind: 0,   low: 0,   whistle: 0,   fire: 0   }
-  };
-
-  function bedBuild() {
-    if (BED.built || !audio.ctx) return;
-    try {
-      var ctx = audio.ctx, i, j;
-
-      /* 粉红噪声（Voss-McCartney 近似）：低频比白噪声厚得多，才像空气在动 */
-      var len = Math.floor(ctx.sampleRate * 6);
-      var pink = ctx.createBuffer(2, len, ctx.sampleRate);
-      for (var ch = 0; ch < 2; ch++) {
-        var d = pink.getChannelData(ch);
-        var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-        for (i = 0; i < len; i++) {
-          var w = Math.random() * 2 - 1;
-          b0 = 0.99886 * b0 + w * 0.0555179;
-          b1 = 0.99332 * b1 + w * 0.0750759;
-          b2 = 0.96900 * b2 + w * 0.1538520;
-          b3 = 0.86650 * b3 + w * 0.3104856;
-          b4 = 0.55000 * b4 + w * 0.5329522;
-          b5 = -0.7616 * b5 - w * 0.0168980;
-          d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
-          b6 = w * 0.115926;
-        }
-      }
-      BED.pink = pink;
-
-      /* 慢速随机游走：驱动阵风。一阶低通把幅度压得极小，必须按 RMS 归一化 */
-      var slen = Math.floor(ctx.sampleRate * 9);
-      var slow = ctx.createBuffer(1, slen, ctx.sampleRate);
-      var sd = slow.getChannelData(0);
-      var lp = 0, kk = 1 - Math.exp(-2 * Math.PI * 0.12 / ctx.sampleRate), sum = 0;
-      for (i = 0; i < slen; i++) {
-        lp += kk * ((Math.random() * 2 - 1) - lp);
-        sd[i] = lp;
-        sum += lp * lp;
-      }
-      var rms = Math.sqrt(sum / slen) || 1, ng = 0.5 / rms;
-      for (j = 0; j < slen; j++) {
-        var v = sd[j] * ng;
-        sd[j] = v > 1 ? 1 : (v < -1 ? -1 : v);
-      }
-      BED.slow = slow;
-
-      /* 火星用的白噪声，1 秒够切很多片 */
-      var white = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 1), ctx.sampleRate);
-      var wd = white.getChannelData(0);
-      for (i = 0; i < wd.length; i++) wd[i] = Math.random() * 2 - 1;
-      BED.white = white;
-
-      var master = ctx.createGain();
-      master.gain.value = 0.9;
-      master.connect(ctx.destination);
-
-      var src = ctx.createBufferSource();
-      src.buffer = pink;
-      src.loop = true;
-
-      var lowLp = ctx.createBiquadFilter();
-      lowLp.type = 'lowpass'; lowLp.frequency.value = 300; lowLp.Q.value = 0.7;
-      var lowG = ctx.createGain(); lowG.gain.value = 0;
-
-      var midBp = ctx.createBiquadFilter();
-      midBp.type = 'bandpass'; midBp.frequency.value = 520; midBp.Q.value = 1.1;
-      var midG = ctx.createGain(); midG.gain.value = 0;
-
-      var hiBp = ctx.createBiquadFilter();
-      hiBp.type = 'bandpass'; hiBp.frequency.value = 2100; hiBp.Q.value = 7;
-      var hiG = ctx.createGain(); hiG.gain.value = 0;
-
-      var fireLp = ctx.createBiquadFilter();
-      fireLp.type = 'lowpass'; fireLp.frequency.value = 190; fireLp.Q.value = 0.6;
-      var fireG = ctx.createGain(); fireG.gain.value = 0;
-
-      src.connect(lowLp); lowLp.connect(lowG); lowG.connect(master);
-      src.connect(midBp); midBp.connect(midG); midG.connect(master);
-      src.connect(hiBp);  hiBp.connect(hiG);  hiG.connect(master);
-      src.connect(fireLp); fireLp.connect(fireG); fireG.connect(master);
-      src.start();
-
-      /* 阵风同时推动：中频音量、哨音音量、中频中心频率、哨音频率 */
-      var gust = ctx.createBufferSource();
-      gust.buffer = slow;
-      gust.loop = true;
-      var toMid = ctx.createGain();  toMid.gain.value = 0.20;
-      var toHi = ctx.createGain();   toHi.gain.value = 0.05;
-      var toFreq = ctx.createGain(); toFreq.gain.value = 300;
-      var toWh = ctx.createGain();   toWh.gain.value = 600;
-      gust.connect(toMid);  toMid.connect(midG.gain);
-      gust.connect(toHi);   toHi.connect(hiG.gain);
-      gust.connect(toFreq); toFreq.connect(midBp.frequency);
-      gust.connect(toWh);   toWh.connect(hiBp.frequency);
-      gust.start();
-
-      BED.srcs = [src, gust];
-      BED.g = { master: master, wind: midG, low: lowG, whistle: hiG, fire: fireG };
-      BED.built = true;
-    } catch (e) { BED.built = false; }
-  }
-
-  /* 火星爆开：极短噪声，频率/音量/时长全随机，才不像节拍器 */
-  function bedCrackle() {
-    var ctx = audio.ctx;
-    if (!ctx || !BED.white || !BED.g) return;
-    try {
-      var t = ctx.currentTime + 0.01;
-      var s = ctx.createBufferSource();
-      s.buffer = BED.white;
-      s.playbackRate.value = 0.7 + Math.random() * 0.9;
-      var bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.frequency.value = 900 + Math.random() * 3400;
-      bp.Q.value = 1.4 + Math.random() * 4;
-      var g = ctx.createGain();
-      g.gain.setValueAtTime(0.012 + Math.random() * 0.05, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.025 + Math.random() * 0.055);
-      s.connect(bp); bp.connect(g); g.connect(BED.g.master);
-      s.start(t, Math.random() * 0.5);
-      s.stop(t + 0.12);
-    } catch (e) {}
-  }
-  function bedCrackleStart() {
-    if (BED.crackleT) return;
-    function loop() {
-      if (!live) return;
-      bedCrackle();
-      if (Math.random() < 0.2) setTimeout(bedCrackle, 40 + Math.random() * 70);
-      BED.crackleT = setTimeout(loop, 90 + Math.random() * 280);
-    }
-    BED.crackleT = setTimeout(loop, 200);
-  }
-  function bedCrackleStop() {
-    if (BED.crackleT) { clearTimeout(BED.crackleT); BED.crackleT = null; }
-  }
-
-  function bedScene(name) {
-    if (!audio.ctx) return;
-    if (BED.scene === name) return;
-    if (!BED.built) bedBuild();
-    if (!BED.built) return;
-    BED.scene = name;
-    var c = BED_SCENES[name] || BED_SCENES.off;
-    var t = audio.ctx.currentTime, T = 1.1;
-    BED.g.wind.gain.setTargetAtTime(0.50 * c.wind, t, T);
-    BED.g.low.gain.setTargetAtTime(0.46 * c.low, t, T);
-    BED.g.whistle.gain.setTargetAtTime(0.16 * c.whistle, t, T);
-    BED.g.fire.gain.setTargetAtTime(0.34 * c.fire, t, T);
-    if (c.fire > 0) bedCrackleStart(); else bedCrackleStop();
-  }
-
-  function bedStop() {
-    bedCrackleStop();
-    if (!BED.built) return;
-    try {
-      var t = audio.ctx.currentTime;
-      BED.g.master.gain.cancelScheduledValues(t);
-      BED.g.master.gain.setTargetAtTime(0, t, 0.3);
-      var ss = BED.srcs.slice();
-      setTimeout(function () {
-        for (var i = 0; i < ss.length; i++) { try { ss[i].stop(); } catch (e) {} }
-      }, 900);
-    } catch (e) {}
-    BED.built = false; BED.g = null; BED.srcs = []; BED.scene = '';
-  }
+  /* 环境音床（持续的风声/火声）已移除：背景声太吵，只保留一次性音效。
+     bedScene 保留为空函数，各场景调用点无需改动。 */
+  function bedScene() {}
+  function bdStop() {}
 
   /* ============ 工具 ============ */
   function el(tag, cls, html) {
@@ -878,7 +657,6 @@
 
       bind(sceneIntro, 'click', function () {
         audioInit();
-        bedScene('intro');
         if (phase === 0) {
           phase = 1;
           hint.classList.add('hidden');
@@ -1027,7 +805,6 @@
 
     function buildDoors() {
       sceneDoors.className = 'abs doors-scene';
-      bedScene('doors');
       /* 万火归一：火星从八扇门的方向升起，缓缓飘向中央火堆 */
       var embers = el('div', 'embers');
       DOORS.forEach(function (dd, di) {
@@ -1267,7 +1044,6 @@
     /* ---------- 第九扇门：星空在门后，推开它，走自己的路 ---------- */
     function ninthDoor() {
       if (!live) return;
-      bedScene('ninth');
       if (bubble) bubble.classList.remove('show');
       /* 八门与火堆退成背景 */
       sceneDoors.classList.add('ninth-mode');
@@ -1381,7 +1157,6 @@
     /* ---------- 门模态框：玩法 → 故事 ---------- */
     function openDoor(i, review) {
       var d = DOORS[i];
-      if (!review) bedScene(d.press ? 'xiangjiang' : (d.game || 'doors'));
       var modal = el('div', 'door-modal');
       modal.innerHTML =
         '<div class="kicker">第 ' + CN_NUM[i] + ' 扇 门' + (review ? ' · 回 望' : '') + '</div>' +
@@ -1449,7 +1224,6 @@
         closed = true;
         if (cleanupGame) cleanupGame();
         sceneDoors.removeChild(modal);
-        if (!review) bedScene('doors');
         if (review) return;   /* 回望：已经发过信物和火星，不再重复 */
         doorEls[i].classList.remove('locked-anim');
         doorEls[i].classList.add('done');
@@ -1521,7 +1295,6 @@
       function nextStage() {
         if (step >= stages.length) {
           clearInterval(timer); timer = null;
-          ambStop();
           sadTriad();
           tip.textContent = '86,000 人出发，过了湘江，只剩 30,000 余人。';
           after(2200, win);
@@ -1547,7 +1320,6 @@
         running = true;
         var numEl2 = area.parentNode.querySelector('.big-num');
         if (numEl2) numEl2.classList.add('blood');
-        ambStart();
         boom(0.16);
         boomH = setInterval(function () {
           if (!live || !running) return;
@@ -1563,7 +1335,6 @@
       return function () {
         if (timer) clearInterval(timer);
         if (boomH) clearInterval(boomH);
-        ambStop();
       };
     }
 
@@ -2031,7 +1802,6 @@
 
     /* ============ 第三幕：火种接力 + 画星光 ============ */
     function toRelay() {
-      bedScene('relay');
       if (bubble) bubble.classList.remove('show');
       sceneDoors.classList.add('hidden');
       sceneRelay.className = 'abs relay-scene';
@@ -2169,7 +1939,6 @@
     }
 
     function ceremony(soldier, student, dlg, flame) {
-      bedScene('ceremony');
       if (bubble) bubble.classList.remove('show');
       if (spirit) spirit.style.opacity = '0';
 
@@ -2259,7 +2028,6 @@
     }
 
     function drawStarEnding(student) {
-      bedScene('draw');
       if (bubble) bubble.classList.remove('show');
       spirit.style.left = '150px'; spirit.style.top = '150px'; spirit.style.opacity = '.5';
       bubble.style.left = '195px'; bubble.style.top = '120px';
@@ -2367,12 +2135,12 @@
       var roll = el('div', 'roll');
       CREDITS.forEach(function (line) {
         if (typeof line === 'string') roll.appendChild(el('div', '', line || '&nbsp;'));
-        else roll.appendChild(el('div', 'small', line.small || ''));
+        else if (line.small) roll.appendChild(el('div', 'small', line.small));
+        else roll.appendChild(el('div', 'cl-' + (line.c || 'mid'), line.t || ''));
       });
       box.appendChild(roll);
       sceneRelay.appendChild(box);
       creditsBox = box;
-      bedScene('credits');   /* 落幕归于安静：风收到最轻，只剩空气 */
       after(14200, showToday);
     }
 
@@ -2437,7 +2205,6 @@
     }
 
     function buildGuestbook() {
-      bedScene('guestbook');
       /* 字幕与今昔层直接从 DOM 移除（不只是透明）：
          低配机器上旧帧残影会让它们"透"到留言簿后面 */
       if (creditsBox && creditsBox.parentNode) creditsBox.parentNode.removeChild(creditsBox);
@@ -2527,7 +2294,6 @@
 
     /* ---------- 谢幕熄灯：全屏暗下，只剩那颗星和一团火苗，呼吸一次再灭 ---------- */
     function douseOut() {
-      bedScene('off');
       var d = el('div', 'douse',
         '<div class="douse-star">' + SVG.star4 + '</div>' +
         '<div class="douse-flame">' + SVG.flame + '</div>' +
