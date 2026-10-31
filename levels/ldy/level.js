@@ -613,6 +613,7 @@
     function fitStage() {
       var vw = global.innerWidth || 1280, vh = global.innerHeight || 720;
       var s = Math.min(vw / 1280, vh / 720);
+      stageRect = null; /* 窗口变了，缓存作废 */
       if (s >= 0.995) {
         stageScale = 1;
         stage.style.position = '';
@@ -632,12 +633,15 @@
     bind(global, 'resize', fitStage);
     bind(global, 'orientationchange', fitStage);
 
-    /* 事件坐标 → 舞台坐标（缩放后 rect 已按比例变化，除回去即可） */
+    /* 事件坐标 → 舞台坐标（缩放后 rect 已按比例变化，除回去即可）
+       rect 做缓存：pointermove 每秒可触发上百次，逐次读 getBoundingClientRect
+       会强制浏览器反复重排——画星/拖火种的卡顿就来自这里 */
+    var stageRect = null;
     function evStage(e) {
-      var r = stage.getBoundingClientRect();
+      if (!stageRect) stageRect = stage.getBoundingClientRect();
       return {
-        x: (e.clientX - r.left) / stageScale,
-        y: (e.clientY - r.top) / stageScale
+        x: (e.clientX - stageRect.left) / stageScale,
+        y: (e.clientY - stageRect.top) / stageScale
       };
     }
 
@@ -1094,6 +1098,11 @@
       wrap.innerHTML =
         '<div class="nd-stage">' + sky +
           '<div class="nd-door"></div>' +
+          '<div class="nd-seam"></div>' +
+          '<div class="nd-emblem"><svg viewBox="-30 -30 60 60">' +
+            '<polygon points="0,-26 5.9,-8.1 24.7,-8 9.5,3.1 15.3,21 0,10 -15.3,21 -9.5,3.1 -24.7,-8 -5.9,-8.1" ' +
+            'fill="none" stroke="#ffd98c" stroke-width="1.6" stroke-linejoin="round"/>' +
+          '</svg></div>' +
         '</div>' +
         '<div class="nd-cap">这一扇，留给现在的你</div>' +
         '<div class="nd-tip">按 住 门 ，往 右 推 开</div>';
@@ -2063,6 +2072,7 @@
       });
       /* 第 0 点即起点，进入即计数 */
       function hit(e) {
+        if (!panel.parentNode || idx >= 10) return; /* 已结束/已离场则不再响应 */
         var p0 = evStage(e);
         var x = p0.x, y = p0.y;
         var p = pts[idx];

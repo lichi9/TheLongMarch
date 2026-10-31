@@ -474,6 +474,31 @@
   opacity: var(--p, 0);
   pointer-events: none;
 }
+/* 门缝漏光：门后有星空，光从四边缝里渗出来；推得越开越亮 */
+.ldy21 .ninth .nd-seam {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 15px 2px rgba(255, 214, 110, .5);
+  opacity: calc(.32 + var(--p, 0) * .58);
+  pointer-events: none;
+}
+/* 门板中央的「未点亮的星」：细金线浮雕，缓缓呼吸——第 21 颗星是你 */
+.ldy21 .ninth .nd-emblem {
+  position: absolute;
+  left: 50%; top: 33.5%;
+  width: 60px; height: 60px;
+  margin: -30px 0 0 -30px;
+  pointer-events: none;
+  opacity: .5;
+  filter: drop-shadow(0 0 7px rgba(255, 214, 110, .55));
+  animation: ldy21-emblem 3.4s ease-in-out infinite;
+}
+.ldy21 .ninth.pushing .nd-emblem { opacity: .95; animation-play-state: paused; }
+@keyframes ldy21-emblem {
+  0%, 100% { opacity: .38; }
+  50%      { opacity: .68; }
+}
+
 /* 门板：绕左轴被推开，scaleX 收缩即露出后面的星空 */
 .ldy21 .ninth .nd-door {
   position: absolute;
