@@ -1246,7 +1246,7 @@
   color: #d8cba8;
   animation: ldy21-roll-up 14s linear forwards;
 }
-.ldy21 .credits .roll .small { font-size: 15px; color: #8f8468; letter-spacing: 2px; }
+.ldy21 .credits .roll .small { font-size: 17px; color: #a89b7c; letter-spacing: 3px; }
 /* 分层字幕：不同粗细与颜色（参照落幕视觉稿） */
 .ldy21 .credits .cl-big {
   font-size: 31px;
@@ -1260,9 +1260,9 @@
   color: #d8cba8;
 }
 .ldy21 .credits .cl-dim {
-  font-size: 17px;
-  color: #96896c;
-  letter-spacing: 3px;
+  font-size: 21px;
+  color: #b8ab8b;
+  letter-spacing: 4px;
 }
 .ldy21 .credits .cl-green {
   font-size: 24px;
