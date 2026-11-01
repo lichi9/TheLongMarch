@@ -289,6 +289,66 @@
   /* ============ Web Audio：拟真打字机 / 音效 ============ */
   var audio = { ctx: null, noise: null };
   var soundMuted = false;   /* 全局静音：教室/展厅里多人同时开，得能一键关 */
+
+  /* ============ 配音：浏览器内置语音合成（无外部音频、不联网） ============
+     三种音色共用系统中文音色，靠语速与音高区分：
+     史实旁白＝略快、压低（纪录片口吻）；老兵＝慢、沉；少年＝亮。
+     机器上没有中文音色时静默降级，绝不影响玩法。
+     VOICE_ON 置 false 可整体关掉配音。 */
+  var VOICE_ON = true;
+  var VOICE = (function () {
+    var synth = global.speechSynthesis || null;
+    var zh = null, picked = false;
+
+    function pick() {
+      if (!synth || typeof synth.getVoices !== 'function') return;
+      var list = synth.getVoices() || [], cn = [], i;
+      for (i = 0; i < list.length; i++) {
+        if (/^zh/i.test(list[i].lang || '')) cn.push(list[i]);
+      }
+      if (!cn.length) { picked = true; return; }
+      /* 优先男声（旁白与老兵更沉），没有就取第一个中文音色 */
+      for (i = 0; i < cn.length; i++) {
+        if (/Kangkang|Yunxi|Yunjian|Yunye|Yunhao|男/i.test(cn[i].name || '')) { zh = cn[i]; break; }
+      }
+      if (!zh) zh = cn[0];
+      picked = true;
+    }
+    if (synth) {
+      pick();
+      try { synth.addEventListener('voiceschanged', pick); }
+      catch (e) { try { synth.onvoiceschanged = pick; } catch (e2) {} }
+    }
+
+    var TONE = {
+      narration: { rate: 1.08, pitch: 0.92 },
+      elder:     { rate: 0.75, pitch: 0.60 },
+      youth:     { rate: 0.98, pitch: 1.30 }
+    };
+
+    function speak(text, kind, cut) {
+      if (!VOICE_ON || !synth || !text || soundMuted) return;
+      if (!picked) pick();
+      if (picked && !zh) return;          /* 没有中文音色：不出声，也不报错 */
+      var t = TONE[kind] || TONE.narration;
+      try {
+        if (cut) synth.cancel();
+        var u = new global.SpeechSynthesisUtterance(String(text));
+        u.lang = 'zh-CN';
+        if (zh) u.voice = zh;
+        u.rate = t.rate;
+        u.pitch = t.pitch;
+        u.volume = 0.95;
+        synth.speak(u);
+      } catch (e) {}
+    }
+    function stop() {
+      if (!synth) return;
+      try { synth.cancel(); } catch (e) {}
+    }
+    return { speak: speak, stop: stop };
+  })();
+
   function audioInit() {
     if (audio.ctx) return;
     try {
@@ -560,6 +620,7 @@
       e.stopPropagation();
       soundMuted = !soundMuted;
       if (soundMuted) muteBtn.classList.add('off'); else muteBtn.classList.remove('off');
+      if (soundMuted) VOICE.stop();
       try {
         if (!audio.ctx) return;
         if (soundMuted && audio.ctx.state === 'running') audio.ctx.suspend();
@@ -672,6 +733,7 @@
       function flyStar() {
         if (flew || !star.classList.contains('show')) return;
         flew = true;
+        VOICE.stop();
         var fly = el('div', 'fly-star', SVG.star4);
         fly.style.left = '614px';
         fly.style.top  = '470px';
@@ -774,6 +836,7 @@
       var row = box.children[idx];
       row.classList.add('show');
       var text = INTRO_LINES[idx];
+      VOICE.speak(text, 'narration');   /* 旁白：行字出现时念这一句 */
       var p = 0;
       var h = every(62, function () {
         row.textContent = text.slice(0, ++p);
@@ -1004,6 +1067,7 @@
         after(700, function () {
           if (!live) return;
           bubble.textContent = say;
+          VOICE.speak(say, 'elder', true);
           bubble.style.left = (x + 84) + 'px';
           bubble.style.top  = (y - 66) + 'px';
           bubble.classList.add('show');
@@ -1036,6 +1100,7 @@
         spirit.style.left = '640px'; spirit.style.top = '180px';
         bubble.style.left = '680px'; bubble.style.top = '150px';
         bubble.textContent = SPIRIT_LINES.allDone;
+        VOICE.speak(SPIRIT_LINES.allDone, 'elder', true);
         bubble.classList.add('show');
       });
       after(4600, ninthDoor);
@@ -1086,6 +1151,7 @@
         spirit.style.left = '806px'; spirit.style.top = '152px';
         bubble.style.left = '852px'; bubble.style.top = '122px';
         bubble.textContent = SPIRIT_LINES.ninth;
+        VOICE.speak(SPIRIT_LINES.ninth, 'elder', true);
         bubble.classList.add('show');
       });
 
@@ -1143,6 +1209,7 @@
           wrap.classList.add('nudge');
           after(520, function () { wrap.classList.remove('nudge'); });
           bubble.textContent = '按住门沿，往右推';
+          VOICE.speak('按住门沿，往右推', 'elder', true);
           bubble.classList.add('show');
           prog = 0; paint();
           return;
@@ -1199,6 +1266,7 @@
           return;
         }
         var p = 0;
+        VOICE.speak(d.text, 'narration', true);   /* 史实旁白：门开即念这段 */
         var h = every(42, function () {
           textEl.textContent = d.text.slice(0, ++p);
           typeClick();
@@ -1222,6 +1290,7 @@
       function close() {
         if (closed || !finishedTyping) return;
         closed = true;
+        VOICE.stop();
         if (cleanupGame) cleanupGame();
         sceneDoors.removeChild(modal);
         if (review) return;   /* 回望：已经发过信物和火星，不再重复 */
@@ -1802,6 +1871,7 @@
 
     /* ============ 第三幕：火种接力 + 画星光 ============ */
     function toRelay() {
+      VOICE.stop();
       if (bubble) bubble.classList.remove('show');
       sceneDoors.classList.add('hidden');
       sceneRelay.className = 'abs relay-scene';
@@ -1882,12 +1952,18 @@
       bubble = el('div', 'bubble');
       bubble.style.left = '585px'; bubble.style.top = '90px';
       bubble.textContent = SPIRIT_LINES.relay;
+      VOICE.speak(SPIRIT_LINES.relay, 'elder', true);
       sceneRelay.appendChild(bubble);
       after(400, function () { bubble.classList.add('show'); });
     }
 
     /* ---------- 交接仪式：递火 → 敬礼 → 转身走入雾中 → 画星光 ---------- */
     function say(dlg, text, ms) {
+      var plain = String(text).replace(/<[^>]+>/g, '');
+      var kind = 'narration';
+      if (/^老兵/.test(plain)) kind = 'elder';
+      else if (/^少年/.test(plain)) kind = 'youth';
+      VOICE.speak(plain, kind, true);
       dlg.classList.remove('show');
       after(500, function () {
         dlg.innerHTML = text;
@@ -2032,6 +2108,7 @@
       spirit.style.left = '150px'; spirit.style.top = '150px'; spirit.style.opacity = '.5';
       bubble.style.left = '195px'; bubble.style.top = '120px';
       bubble.textContent = SPIRIT_LINES.draw;
+      VOICE.speak(SPIRIT_LINES.draw, 'elder', true);
       bubble.classList.add('show');
 
       var panel = el('div', 'draw-panel');
@@ -2333,6 +2410,7 @@
     return {
       unmount: function () {
         live = false;
+        VOICE.stop();
         timers.forEach(clearOne);
         timers = [];
         bedStop();
