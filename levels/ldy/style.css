@@ -1271,6 +1271,18 @@
   font-weight: 700;
   color: #86d489;
   text-shadow: 0 0 16px rgba(94, 168, 96, .45);
+  /* 聚光时刻：滚到这一句时独自亮一下（约 6.2s 进入视野中央） */
+  animation: ldy21-spot 3.6s ease-in-out 6.2s both;
+}
+@keyframes ldy21-spot {
+  0%, 32%   { text-shadow: 0 0 16px rgba(94, 168, 96, .45); }
+  46%, 68%  {
+    text-shadow:
+      0 0 24px rgba(140, 255, 150, .95),
+      0 0 62px rgba(80, 210, 100, .6),
+      0 0 120px rgba(60, 180, 80, .3);
+  }
+  100%      { text-shadow: 0 0 16px rgba(94, 168, 96, .45); }
 }
 .ldy21 .credits .cl-red {
   font-size: 33px;
@@ -1287,8 +1299,106 @@
 }
 @keyframes ldy21-roll-up {
   from { transform: translateY(0); }
-  to   { transform: translateY(-1720px); }
+  to   { transform: translateY(-1820px); }
 }
+
+/* 英名廊：灯灭之后，黑暗里只剩数字 */
+.ldy21 .namewall {
+  position: absolute;
+  left: 0; top: 0; width: 100%; height: 100%;
+  z-index: 92;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 58px;
+  opacity: 0;
+  transition: opacity 1.3s ease;
+}
+.ldy21 .namewall.on { opacity: 1; }
+.ldy21 .namewall.out { opacity: 0; transition: opacity 1.1s ease; }
+.ldy21 .namewall .nw-line {
+  font-family: 'KaiTi', 'STKaiti', '楷体', 'SimSun', serif;
+  font-size: 27px;
+  line-height: 2;
+  letter-spacing: 5px;
+  text-align: center;
+  color: #e6dcc2;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 1.8s ease, transform 1.8s ease;
+}
+.ldy21 .namewall .nw-line.on { opacity: 1; transform: translateY(0); }
+.ldy21 .namewall .nw-second {
+  font-size: 22px;
+  color: #8d8368;
+  letter-spacing: 4px;
+}
+
+/* 带走一句话：九扇门各留一句，只能拿一句 */
+.ldy21 .carry {
+  position: absolute;
+  left: 0; top: 0; width: 100%; height: 100%;
+  z-index: 70;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.ldy21 .carry.on { opacity: 1; }
+.ldy21 .carry .carry-title {
+  font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+  font-size: 23px;
+  letter-spacing: 9px;
+  color: #a99b78;
+  margin-bottom: 30px;
+  transition: opacity .6s ease;
+}
+.ldy21 .carry .carry-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ldy21 .carry .carry-item {
+  font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+  font-size: 19px;
+  letter-spacing: 2px;
+  color: #cdc0a0;
+  background: none;
+  border: none;
+  padding: 8px 20px;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .55s ease, transform .55s ease,
+              color .3s ease, text-shadow .3s ease, font-size .5s ease;
+}
+.ldy21 .carry.on .carry-item { opacity: 1; transform: translateY(0); }
+.ldy21 .carry .carry-item:hover {
+  color: #ffe9a8;
+  text-shadow: 0 0 18px rgba(255, 215, 110, .45);
+}
+.ldy21 .carry .carry-item.picked {
+  color: #ffd76e;
+  font-size: 27px;
+  text-shadow: 0 0 34px rgba(255, 215, 110, .85);
+}
+.ldy21 .carry.chosen .carry-item:not(.picked) { opacity: 0 !important; }
+.ldy21 .carry.chosen .carry-title,
+.ldy21 .carry.chosen .carry-skip { opacity: 0; }
+.ldy21 .carry .carry-skip {
+  margin-top: 30px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #7d7458;
+  cursor: pointer;
+  transition: color .25s ease, opacity .6s ease;
+}
+.ldy21 .carry .carry-skip:hover { color: #b9aa86; }
 
 /* 谢幕熄灯：只剩一颗星和一团火苗 */
 .ldy21 .douse {
@@ -1395,6 +1505,47 @@
   color: #8f8468;
   letter-spacing: 2px;
   margin-bottom: 14px;
+}
+/* 上次留下的那句话：只出现一次，淡淡的，不抢当前的心情 */
+.ldy21 .guestbook .prev {
+  display: none;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #a08f68;
+  letter-spacing: 1px;
+  margin: -4px 0 12px;
+  padding: 8px 14px;
+  border-left: 2px solid rgba(255, 222, 120, .25);
+  border-right: 2px solid rgba(255, 222, 120, .25);
+  border-radius: 4px;
+  background: rgba(255, 222, 120, .04);
+}
+.ldy21 .guestbook .prev.show { display: block; }
+/* 从长征路上带走的那句话 */
+.ldy21 .guestbook .carry-note {
+  display: none;
+  text-align: center;
+  font-size: 14px;
+  color: #c9a84e;
+  letter-spacing: 1px;
+  margin: -2px 0 10px;
+}
+.ldy21 .guestbook .carry-note.show { display: block; }
+/* 星尘：跟着指针走的一点光，1.4s 内上浮散尽 */
+.ldy21 .dust {
+  position: absolute;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #ffe9a8;
+  box-shadow: 0 0 9px rgba(255, 225, 150, .95);
+  pointer-events: none;
+  z-index: 45;
+  animation: ldy21-dust 1.35s ease-out forwards;
+}
+@keyframes ldy21-dust {
+  from { opacity: .9; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0;  transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 28px)) scale(.35); }
 }
 .ldy21 .guestbook textarea {
   width: 100%;

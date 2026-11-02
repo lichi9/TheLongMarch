@@ -115,6 +115,8 @@
     { t: '缅怀历史，传承红军精神！', c: 'red' },
     { t: '星火相传，吾辈自强。', c: 'big' },
     '',
+    { small: '1934.10 —— 1936.10 · 七百三十天' },
+    '',
     { small: '佛山大学易班技术部 · 长征：拾光 · 最终章' }
   ];
 
@@ -2175,7 +2177,57 @@
         if (ln) ln.classList.add('show');
       });
       after(7000, function () { box.classList.add('bye'); });
-      after(8200, buildGuestbook);
+      after(8200, carryLine);
+    }
+
+    /* ---------- 带走一句话：九扇门各留一句，只能拿一句 ---------- */
+    var CARRY = [
+      '8.6 万人，只剩 3 万。',
+      '在危急关头，他们把方向校正了过来。',
+      '三万对四十万，他们跳出的是包围圈，也是绝境。',
+      '7 只小船，37 名船工，七天七夜，两万人过江。',
+      '铁索之上，是滚烫的信仰。',
+      '手拉着手，他们把雪山踩在了脚下。',
+      '皮带煮软了分着吃，七天七夜走出绝境。',
+      '他们用两年，走完了一条信仰之路。',
+      '二十颗星照亮了来时的路，这一颗交给你了。'
+    ];
+
+    function carryLine() {
+      var box = el('div', 'carry');
+      box.innerHTML =
+        '<div class="carry-title">如果只能带走一句话</div>' +
+        '<div class="carry-list"></div>' +
+        '<div class="carry-skip">不带走 · 直接写自己的话</div>';
+      sceneRelay.appendChild(box);
+      after(60, function () { box.classList.add('on'); });
+
+      var list = box.querySelector('.carry-list');
+      var picked = false;
+      function go(text) {
+        if (box.parentNode) box.parentNode.removeChild(box);
+        buildGuestbook(text);
+      }
+
+      CARRY.forEach(function (s, i) {
+        var b = el('button', 'carry-item', '「' + s + '」');
+        b.setAttribute('type', 'button');
+        b.style.transitionDelay = (0.25 + i * 0.09).toFixed(2) + 's';
+        bind(b, 'click', function () {
+          if (picked) return;
+          picked = true;
+          b.classList.add('picked');
+          box.classList.add('chosen');
+          after(1900, function () { go(s); });
+        });
+        list.appendChild(b);
+      });
+
+      bind(box.querySelector('.carry-skip'), 'click', function () {
+        if (picked) return;
+        picked = true;
+        go('');
+      });
     }
 
     /* ============ 第四幕：留言簿 ============ */
@@ -2215,7 +2267,7 @@
       }
     }
 
-    function buildGuestbook() {
+    function buildGuestbook(carried) {
       /* 清掉接力场景的残留：顶栏提示只降过透明度、气泡还挂着，
          留言簿是终局，不该再看见"把火种递到少年手上"。
          气泡直接摘节点：就算后面还有定时器想点亮它，也无从显示 */
@@ -2233,6 +2285,8 @@
       gb.innerHTML =
         '<h2>星 火 留 言 簿</h2>' +
         '<div class="sub">二十一站，你走到了最后。谢谢你，替这个时代来看他们。</div>' +
+        '<div class="carry-note"></div>' +
+        '<div class="prev"></div>' +
         '<textarea placeholder="此刻，你想说什么……"></textarea>' +
         '<div class="chips">' +
           '<button class="chip" type="button">信 仰</button>' +
@@ -2249,6 +2303,27 @@
       var thanks = gb.querySelector('.thanks');
       var done = false;
 
+      /* 从"带走一句话"过来：把那句预先放进输入框，告诉他这是什么 */
+      if (carried) {
+        var note = gb.querySelector('.carry-note');
+        ta.value = carried;
+        note.textContent = '这是你从长征路上带走的那句话' +
+          '（也可以改，或者加一句自己的）';
+        note.classList.add('show');
+      }
+
+      /* 这一关记得他：上次留下的那句话，这次先摆出来。
+         localStorage 在某些环境下会抛异常，全部 try 包住，坏了也不影响玩 */
+      var LAST_KEY = 'cz.ldy.lastmsg';
+      try {
+        var lastMsg = global.localStorage.getItem(LAST_KEY);
+        if (lastMsg) {
+          var prevEl = gb.querySelector('.prev');
+          prevEl.textContent = '上次你在这里写下：「' + lastMsg + '」';
+          prevEl.classList.add('show');
+        }
+      } catch (e) {}
+
       /* 字签：点一下填进输入框。只亮三枚，其余关键词留给愿意自己写的人 */
       Array.prototype.forEach.call(gb.querySelectorAll('.chip'), function (ch) {
         bind(ch, 'click', function () {
@@ -2259,11 +2334,29 @@
         });
       });
 
+      /* 终局星尘：指针划过带出淡淡光尘，让最后一屏"活着"。
+         限流 ~每 46ms 一颗，单颗 1.4s 后自删，最多同时约 30 颗 */
+      var lastDust = 0;
+      bind(stage, 'pointermove', function (e) {
+        var now = Date.now();
+        if (now - lastDust < 46) return;
+        var p = evStage(e);
+        if (p.x < 0 || p.y < 0 || p.x > 1280 || p.y > 720) return;
+        lastDust = now;
+        var s = el('div', 'dust');
+        s.style.left = p.x + 'px';
+        s.style.top  = p.y + 'px';
+        s.style.setProperty('--dx', (Math.random() * 44 - 22).toFixed(0) + 'px');
+        sceneRelay.appendChild(s);
+        after(1400, function () { if (s.parentNode) s.parentNode.removeChild(s); });
+      });
+
       bind(btn, 'click', function () {
         if (done) return;
         done = true;
         var msg = (ta.value || '').trim() || '先烈们，这盛世如你所愿。';
         copyText(msg);
+        try { global.localStorage.setItem(LAST_KEY, msg); } catch (e) {}
         ta.value = '';
         var echo = echoFor(msg);
 
@@ -2343,10 +2436,30 @@
         if (e && e.stopPropagation) e.stopPropagation();
         d.classList.remove('ready');
         d.classList.add('out');
-        after(1250, finish);
+        after(1250, nameWall);
       }
       bind(d, 'click', doOut);
       after(11000, doOut);   /* 兜底：一直不点也自己灭，别把玩家卡在这儿 */
+    }
+
+    /* 灯灭之后、离开之前：黑暗里只留两行字。
+       这一屏不放任何交互——让玩家在数字面前自己安静一会儿 */
+    function nameWall() {
+      var w = el('div', 'namewall',
+        '<div class="nw-line nw-first">湘江战役纪念馆的英名廊上，<br>刻着 20321 个名字。</div>' +
+        '<div class="nw-line nw-second">而更多的人，连名字都没有留下。</div>');
+      stage.appendChild(w);
+      after(80, function () {
+        w.classList.add('on');
+        var f = w.querySelector('.nw-first');
+        if (f) f.classList.add('on');
+      });
+      after(1500, function () {
+        var s = w.querySelector('.nw-second');
+        if (s) s.classList.add('on');
+      });
+      after(5600, function () { w.classList.add('out'); });
+      after(6900, finish);
     }
 
     function finish() {
