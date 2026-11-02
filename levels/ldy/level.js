@@ -2499,5 +2499,16 @@
   if (soloStage && !soloStage.dataset.mounted) {
     soloStage.dataset.mounted = '1';
     mount(soloStage, null);
+    /* 手机竖屏提示：只在独立运行时挂（嵌入主程序时 parent 不是自己，不打扰地图页） */
+    var embedded = false;
+    try { embedded = global.parent && global.parent !== global; } catch (e) {}
+    if (!embedded && global.document.createElement) {
+      var rot = global.document.createElement('div');
+      rot.className = 'ldy21-rotate on';
+      rot.innerHTML = '<div class="rot-icon">📱</div>' +
+        '<div class="rot-text">请 横 屏 游 玩</div>' +
+        '<div class="rot-sub">横过来后画面会自动铺满</div>';
+      global.document.body.appendChild(rot);
+    }
   }
 })(window);

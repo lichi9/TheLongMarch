@@ -7,6 +7,45 @@
    舞台固定 1280 × 720。
    ============================================================ */
 
+/* 独立打开时的页面底：黑底、禁滚动、禁手机双击/捏合缩放。
+   （iframe 嵌入时本文件只作用于关卡自己的 iframe，不影响主程序） */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* 手机竖屏提示：游戏是 1280×720 横版，竖屏时太小，请横过来 */
+.ldy21-rotate {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: #000;
+  color: #d8cba8;
+  font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+  letter-spacing: 4px;
+}
+.ldy21-rotate .rot-icon { font-size: 44px; animation: ldy21-rot-hint 1.8s ease-in-out infinite; }
+.ldy21-rotate .rot-text { font-size: 17px; }
+.ldy21-rotate .rot-sub { font-size: 13px; color: #8f8468; letter-spacing: 2px; }
+@keyframes ldy21-rot-hint {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(90deg); }
+}
+@media (orientation: portrait) {
+  .ldy21-rotate.on { display: flex; }
+}
+
 .ldy21 {
   position: absolute;
   left: 0; top: 0;
