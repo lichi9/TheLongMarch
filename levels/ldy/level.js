@@ -2088,12 +2088,23 @@
     /* ---------- 第 21 颗星：你画的那一颗，接在二十颗后面 ---------- */
     function starIsYours(student) {
       var CX = 640, CY = 300, R = 132, r = 53;
+      if (bubble) bubble.classList.remove('show');   /* 清掉画星环节遗留的提示气泡 */
       var pts = starPoints(CX, CY, R, r).map(function (p) {
         return p[0].toFixed(1) + ',' + p[1].toFixed(1);
       }).join(' ');
+      /* 「来时的路」：二十颗已亮起的星拱成一道路，簇拥着中央大星 */
+      var road = '';
+      for (var k = 0; k < 20; k++) {
+        var t = k / 19;
+        var rx = 420 + t * 440;
+        var ry = 330 - Math.sin(t * Math.PI) * 150;
+        road += '<polygon class="roadstar" style="animation-delay:' + (k * 0.33).toFixed(2) + 's" ' +
+          'points="' + starPoly(rx, ry, 5.5 + (k % 3) * 1.2, 0) + '" fill="#ffd76e"/>';
+      }
       var box = el('div', 'yours',
         '<div class="yours-star">' +
           '<svg viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet">' +
+            road +
             '<polygon points="' + pts + '" fill="rgba(255,226,130,.14)" ' +
               'stroke="rgba(255,235,168,.92)" stroke-width="3.2" stroke-linejoin="round"/>' +
           '</svg>' +
@@ -2134,7 +2145,7 @@
       var box = el('div', 'credits');
       var roll = el('div', 'roll');
       CREDITS.forEach(function (line) {
-        if (typeof line === 'string') roll.appendChild(el('div', '', line || '&nbsp;'));
+        if (typeof line === 'string') roll.appendChild(el('div', 'gap', '&nbsp;'));
         else if (line.small) roll.appendChild(el('div', 'small', line.small));
         else roll.appendChild(el('div', 'cl-' + (line.c || 'mid'), line.t || ''));
       });
