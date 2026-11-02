@@ -1,13 +1,8 @@
-/* 关卡样式
-
-   ★ 舞台固定 1280 × 720
-   主程序负责把这一层缩放去适配窗口，所以按 1280×720 摆位置就行，
-   不用自己写响应式，也不用管别人屏幕多大。
-
-     想铺满      → width / height: 100%
-     想精确摆放  → 直接用像素，比如 left: 320px
-
-   （这一份跑在 iframe 里，html / body 选择器可以放心用。） */
+/* ============================================================
+   四渡赤水 —— 样式
+   配色对齐主程序：米白纸、正红、纯黑、行楷标题、宋体正文
+   舞台固定 1280×720，由主程序整体缩放
+   ============================================================ */
 
 * { box-sizing: border-box; }
 
@@ -15,53 +10,217 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #17120e;
+  background: #17130f;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #stage {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.probe {
+/* ---------- 战场 ---------- */
+.battlefield {
+  position: relative;
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  cursor: pointer;
-  background: radial-gradient(circle at 50% 45%, #f4ead4 0%, #e6d7b6 70%, #d5c29b 100%);
-  transition: background 260ms ease;
-  -webkit-user-select: none;
-  user-select: none;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(0deg, rgba(139,115,78,0.05) 0 2px, transparent 2px 90px),
+    repeating-linear-gradient(90deg, rgba(139,115,78,0.05) 0 2px, transparent 2px 90px),
+    radial-gradient(circle at 50% 40%, #f2e9d6 0%, #e6d9bd 75%, #d8c8a4 100%);
 }
 
-.probe:hover {
-  background: radial-gradient(circle at 50% 45%, #f8f0dc 0%, #ecdfc2 70%, #dccaa4 100%);
+/* 赤水河：斜贯舞台的河带 */
+.river {
+  position: absolute;
+  left: -10%;
+  top: 32%;
+  width: 120%;
+  height: 190px;
+  background: linear-gradient(180deg, #a4906a 0%, #8a1a12 0%, #b23a2c 18%, #c8483a 50%, #b23a2c 82%, #8a1a12 100%);
+  opacity: 0.92;
+  transform: rotate(-7deg);
+  box-shadow: 0 6px 0 rgba(43,43,38,0.25);
+}
+/* 河面波纹 */
+.river::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg,
+    rgba(242,233,214,0.18) 0 3px, transparent 3px 46px);
+  animation: flow 2.4s linear infinite;
+}
+@keyframes flow {
+  from { transform: translateX(0); }
+  to   { transform: translateX(46px); }
 }
 
-.probe-main {
-  margin: 0;
-  font: 700 34px/1.3 "STXingkai", "华文行楷", "KaiTi", serif;
+/* 两岸阴影 */
+.river-bank {
+  position: absolute;
+  left: 0; right: 0;
+  height: 40px;
+  background: linear-gradient(180deg, rgba(43,43,38,0.28), transparent);
+}
+.bank-n { top: calc(32% - 34px); transform: rotate(-7deg) translateY(10px); }
+.bank-s { top: calc(32% + 186px); transform: rotate(-7deg) translateY(-10px);
+          background: linear-gradient(0deg, rgba(43,43,38,0.28), transparent); }
+
+/* ---------- HUD ---------- */
+.hud {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  padding: 18px 28px 0;
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
+.hud-title {
+  font: 700 40px/1.2 "STXingkai", "华文行楷", "KaiTi", serif;
   color: #8a1a12;
-  letter-spacing: 4px;
+  letter-spacing: 10px;
+  text-shadow: 0 2px 0 rgba(242,233,214,0.8);
 }
-
-.probe-sub {
-  margin: 0;
+.hud-mission {
+  margin-top: 4px;
+  font: 700 17px/1.5 "SimHei", "Microsoft YaHei", sans-serif;
+  color: #2b2b26;
+  letter-spacing: 2px;
+}
+.hud-tip {
   font: 400 13px/1.6 "Songti SC", "STSong", "SimSun", serif;
-  color: rgba(60, 45, 34, 0.62);
+  color: rgba(60,45,34,0.72);
   letter-spacing: 1px;
 }
-
-.probe.is-done {
-  background: radial-gradient(circle at 50% 45%, #b23a2c 0%, #8a1a12 100%);
+.hud-dots { margin-top: 5px; }
+.dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  margin: 0 4px;
+  border-radius: 50%;
+  background: rgba(43,43,38,0.2);
+  border: 2px solid rgba(43,43,38,0.4);
+}
+.dot.cur { background: #c8483a; border-color: #8a1a12; animation: pulse 1.2s ease infinite; }
+.dot.done { background: #8a1a12; border-color: #8a1a12; }
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.35); }
 }
 
-.probe.is-done .probe-main { color: #f9f0da; }
-.probe.is-done .probe-sub  { color: rgba(249, 240, 218, 0.75); }
+/* ---------- 渡口 ---------- */
+.dock {
+  position: absolute;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 3px dashed rgba(43,43,38,0.5);
+  background: rgba(242,233,214,0.35);
+  z-index: 5;
+}
+.dock-name {
+  position: absolute;
+  left: 50%; top: 100%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  font: 700 14px/1 "Songti SC", "SimSun", serif;
+  color: #2b2b26;
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+.dock.active {
+  border-color: #c8483a;
+  background: rgba(200,72,58,0.25);
+  animation: dock-glow 1.4s ease infinite;
+}
+.dock.active .dock-name { color: #8a1a12; }
+.dock.passed { border-style: solid; border-color: #8a1a12; background: rgba(138,26,18,0.2); }
+@keyframes dock-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200,72,58,0.4); }
+  50% { box-shadow: 0 0 0 14px rgba(200,72,58,0); }
+}
+
+/* ---------- 敌军 ---------- */
+.enemy {
+  position: absolute;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #2b2b26;
+  color: #f2e9d6;
+  font: 700 13px/28px "SimHei", sans-serif;
+  text-align: center;
+  z-index: 8;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+.enemy.plane {
+  background: #4a4438;
+  border: 2px solid #2b2b26;
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-15deg);
+}
+
+/* ---------- 玩家红星 ---------- */
+.player {
+  position: absolute;
+  width: 32px; height: 32px;
+  z-index: 9;
+  font: 700 30px/30px "SimHei", sans-serif;
+  color: #c8483a;
+  text-align: center;
+  text-shadow: 0 0 8px rgba(200,72,58,0.6), 0 2px 0 rgba(43,43,38,0.4);
+  pointer-events: none;
+  transition: none;
+}
+
+/* ---------- 消息层 ---------- */
+.msg-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 20;
+  background: rgba(23,19,15,0.35);
+}
+.msg {
+  background: rgba(23,19,15,0.94);
+  color: #f2e9d6;
+  padding: 30px 52px;
+  border: 3px solid #b23a2c;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+  text-align: center;
+  max-width: 640px;
+  opacity: 0;
+  transform: translateY(16px) scale(0.97);
+  transition: opacity 300ms ease, transform 300ms ease;
+  z-index: 21;
+}
+.msg.on { opacity: 1; transform: translateY(0) scale(1); }
+.msg-main {
+  margin: 0 0 10px;
+  font: 700 40px/1.25 "STXingkai", "华文行楷", "KaiTi", serif;
+  letter-spacing: 8px;
+  color: #f2e9d6;
+}
+.msg-main.ok { color: #e8c56a; }
+.msg-main.danger { color: #e05a48; font-size: 34px; letter-spacing: 5px; }
+.msg-sub {
+  margin: 0;
+  font: 400 15px/1.9 "Songti SC", "STSong", "SimSun", serif;
+  color: rgba(242,233,214,0.85);
+  letter-spacing: 1px;
+}
+.msg-btn {
+  margin: 18px 0 0;
+  font: 700 14px/1 "SimHei", sans-serif;
+  color: #c8483a;
+  letter-spacing: 3px;
+  animation: btn-blink 1.4s ease infinite;
+}
+@keyframes btn-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
