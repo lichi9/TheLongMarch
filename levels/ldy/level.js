@@ -2216,6 +2216,13 @@
     }
 
     function buildGuestbook() {
+      /* 清掉接力场景的残留：顶栏提示只降过透明度、气泡还挂着，
+         留言簿是终局，不该再看见"把火种递到少年手上"。
+         气泡直接摘节点：就算后面还有定时器想点亮它，也无从显示 */
+      if (bubble && bubble.parentNode) bubble.parentNode.removeChild(bubble);
+      Array.prototype.forEach.call(sceneRelay.querySelectorAll('.relay-tip'), function (t) {
+        if (t.parentNode) t.parentNode.removeChild(t);
+      });
       /* 字幕与今昔层直接从 DOM 移除（不只是透明）：
          低配机器上旧帧残影会让它们"透"到留言簿后面 */
       if (creditsBox && creditsBox.parentNode) creditsBox.parentNode.removeChild(creditsBox);
@@ -2225,8 +2232,14 @@
       var gb = el('div', 'guestbook');
       gb.innerHTML =
         '<h2>星 火 留 言 簿</h2>' +
-        '<div class="sub">写下你最想对先烈们说的一句话</div>' +
+        '<div class="sub">二十一站，你走到了最后。谢谢你，替这个时代来看他们。</div>' +
         '<textarea placeholder="此刻，你想说什么……"></textarea>' +
+        '<div class="chips">' +
+          '<button class="chip" type="button">信 仰</button>' +
+          '<button class="chip" type="button">青 春</button>' +
+          '<button class="chip" type="button">坚 持</button>' +
+          '<span class="chip-tip">点一枚字签试试——他们会回应一段真实的历史</span>' +
+        '</div>' +
         '<button class="submit-btn">化 作 星 光</button>' +
         '<div class="thanks"></div>';
       sceneRelay.appendChild(gb);
@@ -2235,6 +2248,16 @@
       var btn = gb.querySelector('.submit-btn');
       var thanks = gb.querySelector('.thanks');
       var done = false;
+
+      /* 字签：点一下填进输入框。只亮三枚，其余关键词留给愿意自己写的人 */
+      Array.prototype.forEach.call(gb.querySelectorAll('.chip'), function (ch) {
+        bind(ch, 'click', function () {
+          if (done) return;
+          ta.value = ch.textContent.replace(/\s+/g, '');
+          try { ta.focus(); } catch (e) {}
+          ch.classList.add('used');
+        });
+      });
 
       bind(btn, 'click', function () {
         if (done) return;
