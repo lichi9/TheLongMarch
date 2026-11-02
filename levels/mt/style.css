@@ -1,13 +1,8 @@
-/* 关卡样式
-
-   ★ 舞台固定 1280 × 720
-   主程序负责把这一层缩放去适配窗口，所以按 1280×720 摆位置就行，
-   不用自己写响应式，也不用管别人屏幕多大。
-
-     想铺满      → width / height: 100%
-     想精确摆放  → 直接用像素，比如 left: 320px
-
-   （这一份跑在 iframe 里，html / body 选择器可以放心用。） */
+/* levels/mt/style.css
+ * 血战湘江 · 渡口阻击战（iframe 版）
+ * 舞台固定 1280×720，由主程序整体缩放。
+ * 关卡自己的样式全部挂在 .mt-root 下面，不碰主程序。
+ */
 
 * { box-sizing: border-box; }
 
@@ -15,53 +10,267 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #17120e;
+  background: #16210f;
 }
 
 #stage {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.probe {
+.mt-root {
+  display: block;
+  position: relative;
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  cursor: pointer;
-  background: radial-gradient(circle at 50% 45%, #f4ead4 0%, #e6d7b6 70%, #d5c29b 100%);
-  transition: background 260ms ease;
+  overflow: hidden;
+  background: #16210f;
+  font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Heiti SC", sans-serif;
+  color: #f3e7cd;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.probe:hover {
-  background: radial-gradient(circle at 50% 45%, #f8f0dc 0%, #ecdfc2 70%, #dccaa4 100%);
+.mt-root *,
+.mt-root *::before,
+.mt-root *::after {
+  box-sizing: border-box;
 }
 
-.probe-main {
-  margin: 0;
-  font: 700 34px/1.3 "STXingkai", "华文行楷", "KaiTi", serif;
-  color: #8a1a12;
-  letter-spacing: 4px;
+.mt-root .mt-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
-.probe-sub {
-  margin: 0;
-  font: 400 13px/1.6 "Songti SC", "STSong", "SimSun", serif;
-  color: rgba(60, 45, 34, 0.62);
-  letter-spacing: 1px;
+.mt-root .mt-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  touch-action: none;
+  cursor: default;
 }
 
-.probe.is-done {
-  background: radial-gradient(circle at 50% 45%, #b23a2c 0%, #8a1a12 100%);
+.mt-root .mt-canvas:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(255, 214, 150, 0.5);
 }
 
-.probe.is-done .probe-main { color: #f9f0da; }
-.probe.is-done .probe-sub  { color: rgba(249, 240, 218, 0.75); }
+/* ---------- 遮罩层 ---------- */
+
+.mt-root .mt-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(120% 90% at 50% 40%, rgba(18, 28, 14, 0.55) 0%, rgba(10, 16, 8, 0.88) 100%);
+  animation: mt-fade 0.45s ease both;
+}
+
+.mt-root .mt-hide {
+  display: none !important;
+}
+
+.mt-root .mt-card {
+  position: relative;
+  width: min(640px, 94%);
+  max-height: 92%;
+  overflow: auto;
+  padding: 30px 34px 28px;
+  border-radius: 16px;
+  border: 1px solid rgba(232, 201, 141, 0.55);
+  background:
+    linear-gradient(180deg, rgba(46, 56, 38, 0.97), rgba(26, 34, 22, 0.98));
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 236, 196, 0.12);
+  animation: mt-rise 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.mt-root .mt-card::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 11px;
+  border: 1px solid rgba(232, 201, 141, 0.16);
+  pointer-events: none;
+}
+
+.mt-root .mt-kicker {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.32em;
+  color: #d8b877;
+}
+
+.mt-root .mt-title {
+  margin: 0 0 14px;
+  font-size: 31px;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: #ffe9bd;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.mt-root .mt-desc {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.9;
+  color: #ddd2b8;
+}
+
+.mt-root .mt-tips {
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #cfc4a9;
+}
+
+.mt-root .mt-tips li {
+  position: relative;
+  padding-left: 20px;
+}
+
+.mt-root .mt-tips li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0.72em;
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  background: #c8342a;
+  box-shadow: 0 0 0 2px rgba(200, 52, 42, 0.18);
+}
+
+.mt-root .mt-tips strong {
+  color: #ffdf9a;
+  font-weight: 700;
+}
+
+.mt-root .mt-btn {
+  display: inline-block;
+  min-width: 190px;
+  padding: 13px 26px;
+  border: 1px solid rgba(255, 216, 150, 0.65);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ab3628, #7c221a);
+  color: #ffeecb;
+  font: 700 18px/1 "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  box-shadow:
+    0 6px 0 rgba(70, 16, 12, 0.55),
+    0 10px 24px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+}
+
+.mt-root .mt-btn:hover {
+  filter: brightness(1.1);
+}
+
+.mt-root .mt-btn:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 3px 0 rgba(70, 16, 12, 0.55),
+    0 6px 14px rgba(0, 0, 0, 0.3);
+}
+
+.mt-root .mt-btn:focus-visible {
+  outline: 2px solid #ffdf9a;
+  outline-offset: 3px;
+}
+
+.mt-root .mt-end-stat {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #c9bd9f;
+}
+
+.mt-root .mt-end-stat b {
+  color: #ffd873;
+  font-size: 16px;
+  padding: 0 2px;
+}
+
+.mt-root .mt-note {
+  margin: 0 0 22px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(232, 201, 141, 0.22);
+  font-size: 12px;
+  line-height: 1.8;
+  color: #9c937c;
+}
+
+.mt-root .mt-end.mt-win .mt-title {
+  color: #ffe9bd;
+}
+
+.mt-root .mt-end.mt-lose .mt-title {
+  color: #ff9d88;
+}
+
+@keyframes mt-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes mt-rise {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 720px) {
+  .mt-root .mt-card {
+    padding: 22px 20px 20px;
+  }
+  .mt-root .mt-title {
+    font-size: 23px;
+  }
+  .mt-root .mt-desc,
+  .mt-root .mt-tips {
+    font-size: 13px;
+  }
+  .mt-root .mt-btn {
+    min-width: 160px;
+    padding: 11px 20px;
+    font-size: 16px;
+  }
+}
+
+/* 无头截图 / 系统减弱动效时，直接把开场卡片摆到位 */
+@media (prefers-reduced-motion: reduce) {
+  .mt-root .mt-overlay,
+  .mt-root .mt-card {
+    animation: none;
+  }
+}
+
+/* 结算页按钮组：主按钮 + 返回选关 / 再战 */
+.mt-root .mt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.mt-root .mt-btn.mt-btn-ghost {
+  min-width: 150px;
+  background: rgba(20, 28, 18, 0.55);
+  color: #e9dcbc;
+  border-color: rgba(232, 201, 141, 0.42);
+  box-shadow:
+    0 5px 0 rgba(10, 14, 8, 0.45),
+    0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+.mt-root .mt-btn.mt-btn-ghost:hover {
+  filter: brightness(1.18);
+}

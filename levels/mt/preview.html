@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>湘江战役 · 渡口阻击战（mt 本地预览）</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #0b1109;
+    overflow: hidden;
+  }
+  #frame {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(100vw, 177.78vh);
+    height: min(56.25vw, 100vh);
+    background: #16210f;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+  }
+  #box {
+    position: absolute;
+    inset: 0;
+  }
+  #no-js {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e9d8ae;
+    font: 16px/1.8 "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<div id="frame"><div id="box"></div></div>
+<p id="no-js">正在装载战场……</p>
+
+<script>
+  // 本地预览的兜底：脚本报错时把信息写进标题，方便无头验收
+  window.addEventListener('error', function (e) {
+    document.title = 'ERR ' + (e && e.message ? e.message : 'unknown');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    document.title = 'ERR ' + String(e && e.reason || 'promise');
+  });
+</script>
+
+<!-- 最小的 CZ 外壳：只为本地双击预览，正式版由 core/cz.js 提供同样的接口 -->
+<script>
+(function () {
+  'use strict';
+
+  var box = document.getElementById('box');
+  var host = box.attachShadow({ mode: 'open' });
+
+  var style = document.createElement('style');
+  style.textContent =
+    ':host{display:block;width:100%;height:100%}' +
+    '.cz-box{position:absolute;inset:0}';
+  host.appendChild(style);
+
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'style.css';
+  host.appendChild(link);
+
+  var root = document.createElement('div');
+  root.className = 'cz-box';
+  host.appendChild(root);
+
+  var timers = [];
+
+  var ctx = {
+    $: function (sel) { return root.querySelector(sel); },
+    $$: function (sel) { return Array.prototype.slice.call(root.querySelectorAll(sel)); },
+    on: function (el, ev, fn) {
+      if (!el) return function () {};
+      el.addEventListener(ev, fn);
+      return function () { el.removeEventListener(ev, fn); };
+    },
+    timer: {
+      every: function (ms, fn) {
+        var id = setInterval(fn, ms);
+        timers.push(id);
+        return function () { clearInterval(id); };
+      },
+      after: function (ms, fn) {
+        var id = setTimeout(fn, ms);
+        timers.push(id);
+        return function () { clearTimeout(id); };
+      }
+    },
+    raf: function (fn) {
+      var id = requestAnimationFrame(fn);
+      return function () { cancelAnimationFrame(id); };
+    },
+    hint: function (msg) { if (window.console) console.log('[hint] ' + msg); },
+    assets: function (name) { return 'assets/' + name; },
+    finish: function (score) { if (window.console) console.log('[finish] score=' + score); },
+    fail: function (reason) { if (window.console) console.log('[fail] ' + reason); }
+  };
+
+  window.CZ = {
+    registry: {},
+    register: function (def) { this.registry[def.id] = def; },
+    startGame: function () {}
+  };
+
+  window.addEventListener('load', function () {
+    document.getElementById('no-js').style.display = 'none';
+  });
+
+  window.__MT_BOOT__ = function () {
+    var def = window.CZ.registry.mt;
+    if (!def) {
+      document.getElementById('no-js').textContent = '没有找到 levels/mt/level.js';
+      return;
+    }
+    def.mount(root, ctx);
+  };
+})();
+</script>
+
+<script src="level.js"></script>
+
+<script>
+(function () {
+  'use strict';
+  if (typeof window.__MT_BOOT__ === 'function') window.__MT_BOOT__();
+
+  var MT = window.MT;
+  if (!MT || !MT.debug) return;
+
+  var q = new URLSearchParams(location.search);
+  if (!q.has('play') && !q.has('demo') && !q.has('wave') && !q.has('end') &&
+      !q.has('sim') && !q.has('ff') && !q.has('clicktest') && !q.has('max')) return;
+
+  // 跳过封面直接开打
+  MT.debug.start();
+
+  if (q.has('demo')) {
+    // 摆几座塔，方便截图 / 看画面
+    MT.debug.coins(5000);
+    MT.debug.build('gun', 1);
+    MT.debug.build('cannon', 2);
+    MT.debug.build('gun', 4);
+    MT.debug.build('cannon', 5);
+    MT.debug.build('gun', 6);
+    MT.debug.build('cannon', 7);
+    MT.debug.build('gun', 8);
+    MT.debug.build('cannon', 9);
+    MT.debug.build('gun', 11);
+    MT.debug.upgrade(2);
+    MT.debug.upgrade(5);
+    MT.debug.upgrade(6);
+    MT.debug.coins(430);
+    MT.debug.wave(parseInt(q.get('wave') || '4', 10));
+    MT.debug.fastForward(parseFloat(q.get('ff') || '8.5'));
+    if (q.has('sel')) MT.debug.select(parseInt(q.get('sel'), 10));
+    if (q.get('card') === '0') MT.debug.clear();
+  }
+
+  if (q.has('wave')) MT.debug.wave(parseInt(q.get('wave'), 10));
+  if (q.has('ff')) MT.debug.fastForward(parseFloat(q.get('ff')));
+  if (q.has('call')) MT.debug.call();
+  if (q.get('end') === 'win') setTimeout(function () { MT.debug.win(); }, 300);
+  if (q.get('end') === 'lose') setTimeout(function () { MT.debug.lose(); }, 300);
+
+  // 三级工事的样子：枪手瞭望塔 / 炮手野炮
+  if (q.has('max')) {
+    MT.debug.start();
+    MT.debug.coins(5000);
+    MT.debug.build('gun', 1);
+    MT.debug.upgrade(1);
+    MT.debug.upgrade(1);
+    MT.debug.build('cannon', 2);
+    MT.debug.upgrade(2);
+    MT.debug.upgrade(2);
+    MT.debug.select(1);
+    MT.debug.fastForward(1);
+  }
+
+  // 自动点一次木牌 → 修枪手，检查点击命中与卡片布局
+  if (q.has('clicktest')) {
+    if (!MT.debug.state().started) MT.debug.start();
+    var ps = MT.debug.state().plots;
+    var p0 = ps[2];
+    var err = '';
+    try { MT.debug.tap(p0.x, p0.y); } catch (e) { err = String(e && e.message || e); }
+    var sel1 = !!MT.debug.state().sel;
+    MT.debug.render();
+    var hits1 = MT.debug.state().hits.map(function (h) {
+      return h.action.type + ':' + Math.round(h.x) + ',' + Math.round(h.y) + ',' + Math.round(h.w) + 'x' + Math.round(h.h);
+    });
+    var cardX = p0.x + 42;
+    var cardY = p0.y - 140 - 30;
+    if (cardY < 12) cardY = p0.y + 30;
+    try { MT.debug.tap(cardX + 100, cardY + 22 + 9 + 22); } catch (e2) { err += '|' + String(e2 && e2.message || e2); }
+    MT.debug.render();
+    document.title = 'TAP ' + JSON.stringify({
+      plot: [Math.round(p0.x), Math.round(p0.y)],
+      sel1: sel1,
+      err: err,
+      hits: hits1,
+      towers: MT.debug.state().towers.length,
+      coins: MT.debug.state().coins,
+      selected: !!MT.debug.state().sel
+    });
+  }
+
+  // 自动打一局，用来粗查难度：结果写进 <title>，配合 --dump-dom 读取
+  if (q.has('sim')) {
+    if (!MT.debug.state().started) MT.debug.start();
+    var defs = MT.debug.def();
+    var plan = [
+      [1, 'gun'], [2, 'cannon'], [4, 'gun'], [5, 'cannon'],
+      [6, 'gun'], [7, 'cannon'], [8, 'gun'], [9, 'cannon'],
+      [0, 'gun'], [3, 'cannon'], [10, 'gun'], [11, 'cannon']
+    ];
+    var maxTowers = parseInt(q.get('towers') || '12', 10);
+    var allowUp = q.get('up') !== '0';
+    var next = 0;
+    for (var step = 0; step < 960; step++) {
+      var st = MT.debug.state();
+      if (!st || st.over) break;
+      MT.debug.fastForward(1);
+      st = MT.debug.state();
+      if (next < plan.length && next < maxTowers) {
+        if (st.coins >= defs[plan[next][1]].rows[0].cost) {
+          MT.debug.build(plan[next][1], plan[next][0]);
+          next++;
+        }
+      } else if (allowUp && next >= maxTowers) {
+        var bestIdx = -1, bestCost = 1e9;
+        for (var i = 0; i < st.plots.length; i++) {
+          var tw = st.plots[i].tower;
+          if (!tw || tw.level >= 3) continue;
+          var cost = defs[tw.kind].rows[tw.level].cost;
+          if (cost < bestCost && st.coins >= cost) { bestCost = cost; bestIdx = i; }
+        }
+        if (bestIdx >= 0) MT.debug.upgrade(bestIdx);
+      }
+    }
+    document.title = 'SIM ' + JSON.stringify(MT.debug.summary());
+  }
+})();
+</script>
+
+</body>
+</html>
