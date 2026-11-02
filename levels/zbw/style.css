@@ -1,67 +1,116 @@
-/* 关卡样式
-
-   ★ 舞台固定 1280 × 720
-   主程序负责把这一层缩放去适配窗口，所以按 1280×720 摆位置就行，
-   不用自己写响应式，也不用管别人屏幕多大。
-
-     想铺满      → width / height: 100%
-     想精确摆放  → 直接用像素，比如 left: 320px
-
-   （这一份跑在 iframe 里，html / body 选择器可以放心用。） */
-
+/* 过草地 · 推字行军 —— levels/zbw/style.css
+   舞台由主程序缩放适配，按 1280×720 摆位置。
+   风格：纯黑背景 + 全白字，突出文字本身。 */
 * { box-sizing: border-box; }
-
 html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #17120e;
+  background: #000;
 }
-
 #stage {
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #fff;
+  background: #000;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* 顶栏：剩余人数 + 提示 + 出发按钮 */
+.bar {
+  margin: 80px 0 0;
+  text-align: center;
+  font-size: 30px;
+  color: #fff;
+}
+.tip {
+  display: block;
+  margin-top: 12px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, .6);
+}
+/* 出发按钮上方的警示语 */
+.warn {
+  display: block;
+  margin-top: 14px;
+  font-size: 19px;
+  letter-spacing: 2px;
+  color: #fff;
+}
+.go {
+  display: block;
+  margin: 16px auto 0;
+  font-size: 22px;
+  letter-spacing: 6px;
+  color: #fff;
+  background: #000;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  padding: 6px 34px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.go:hover {
+  background: #fff;
+  color: #000;
+}
+/* 十个字一行，水平居中 */
+.row {
+  margin-top: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 14px;
 }
-
-.probe {
+.cell {
+  width: 80px;
+  height: 100px;
+}
+/* 字块：黑底白字白描边 + 微光，强调文字本身 */
+.ch {
+  display: inline-block;
+  width: 80px;
+  font-size: 60px;
+  line-height: 100px;
+  text-align: center;
+  font-weight: 700;
+  color: #fff;
+  background: #000;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  cursor: grab;
+  box-shadow: 0 0 12px rgba(255, 255, 255, .3);
+}
+.ch.on {
+  cursor: grabbing;
+  position: relative;
+  z-index: 9;
+  box-shadow: 0 0 22px rgba(255, 255, 255, .7);
+}
+/* 结算页 */
+.settle {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  cursor: pointer;
-  background: radial-gradient(circle at 50% 45%, #f4ead4 0%, #e6d7b6 70%, #d5c29b 100%);
-  transition: background 260ms ease;
-  -webkit-user-select: none;
-  user-select: none;
+  gap: 12px;
 }
-
-.probe:hover {
-  background: radial-gradient(circle at 50% 45%, #f8f0dc 0%, #ecdfc2 70%, #dccaa4 100%);
-}
-
-.probe-main {
+.settle .big {
   margin: 0;
-  font: 700 34px/1.3 "STXingkai", "华文行楷", "KaiTi", serif;
-  color: #8a1a12;
-  letter-spacing: 4px;
+  font-size: 60px;
+  font-weight: 700;
+  color: #fff;
 }
-
-.probe-sub {
+.settle p {
   margin: 0;
-  font: 400 13px/1.6 "Songti SC", "STSong", "SimSun", serif;
-  color: rgba(60, 45, 34, 0.62);
-  letter-spacing: 1px;
+  font-size: 22px;
+  color: #fff;
 }
-
-.probe.is-done {
-  background: radial-gradient(circle at 50% 45%, #b23a2c 0%, #8a1a12 100%);
+.settle .small {
+  font-size: 16px;
+  color: rgba(255, 255, 255, .65);
 }
-
-.probe.is-done .probe-main { color: #f9f0da; }
-.probe.is-done .probe-sub  { color: rgba(249, 240, 218, 0.75); }
