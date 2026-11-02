@@ -277,3 +277,5 @@ page-*.mhtml
 #
 # 地图/
 # 地图/*.jpg
+#测试工具
+tools/level-selector.html
