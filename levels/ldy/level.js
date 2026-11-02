@@ -284,9 +284,33 @@
       }
       img.src = BASE + 'assets/door' + (i + 1) + '.' + PHOTO_EXT[k];
     }
-    img.addEventListener('error', function () { k++; tryExt(); });
-    tryExt();
-  }
+      img.addEventListener('error', function () { k++; tryExt(); });
+      tryExt();
+    }
+
+    /* 图片预载：进场后就把全部门图和人物立绘拉进缓存，点开门的那一刻不等网络。
+       门图沿用 setPhoto 的扩展名探测顺序，保证捂热的正是之后真正会显示的那张 */
+    (function preloadArt() {
+      var fixed = ['assets/door-frame.png', 'assets/door9.jpg',
+                   'assets/soldier.png', 'assets/soldier-salute.png',
+                   'assets/student.png', 'assets/student-salute.png'];
+      function warm(url, ok, bad) {
+        var im = new Image();
+        im.onload = function () { if (ok) ok(); };
+        im.onerror = function () { if (bad) bad(); };
+        im.src = url;
+      }
+      for (var i = 1; i <= 8; i++) {
+        (function (n) {
+          var k = 0;
+          (function next() {
+            if (k >= PHOTO_EXT.length) return;
+            warm(BASE + 'assets/door' + n + '.' + PHOTO_EXT[k], null, function () { k++; next(); });
+          })();
+        })(i);
+      }
+      for (var f = 0; f < fixed.length; f++) warm(BASE + fixed[f]);
+    })();
 
   /* ============ Web Audio：拟真打字机 / 音效 ============ */
   var audio = { ctx: null, noise: null };
@@ -579,10 +603,39 @@
     } catch (e) {}
     if (isTouch) stage.classList.add('touch');
 
+    var rotated = false;        /* 竖屏手机：舞台旋转 90° 铺满全屏 */
+    /* 竖屏旋转模式下的轻提示：不挡操作，几秒自己走 */
+    var rotToastShown = false;
+    function rotToast() {
+      if (rotToastShown) return;
+      rotToastShown = true;
+      var t = el('div', 'rot-toast', '横 握 手 机 · 体 验 更 佳');
+      stage.appendChild(t);
+      after(60, function () { t.classList.add('show'); });
+      after(2800, function () { t.classList.add('bye'); });
+      after(3500, function () { if (t.parentNode) t.parentNode.removeChild(t); });
+    }
+
     function fitStage() {
       var vw = global.innerWidth || 1280, vh = global.innerHeight || 720;
-      var s = Math.min(vw / 1280, vh / 720);
+      var wantRot;
+      if (rotated) wantRot = !(vw > vh * 1.08);   /* 已旋转：明确横过来了才切回，防临界抖动 */
+      else wantRot = vh > vw * 1.08;              /* 未旋转：明确竖着才转 */
+      rotated = wantRot;
       stageRect = null; /* 窗口变了，缓存作废 */
+      var s;
+      if (rotated) {
+        /* 竖屏：把 1280×720 转半圈当横屏铺——宽对高、高对宽 */
+        s = Math.min(vh / 1280, vw / 720);
+        stageScale = s;
+        stage.style.position = 'fixed';
+        stage.style.left = '50%';
+        stage.style.top = '50%';
+        stage.style.transform = 'translate(-50%,-50%) rotate(90deg) scale(' + s.toFixed(4) + ')';
+        rotToast();
+        return;
+      }
+      s = Math.min(vw / 1280, vh / 720);
       if (s >= 0.995) {
         stageScale = 1;
         stage.style.position = '';
@@ -600,7 +653,17 @@
     }
     fitStage();
     bind(global, 'resize', fitStage);
-    bind(global, 'orientationchange', fitStage);
+    bind(global, 'orientationchange', function () {
+      /* 转屏瞬间浏览器报的宽高常常还是旧的，补几刀确认 */
+      fitStage();
+      after(280, fitStage);
+      after(800, fitStage);
+    });
+    try { if (global.visualViewport) bind(global.visualViewport, 'resize', fitStage); } catch (e) {}
+    /* 微信等内置浏览器：地址栏/标题栏收起会改变视口但不触发 resize，兜底再校几回 */
+    after(350, fitStage);
+    after(1000, fitStage);
+    after(2200, fitStage);
 
     /* 事件坐标 → 舞台坐标（缩放后 rect 已按比例变化，除回去即可）
        rect 做缓存：pointermove 每秒可触发上百次，逐次读 getBoundingClientRect
@@ -608,10 +671,12 @@
     var stageRect = null;
     function evStage(e) {
       if (!stageRect) stageRect = stage.getBoundingClientRect();
-      return {
-        x: (e.clientX - stageRect.left) / stageScale,
-        y: (e.clientY - stageRect.top) / stageScale
-      };
+      /* 以舞台中心为原点换算：普通模式直接映射；
+         旋转模式画面转了 90°，屏幕偏移要逆着转回去（顺时针 90°：屏 (ox,oy) ↔ 台 (oy,-ox)） */
+      var ox = (e.clientX - stageRect.left - stageRect.width / 2) / stageScale;
+      var oy = (e.clientY - stageRect.top - stageRect.height / 2) / stageScale;
+      if (rotated) return { x: 640 + oy, y: 360 - ox };
+      return { x: 640 + ox, y: 360 + oy };
     }
 
     var sceneIntro  = el('div', 'abs hidden');
@@ -2499,16 +2564,5 @@
   if (soloStage && !soloStage.dataset.mounted) {
     soloStage.dataset.mounted = '1';
     mount(soloStage, null);
-    /* 手机竖屏提示：只在独立运行时挂（嵌入主程序时 parent 不是自己，不打扰地图页） */
-    var embedded = false;
-    try { embedded = global.parent && global.parent !== global; } catch (e) {}
-    if (!embedded && global.document.createElement) {
-      var rot = global.document.createElement('div');
-      rot.className = 'ldy21-rotate on';
-      rot.innerHTML = '<div class="rot-icon">📱</div>' +
-        '<div class="rot-text">请 横 屏 游 玩</div>' +
-        '<div class="rot-sub">横过来后画面会自动铺满</div>';
-      global.document.body.appendChild(rot);
-    }
   }
 })(window);

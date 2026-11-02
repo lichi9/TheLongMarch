@@ -19,32 +19,26 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* 手机竖屏提示：游戏是 1280×720 横版，竖屏时太小，请横过来 */
-.ldy21-rotate {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 999;
-  background: #000;
-  color: #d8cba8;
-  font-family: 'KaiTi', 'STKaiti', '楷体', serif;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  text-align: center;
-  letter-spacing: 4px;
+/* 竖屏旋转模式的轻提示：画面已转 90° 铺满，这只是提醒握持方向 */
+.ldy21 .rot-toast {
+  position: absolute;
+  left: 50%; top: 26px;
+  transform: translateX(-50%);
+  z-index: 60;
+  padding: 10px 24px;
+  background: rgba(10, 8, 4, .82);
+  border: 1px solid rgba(255, 222, 120, .35);
+  border-radius: 999px;
+  font-size: 15px;
+  letter-spacing: 3px;
+  color: #e8d9a8;
+  opacity: 0;
+  transition: opacity .5s;
+  pointer-events: none;
+  white-space: nowrap;
 }
-.ldy21-rotate .rot-icon { font-size: 44px; animation: ldy21-rot-hint 1.8s ease-in-out infinite; }
-.ldy21-rotate .rot-text { font-size: 17px; }
-.ldy21-rotate .rot-sub { font-size: 13px; color: #8f8468; letter-spacing: 2px; }
-@keyframes ldy21-rot-hint {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(90deg); }
-}
-@media (orientation: portrait) {
-  .ldy21-rotate.on { display: flex; }
-}
+.ldy21 .rot-toast.show { opacity: 1; }
+.ldy21 .rot-toast.bye { opacity: 0; }
 
 .ldy21 {
   position: absolute;
