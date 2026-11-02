@@ -1,13 +1,9 @@
-/* 关卡样式
+/* ============================================================
+   巧渡金沙江 —— levels/wxh/style.css
 
-   ★ 舞台固定 1280 × 720
-   主程序负责把这一层缩放去适配窗口，所以按 1280×720 摆位置就行，
-   不用自己写响应式，也不用管别人屏幕多大。
-
-     想铺满      → width / height: 100%
-     想精确摆放  → 直接用像素，比如 left: 320px
-
-   （这一份跑在 iframe 里，html / body 选择器可以放心用。） */
+   舞台固定 1280 × 720，主程序负责整体缩放，
+   所以这里全部用像素定位，不写任何响应式。
+   ============================================================ */
 
 * { box-sizing: border-box; }
 
@@ -15,7 +11,7 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #17120e;
+  background: #120e0b;
 }
 
 #stage {
@@ -26,42 +22,408 @@ html, body {
   justify-content: center;
 }
 
-.probe {
-  width: 100%;
+/* ---------- 整体 ---------- */
+.cz-wrap {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  display: flex;
+  flex-direction: column;
+  background: #120e0b;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  color: #f2e7d0;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* ---------- 顶部信息条 ---------- */
+.cz-hud {
+  height: 76px;
+  flex: 0 0 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  background: linear-gradient(180deg, #241a13, #17100c);
+  border-bottom: 1px solid rgba(216, 179, 74, 0.28);
+  position: relative;
+  z-index: 5;
+}
+
+.cz-hud-left {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.cz-tag {
+  font: 700 17px/1 "STXingkai", "华文行楷", "KaiTi", serif;
+  letter-spacing: 2px;
+  color: #d8b34a;
+  padding: 6px 12px;
+  border: 1px solid rgba(216, 179, 74, 0.45);
+  border-radius: 3px;
+}
+
+.cz-stat {
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: rgba(242, 231, 208, 0.78);
+}
+
+.cz-stat b {
+  font-size: 22px;
+  color: #f6e7c2;
+  margin: 0 2px;
+}
+
+/* 追兵进度 */
+.cz-pressure {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cz-pressure-text {
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #c8564a;
+}
+
+.cz-pressure-bar {
+  width: 300px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(200, 86, 74, 0.5);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.cz-pressure-bar i {
+  display: block;
   height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #6d8f4a, #b8352a);
+  transition: width 120ms linear;
+}
+
+.cz-pressure-sec {
+  width: 62px;
+  text-align: right;
+  font-size: 15px;
+  color: rgba(242, 231, 208, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+
+.cz-pressure.is-urgent .cz-pressure-text,
+.cz-pressure.is-urgent .cz-pressure-sec {
+  color: #ff6a58;
+  animation: cz-blink 620ms steps(2, end) infinite;
+}
+
+@keyframes cz-blink {
+  50% { opacity: 0.35; }
+}
+
+/* ---------- 江面 ---------- */
+.cz-river {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+  background: #0a2027;
+}
+
+/* 两岸 */
+.cz-bank {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 6px;
+  z-index: 2;
+}
+
+.cz-bank-l {
+  left: 0;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(120, 96, 60, 0.35), transparent 60%),
+    linear-gradient(90deg, #3a2c1d, #241a11);
+  border-right: 2px solid rgba(216, 179, 74, 0.25);
+}
+
+.cz-bank-r {
+  right: 0;
+  background:
+    radial-gradient(circle at 70% 60%, rgba(120, 96, 60, 0.35), transparent 60%),
+    linear-gradient(270deg, #3a2c1d, #241a11);
+  border-left: 2px solid rgba(216, 179, 74, 0.25);
+}
+
+.cz-bank-name {
+  font: 700 30px/1 "STXingkai", "华文行楷", "KaiTi", serif;
+  letter-spacing: 6px;
+  color: #e9d5a8;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.cz-bank-sub {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: rgba(233, 213, 168, 0.5);
+}
+
+/* 水 */
+.cz-water {
+  position: absolute;
+  left: 180px;
+  right: 180px;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, #0d2f3a 0%, #08222b 55%, #061a22 100%);
+  overflow: hidden;
+}
+
+.cz-wave {
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(126, 186, 194, 0.35) 0 26px,
+    transparent 26px 58px
+  );
+  opacity: 0.5;
+}
+
+.cz-wave-1 { top: 22%; animation: cz-drift 7s linear infinite; }
+.cz-wave-2 { top: 48%; animation: cz-drift 9s linear infinite reverse; opacity: 0.32; }
+.cz-wave-3 { top: 76%; animation: cz-drift 6s linear infinite; opacity: 0.24; }
+
+@keyframes cz-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(58px); }
+}
+
+/* ---------- 船 ---------- */
+.cz-boat {
+  position: absolute;
+  width: 140px;
+  height: 64px;
+  z-index: 4;
+  transition-property: left;
+  transition-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  /* transition-duration 由 level.js 按 CFG.tripMs 写入 */
+  cursor: default;
+}
+
+.cz-boat-hull {
+  position: relative;
+  width: 140px;
+  height: 34px;
+  background: linear-gradient(180deg, #7a5530, #4a3119 60%, #2f1e0f);
+  border-bottom: 3px solid #1b1108;
+  border-radius: 8px 8px 46% 46% / 8px 8px 70% 70%;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 236, 200, 0.18),
+    0 8px 14px rgba(0, 0, 0, 0.5);
+}
+
+.cz-boat-mast {
+  position: absolute;
+  left: 68px;
+  bottom: 22px;
+  width: 2px;
+  height: 26px;
+  background: #2a1a0c;
+}
+
+.cz-boat-flag {
+  position: absolute;
+  left: 70px;
+  bottom: 36px;
+  width: 18px;
+  height: 11px;
+  background: #b8352a;
+  border-radius: 1px;
+  transform-origin: left center;
+  animation: cz-wave-flag 2.2s ease-in-out infinite;
+}
+
+@keyframes cz-wave-flag {
+  50% { transform: skewY(-6deg) scaleX(0.92); }
+}
+
+.cz-boat-label {
+  margin-top: 5px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: rgba(242, 231, 208, 0.62);
+}
+
+.cz-boat-pips {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.cz-boat-pips i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(242, 231, 208, 0.2);
+}
+
+.cz-boat-pips i.is-used {
+  background: #c8564a;
+}
+
+/* 各状态 */
+.cz-boat.is-ready {
   cursor: pointer;
-  background: radial-gradient(circle at 50% 45%, #f4ead4 0%, #e6d7b6 70%, #d5c29b 100%);
-  transition: background 260ms ease;
-  -webkit-user-select: none;
-  user-select: none;
 }
 
-.probe:hover {
-  background: radial-gradient(circle at 50% 45%, #f8f0dc 0%, #ecdfc2 70%, #dccaa4 100%);
+.cz-boat.is-ready .cz-boat-hull {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 236, 200, 0.22),
+    0 8px 14px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(216, 179, 74, 0.75),
+    0 0 22px rgba(216, 179, 74, 0.45);
+  animation: cz-breathe 1.9s ease-in-out infinite;
 }
 
-.probe-main {
-  margin: 0;
-  font: 700 34px/1.3 "STXingkai", "华文行楷", "KaiTi", serif;
-  color: #8a1a12;
-  letter-spacing: 4px;
+.cz-boat.is-ready .cz-boat-label {
+  color: #e9d5a8;
 }
 
-.probe-sub {
-  margin: 0;
-  font: 400 13px/1.6 "Songti SC", "STSong", "SimSun", serif;
-  color: rgba(60, 45, 34, 0.62);
+@keyframes cz-breathe {
+  50% {
+    box-shadow:
+      inset 0 2px 0 rgba(255, 236, 200, 0.22),
+      0 8px 14px rgba(0, 0, 0, 0.5),
+      0 0 0 2px rgba(216, 179, 74, 0.35),
+      0 0 10px rgba(216, 179, 74, 0.22);
+  }
+}
+
+.cz-boat.is-sailing .cz-boat-label { color: rgba(126, 186, 194, 0.85); }
+.cz-boat.is-docking .cz-boat-label { color: #d8b34a; }
+
+.cz-boat.is-rest .cz-boat-hull {
+  filter: grayscale(0.6) brightness(0.8);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 236, 200, 0.12),
+    0 8px 14px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(200, 86, 74, 0.6);
+}
+
+.cz-boat.is-rest .cz-boat-label { color: #c8564a; }
+
+.cz-boat.is-bump {
+  animation: cz-bump 260ms ease;
+}
+
+@keyframes cz-bump {
+  25% { transform: translateX(-7px); }
+  75% { transform: translateX(7px); }
+}
+
+/* ---------- 底部提示 ---------- */
+.cz-tip {
+  height: 46px;
+  flex: 0 0 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
   letter-spacing: 1px;
+  color: rgba(242, 231, 208, 0.42);
+  background: #17100c;
+  border-top: 1px solid rgba(216, 179, 74, 0.18);
 }
 
-.probe.is-done {
-  background: radial-gradient(circle at 50% 45%, #b23a2c 0%, #8a1a12 100%);
+/* ---------- 覆盖层 ---------- */
+.cz-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 45%, rgba(10, 6, 4, 0.82), rgba(6, 3, 2, 0.95));
+  backdrop-filter: blur(2px);
 }
 
-.probe.is-done .probe-main { color: #f9f0da; }
-.probe.is-done .probe-sub  { color: rgba(249, 240, 218, 0.75); }
+.cz-overlay.is-on {
+  display: flex;
+}
+
+.cz-card {
+  width: 660px;
+  padding: 40px 46px 34px;
+  text-align: center;
+  background: linear-gradient(180deg, #241a12, #17100b);
+  border: 1px solid rgba(216, 179, 74, 0.35);
+  border-radius: 4px;
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.7);
+}
+
+.cz-card h1 {
+  margin: 0 0 18px;
+  font: 700 46px/1.1 "STXingkai", "华文行楷", "KaiTi", serif;
+  letter-spacing: 10px;
+  color: #e9d5a8;
+  text-shadow: 0 3px 16px rgba(216, 179, 74, 0.28);
+}
+
+.cz-card p {
+  margin: 0 0 12px;
+  font-size: 15px;
+  line-height: 2;
+  letter-spacing: 1px;
+  color: rgba(242, 231, 208, 0.76);
+}
+
+.cz-card p b {
+  color: #d8b34a;
+}
+
+.cz-small {
+  font-size: 12px !important;
+  color: rgba(242, 231, 208, 0.35) !important;
+}
+
+.cz-btn {
+  margin-top: 22px;
+  padding: 13px 44px;
+  font: 700 19px/1 "STXingkai", "华文行楷", "KaiTi", serif;
+  letter-spacing: 6px;
+  color: #1b1209;
+  background: linear-gradient(180deg, #e6c96a, #c9a13a);
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  box-shadow: 0 8px 20px rgba(201, 161, 58, 0.35);
+}
+
+.cz-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(201, 161, 58, 0.45);
+}
+
+.cz-btn:active {
+  transform: translateY(0);
+}
+
+/* 胜负配色 */
+.cz-overlay.cz-win .cz-card h1 { color: #d8b34a; }
+.cz-overlay.cz-lose .cz-card h1 { color: #e0665a; }
+.cz-overlay.cz-lose .cz-card { border-color: rgba(224, 102, 90, 0.45); }
