@@ -2343,6 +2343,28 @@ html, body {
   animation: ldy21-yours-glow 3.6s ease-in-out infinite;
 }
 .ldy21 .yours-star svg { width: 100%; height: 100%; display: block; }
+/* 红色光芒：极淡的十二道光，缓慢明灭 */
+.ldy21 .yours .yours-ray {
+  stroke: rgba(224, 84, 56, .16);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: ldy21-ray 3.4s ease-in-out infinite alternate;
+}
+@keyframes ldy21-ray {
+  from { opacity: .04; }
+  to   { opacity: .3; }
+}
+/* 内芯红星：延迟亮起——「这一颗，交给你了」的瞬间 */
+.ldy21 .yours .yours-core {
+  opacity: 0;
+  filter: drop-shadow(0 0 16px rgba(255, 96, 58, .8));
+  animation: ldy21-core-in 1.7s ease 1.1s forwards;
+}
+@keyframes ldy21-core-in {
+  from { opacity: 0; transform: scale(.86); transform-origin: 640px 300px; }
+  to   { opacity: 1; transform: scale(1);   transform-origin: 640px 300px; }
+}
 /* 星路：二十颗已点亮的星，呼吸明暗、逐颗错拍 */
 .ldy21 .yours .roadstar {
   animation: ldy21-roadstar 2.6s ease-in-out infinite;

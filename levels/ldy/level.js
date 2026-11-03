@@ -2171,12 +2171,35 @@
         road += '<polygon class="roadstar" style="animation-delay:' + (k * 0.33).toFixed(2) + 's" ' +
           'points="' + starPoly(rx, ry, 5.5 + (k % 3) * 1.2, 0) + '" fill="#ffd76e"/>';
       }
+      /* 红色光芒：十二道极淡的红光从星后透出（红军帽徽的意象） */
+      var rays = '';
+      for (var ri = 0; ri < 12; ri++) {
+        var ang = -Math.PI / 2 + ri * Math.PI / 6;
+        rays += '<line class="yours-ray" style="animation-delay:' + (ri * 0.21).toFixed(2) + 's" ' +
+          'x1="' + (CX + Math.cos(ang) * 152).toFixed(1) + '" y1="' + (CY + Math.sin(ang) * 152).toFixed(1) + '" ' +
+          'x2="' + (CX + Math.cos(ang) * 208).toFixed(1) + '" y2="' + (CY + Math.sin(ang) * 208).toFixed(1) + '"/>';
+      }
+      var corePts = starPoints(CX, CY, 62, 25).map(function (p) {
+        return p[0].toFixed(1) + ',' + p[1].toFixed(1);
+      }).join(' ');
       var box = el('div', 'yours',
         '<div class="yours-star">' +
           '<svg viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet">' +
-            road +
-            '<polygon points="' + pts + '" fill="rgba(255,226,130,.14)" ' +
-              'stroke="rgba(255,235,168,.92)" stroke-width="3.2" stroke-linejoin="round"/>' +
+            '<defs>' +
+              '<radialGradient id="ldy21-red" cx="50%" cy="44%" r="62%">' +
+                '<stop offset="0%" stop-color="rgba(224,72,56,.52)"/>' +
+                '<stop offset="55%" stop-color="rgba(168,38,34,.26)"/>' +
+                '<stop offset="100%" stop-color="rgba(120,20,18,0)"/>' +
+              '</radialGradient>' +
+              '<linearGradient id="ldy21-core" x1="0" y1="0" x2="0" y2="1">' +
+                '<stop offset="0%" stop-color="#ffb37a"/>' +
+                '<stop offset="100%" stop-color="#d6402f"/>' +
+              '</linearGradient>' +
+            '</defs>' +
+            road + rays +
+            '<polygon points="' + pts + '" fill="url(#ldy21-red)" ' +
+              'stroke="rgba(255,196,140,.95)" stroke-width="3.4" stroke-linejoin="round"/>' +
+            '<polygon class="yours-core" points="' + corePts + '" fill="url(#ldy21-core)"/>' +
           '</svg>' +
         '</div>' +
         '<div class="yours-cap">第 二 十 一 颗 星</div>' +
