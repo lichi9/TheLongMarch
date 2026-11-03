@@ -270,47 +270,32 @@
     return '<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">' + bg + (map[kind] || map.river) + '</svg>';
   }
 
-  /* 门内照片：优先用 assets/door1~8.{webp,jpg,png,jpeg}，文件缺失自动回退到手绘插画 */
-  var PHOTO_EXT = ['webp', 'jpg', 'png', 'jpeg'];
+  /* 门内照片：door1~8 的实际扩展名写死（door3 是 webp、其余全是 jpg）。
+     旧的"webp→jpg→png 逐个探测"在手机网络下每次 404 都要一个来回，点开门会慢半拍；
+     写死后 setPhoto 与预载捂热的是同一个 URL，点开即显 */
+  var DOOR_EXT = { 1: 'jpg', 2: 'jpg', 3: 'webp', 4: 'jpg', 5: 'jpg', 6: 'jpg', 7: 'jpg', 8: 'jpg' };
   function setPhoto(area, i) {
     area.innerHTML = '<div class="photo-stack">' + doorArt(i) + '<img class="door-photo" alt=""></div>';
     var img = area.querySelector('.door-photo');
     if (!img) return;
-    var k = 0;
-    function tryExt() {
-      if (k >= PHOTO_EXT.length) {
-        if (img.parentNode) img.parentNode.removeChild(img);
-        return;
-      }
-      img.src = BASE + 'assets/door' + (i + 1) + '.' + PHOTO_EXT[k];
-    }
-      img.addEventListener('error', function () { k++; tryExt(); });
-      tryExt();
-    }
+    /* 加载失败自动回退：img 移除后透出手绘插画 */
+    img.addEventListener('error', function () {
+      if (img.parentNode) img.parentNode.removeChild(img);
+    });
+    img.src = BASE + 'assets/door' + (i + 1) + '.' + (DOOR_EXT[i + 1] || 'jpg');
+  }
 
-    /* 图片预载：进场后就把全部门图和人物立绘拉进缓存，点开门的那一刻不等网络。
-       门图沿用 setPhoto 的扩展名探测顺序，保证捂热的正是之后真正会显示的那张 */
-    (function preloadArt() {
-      var fixed = ['assets/door-frame.png', 'assets/door9.jpg',
-                   'assets/soldier.png', 'assets/soldier-salute.png',
-                   'assets/student.png', 'assets/student-salute.png'];
-      function warm(url, ok, bad) {
-        var im = new Image();
-        im.onload = function () { if (ok) ok(); };
-        im.onerror = function () { if (bad) bad(); };
-        im.src = url;
-      }
-      for (var i = 1; i <= 8; i++) {
-        (function (n) {
-          var k = 0;
-          (function next() {
-            if (k >= PHOTO_EXT.length) return;
-            warm(BASE + 'assets/door' + n + '.' + PHOTO_EXT[k], null, function () { k++; next(); });
-          })();
-        })(i);
-      }
-      for (var f = 0; f < fixed.length; f++) warm(BASE + fixed[f]);
-    })();
+  /* 图片预载：进场后就把全部门图和人物立绘并行拉进缓存，点开门的那一刻不等网络 */
+  (function preloadArt() {
+    var urls = ['assets/door-frame.png', 'assets/door9.jpg',
+                'assets/soldier.png', 'assets/soldier-salute.png',
+                'assets/student.png', 'assets/student-salute.png'];
+    for (var n = 1; n <= 8; n++) urls.push('assets/door' + n + '.' + (DOOR_EXT[n] || 'jpg'));
+    for (var f = 0; f < urls.length; f++) {
+      var im = new Image();
+      im.src = BASE + urls[f];
+    }
+  })();
 
   /* ============ Web Audio：拟真打字机 / 音效 ============ */
   var audio = { ctx: null, noise: null };
@@ -340,9 +325,9 @@
       hp.frequency.value = 1800 + Math.random() * 900;
       var bp = audio.ctx.createBiquadFilter();
       bp.type = 'peaking';
-      bp.frequency.value = 3200; bp.gain.value = 8;
+      bp.frequency.value = 3200; bp.gain.value = 3.5;
       var g = audio.ctx.createGain();
-      g.gain.setValueAtTime(0.22, t);
+      g.gain.setValueAtTime(0.085, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
       src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(audio.ctx.destination);
       src.start(t); src.stop(t + 0.04);
@@ -350,7 +335,7 @@
       var g2 = audio.ctx.createGain();
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(240, t);
-      g2.gain.setValueAtTime(0.05, t);
+      g2.gain.setValueAtTime(0.02, t);
       g2.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
       osc.connect(g2); g2.connect(audio.ctx.destination);
       osc.start(t); osc.stop(t + 0.07);
@@ -793,6 +778,8 @@
         box.appendChild(namesBox);
 
         var k = 0, revealed = false;
+        /* 星星逐颗亮起时配五声音阶钢琴音（与画星那关同款音色），像一路走来的音符 */
+        var SCALE = [262, 294, 330, 392, 440, 523, 587, 659, 784, 880];
 
         function startType() {
           if (box.parentNode) box.parentNode.removeChild(box);
@@ -820,7 +807,7 @@
           after(320, function () { cap.classList.add('show'); chime(); });
           after(700, function () {
             names.forEach(function (n, ni) {
-              after(ni * 125, function () { n.classList.add('on'); });
+              after(ni * 125, function () { n.classList.add('on'); pluck(SCALE[(ni + 4) % SCALE.length] * 2, 0.028); });
             });
           });
           after(700 + names.length * 125 + 1350, function () { box.classList.add('gone'); });
@@ -828,7 +815,11 @@
         }
 
         var h = every(130, function () {
-          if (k < stars.length) { stars[k++].classList.add('on'); return; }
+          if (k < stars.length) {
+            stars[k++].classList.add('on');
+            pluck(SCALE[k % SCALE.length] * (k <= SCALE.length ? 1 : 2), 0.038);
+            return;
+          }
           clearInterval(h);
           reveal(false);
         });
@@ -842,12 +833,12 @@
       row.classList.add('show');
       var text = INTRO_LINES[idx];
       var p = 0;
-      var h = every(62, function () {
+      var h = every(88, function () {
         row.textContent = text.slice(0, ++p);
         typeClick();
         if (p >= text.length) {
           clearInterval(h);
-          after(420, function () { typeLines(box, idx + 1, done); });
+          after(380, function () { typeLines(box, idx + 1, done); });
         }
       });
     }
@@ -1266,7 +1257,7 @@
           return;
         }
         var p = 0;
-        var h = every(42, function () {
+        var h = every(72, function () {
           textEl.textContent = d.text.slice(0, ++p);
           typeClick();
           if (p >= d.text.length) {
@@ -1917,8 +1908,11 @@
       function move(e) {
         if (!dragging || homed) return;
         var p = evStage(e);
-        flame.style.left = (p.x - offX) + 'px';
-        flame.style.top  = (p.y - offY) + 'px';
+        /* 钳制在舞台内：手指滑出屏幕边缘时火种不会跟出去卡在死角 */
+        var nx = Math.max(8, Math.min(1272, p.x - offX));
+        var ny = Math.max(8, Math.min(712, p.y - offY));
+        flame.style.left = nx + 'px';
+        flame.style.top  = ny + 'px';
         e.preventDefault();
       }
       function up() {
@@ -1937,11 +1931,20 @@
           var tips = sceneRelay.querySelectorAll('.relay-tip');
           for (var ti = 0; ti < tips.length; ti++) tips[ti].style.opacity = '.35';
           after(900, function () { ceremony(soldier, student, dlg, flame); });
+        } else {
+          /* 没递到：火种自己飘回老兵手边（手机上手指抬起点若是 pointercancel，
+             旧逻辑会让 dragging 卡死、火种僵在角落再也不知道不动） */
+          flame.classList.add('return');
+          flame.style.left = '560px';
+          flame.style.top  = '438px';
+          pluck(196, 0.04);
+          after(460, function () { flame.classList.remove('return'); });
         }
       }
       bind(flame, 'pointerdown', down);
       bind(stage, 'pointermove', move);
       bind(stage, 'pointerup', up);
+      bind(stage, 'pointercancel', up);
 
       spirit = el('div', 'spirit', '<div class="bob">' + SVG.spirit + '</div>');
       spirit.style.left = '540px'; spirit.style.top = '120px';
