@@ -818,6 +818,12 @@ html, body {
 }
 
 /* --- 湘江：人影方阵 --- */
+/* 湘江夜战：对岸火光映红了半边天，江面沉黑——庄严底色，不抢方阵 */
+.ldy21 .g-xs {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 560 268'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23060810'/%3E%3Cstop offset='.55' stop-color='%230d0a10'/%3E%3Cstop offset='1' stop-color='%23050608'/%3E%3C/linearGradient%3E%3CradialGradient id='f' cx='.5' cy='.5' r='.5'%3E%3Cstop offset='0' stop-color='%23ff8a3c' stop-opacity='.34'/%3E%3Cstop offset='.55' stop-color='%23c33a16' stop-opacity='.13'/%3E%3Cstop offset='1' stop-color='%23c33a16' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='560' height='268' fill='url(%23a)'/%3E%3Cg opacity='.5' fill='%23020305'%3E%3Cellipse cx='120' cy='46' rx='150' ry='26'/%3E%3Cellipse cx='430' cy='34' rx='190' ry='22'/%3E%3C/g%3E%3Cellipse cx='120' cy='158' rx='120' ry='46' fill='url(%23f)'/%3E%3Cellipse cx='330' cy='152' rx='80' ry='36' fill='url(%23f)'/%3E%3Cellipse cx='486' cy='160' rx='96' ry='42' fill='url(%23f)'/%3E%3Cpath d='M-10 168 Q90 160 200 166 Q340 174 460 164 Q520 160 570 166 L570 176 L-10 176 Z' fill='%2307080a'/%3E%3Crect x='0' y='176' width='560' height='92' fill='%23070a0e'/%3E%3Cg fill='%23ff9a4c'%3E%3Crect x='108' y='180' width='2.4' height='58' opacity='.14'/%3E%3Crect x='126' y='184' width='1.6' height='46' opacity='.1'/%3E%3Crect x='322' y='182' width='2' height='44' opacity='.1'/%3E%3Crect x='478' y='180' width='2.4' height='54' opacity='.12'/%3E%3Crect x='496' y='186' width='1.6' height='40' opacity='.09'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
 .ldy21 .xs-grid {
   position: absolute;
   left: 12px; top: 12px;
@@ -2096,6 +2102,13 @@ html, body {
   flex-direction: column;
   justify-content: center;
 }
+/* 遵义会议室：一盏油灯照亮的深夜——暖光居中、四角沉暗、桌面木色 */
+.ldy21 .g-zunyi {
+  background-image:
+    radial-gradient(ellipse 62% 46% at 50% 34%, rgba(255,186,92,.17), rgba(255,186,92,0) 70%),
+    radial-gradient(ellipse 90% 30% at 50% 112%, #33220f 0%, rgba(51,34,15,0) 62%),
+    linear-gradient(180deg, #110c06 0%, #1b1209 52%, #0c0804 100%);
+}
 .ldy21 .gear-rows { display: flex; flex-direction: column; }
 .ldy21 .gear-row { display: flex; align-items: stretch; gap: 8px; margin-bottom: 6px; }
 .ldy21 .gear-row .gear-cell {
@@ -2298,7 +2311,9 @@ html, body {
 
 /* ============ 巧渡金沙江：接应小船 ============ */
 .ldy21 .g-ferry7 {
-  background: linear-gradient(180deg, #0d1a22 0%, #14303c 52%, #0a161d 100%);
+  /* 峡谷月夜：星空、月亮、对岸山影——动态江面由 .f7-water 叠在上面 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 560 268'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23091320'/%3E%3Cstop offset='.62' stop-color='%23162a38'/%3E%3Cstop offset='1' stop-color='%230a161d'/%3E%3C/linearGradient%3E%3CradialGradient id='m' cx='.5' cy='.5' r='.5'%3E%3Cstop offset='0' stop-color='%23f2ecd2' stop-opacity='.45'/%3E%3Cstop offset='1' stop-color='%23f2ecd2' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='560' height='268' fill='url(%23s)'/%3E%3Ccircle cx='452' cy='46' r='34' fill='url(%23m)'/%3E%3Ccircle cx='452' cy='46' r='11' fill='%23f2ecd2' opacity='.55'/%3E%3Cg fill='%23dbe6f2' opacity='.4'%3E%3Ccircle cx='60' cy='26' r='1.2'/%3E%3Ccircle cx='150' cy='40' r='1'/%3E%3Ccircle cx='238' cy='20' r='1.4'/%3E%3Ccircle cx='330' cy='36' r='1'/%3E%3Ccircle cx='510' cy='70' r='1'/%3E%3C/g%3E%3Cpath d='M-10 118 L60 84 Q84 74 108 88 L150 106 L200 78 Q222 68 244 84 L290 108 L340 84 Q360 74 382 88 L420 104 L470 82 Q492 74 514 88 L570 116 L570 130 L-10 130 Z' fill='%23101c26'/%3E%3Cg fill='%23c8d6e2' opacity='.35'%3E%3Cpath d='M74 84 L84 88 L76 92 Z'/%3E%3Cpath d='M212 78 L222 82 L214 86 Z'/%3E%3Cpath d='M482 82 L492 86 L484 90 Z'/%3E%3C/g%3E%3Crect x='0' y='126' width='560' height='142' fill='%23091218'/%3E%3Cg fill='%23dfe9f0' opacity='.1'%3E%3Cellipse cx='180' cy='150' rx='60' ry='2.4'/%3E%3Cellipse cx='400' cy='166' rx='80' ry='2.6'/%3E%3Cellipse cx='120' cy='190' rx='46' ry='2'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100% 100%;
   overflow: hidden;
 }
 .ldy21 .f7-water {
@@ -2354,7 +2369,7 @@ html, body {
 
 /* ============ 翻越夹金山：按住上爬 ============ */
 .ldy21 .g-climb {
-  background: linear-gradient(180deg, #0b1119 0%, #232a38 62%, #39414f 100%);
+  background: linear-gradient(180deg, #0a1322 0%, #1b2a3f 62%, #26364d 100%);
   overflow: hidden;
 }
 .ldy21 .climb-mtn { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; }
@@ -2384,10 +2399,27 @@ html, body {
   box-shadow: 0 0 10px rgba(255,215,110,.7);
   transition: height .12s linear;
 }
+.ldy21 .climb-flake {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(232, 238, 248, .55);
+  pointer-events: none;
+}
 .ldy21 .climb-gust {
-  position: absolute; top: -10%; left: 900px; width: 260px; height: 120%;
-  background: linear-gradient(100deg, rgba(232,236,244,0), rgba(232,236,244,.45) 45%, rgba(232,236,244,0));
-  filter: blur(3px);
+  position: absolute; top: -10%; left: 900px; width: 280px; height: 120%;
+  /* 不用 filter: blur —— 手机上每帧移动一个模糊层会掉帧，
+     改用斜向条纹 + 柔光渐变，观感接近、开销小得多 */
+  background-image:
+    repeating-linear-gradient(100deg,
+      rgba(232,236,244,0) 0 13px,
+      rgba(232,236,244,.20) 13px 16px,
+      rgba(232,236,244,0) 16px 32px),
+    linear-gradient(100deg,
+      rgba(232,236,244,0),
+      rgba(232,236,244,.38) 45%,
+      rgba(232,236,244,0));
+  opacity: .9;
   pointer-events: none;
   will-change: left;
 }

@@ -1351,6 +1351,7 @@
 
     /* ---------- 玩法0：血战湘江（人影方阵 + 骤降心跳） ---------- */
     function gameXiangjiang(area, tip, win) {
+      area.classList.add('g-xs');
       var grid = el('div', 'xs-grid');
       var TOTAL = 88;
       for (var i = 0; i < TOTAL; i++) grid.appendChild(el('div', 'xs', '<i></i>'));
@@ -1433,7 +1434,7 @@
 
     /* ---------- 玩法1：装备对比与抉择（遵义会议） ---------- */
     function gameGear(area, tip, win) {
-      area.classList.add('g-gear');
+      area.classList.add('g-gear', 'g-zunyi');
       var rows = [
         ['每连机枪', '不足 2 挺', '敌军每连', '9 挺'],
         ['全军迫击炮', '38 门', '敌军每营', '6 挺重机枪 · 2 门迫击炮'],
@@ -1575,11 +1576,82 @@
       mtn.setAttribute('viewBox', '0 0 560 268');
       mtn.setAttribute('class', 'climb-mtn');
       mtn.innerHTML =
-        '<path d="M0 268 L150 44 L300 268 Z" fill="#2a303e"/>' +
-        '<path d="M112 92 L150 44 L190 96 L172 88 L150 102 L128 86 Z" fill="#e6ebf3"/>' +
-        '<path d="M280 268 L430 82 L560 268 Z" fill="#20252f"/>' +
-        '<path d="M392 134 L430 82 L470 138 L450 128 L430 142 L410 126 Z" fill="#d7dee9"/>';
+        /* 夜空：深蓝渐变 + 月晕 + 星点 */
+        '<defs>' +
+          '<linearGradient id="clSky" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#0a1322"/>' +
+            '<stop offset=".6" stop-color="#1b2a3f"/>' +
+            '<stop offset="1" stop-color="#26364d"/>' +
+          '</linearGradient>' +
+          '<linearGradient id="clSnow" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#eef4fb"/>' +
+            '<stop offset="1" stop-color="#b6c6da"/>' +
+          '</linearGradient>' +
+          '<radialGradient id="clMoon">' +
+            '<stop offset="0" stop-color="#f2ecd2" stop-opacity=".5"/>' +
+            '<stop offset="1" stop-color="#f2ecd2" stop-opacity="0"/>' +
+          '</radialGradient>' +
+          '<linearGradient id="clWall" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="#41556f"/>' +
+            '<stop offset=".55" stop-color="#26364b"/>' +
+            '<stop offset="1" stop-color="#131c2a"/>' +
+          '</linearGradient>' +
+        '</defs>' +
+        '<rect width="560" height="268" fill="url(#clSky)"/>' +
+        '<circle cx="474" cy="52" r="36" fill="url(#clMoon)"/>' +
+        '<circle cx="474" cy="52" r="12" fill="#f2ecd2" opacity=".5"/>' +
+        '<g fill="#dbe6f2" opacity=".45">' +
+          '<circle cx="62" cy="30" r="1.3"/><circle cx="148" cy="18" r="1"/>' +
+          '<circle cx="240" cy="40" r="1.5"/><circle cx="330" cy="22" r="1"/>' +
+          '<circle cx="408" cy="34" r="1.2"/><circle cx="524" cy="24" r="1"/>' +
+          '<circle cx="198" cy="70" r=".9"/><circle cx="102" cy="58" r="1.1"/>' +
+        '</g>' +
+        /* 远山脊：三层雪峰，越远越淡 */
+        '<path d="M-10 268 L38 152 Q60 112 84 150 L118 198 L150 160 Q172 126 196 162 ' +
+          'L236 208 L282 168 Q302 140 324 170 L362 212 L402 174 Q426 144 450 176 ' +
+          'L500 218 L536 186 L570 206 L570 268 Z" fill="#1b2838"/>' +
+        '<g fill="#cfdaea" opacity=".5">' +
+          '<path d="M60 112 L84 150 L74 148 L60 128 L48 146 Z"/>' +
+          '<path d="M172 126 L196 162 L186 160 L172 142 L160 158 Z"/>' +
+          '<path d="M426 144 L450 176 L440 174 L426 160 L414 172 Z"/>' +
+        '</g>' +
+        /* 近处雪壁：队伍攀登的这面山体，占满左侧、一直顶到画面外，
+           士兵从坡脚爬到顶都在山体之上，不会再对着空气爬 */
+        '<path d="M-10 268 L-10 -4 L150 -4 Q168 58 198 118 Q238 192 302 268 Z" fill="url(#clWall)"/>' +
+        /* 山脊棱线：月光照出的雪檐 */
+        '<path d="M150 -4 Q168 58 198 118 Q238 192 302 268" fill="none" stroke="url(#clSnow)" ' +
+          'stroke-width="3.5" stroke-opacity=".55" stroke-linecap="round"/>' +
+        /* 雪壁上的平台与阴影：让大面不糊成一块 */
+        '<g stroke="#8fa6c0" stroke-opacity=".28" stroke-width="2" stroke-linecap="round" fill="none">' +
+          '<path d="M20 84 Q60 92 96 86"/><path d="M44 150 Q86 160 124 152"/><path d="M30 214 Q74 224 116 216"/>' +
+        '</g>' +
+        '<g fill="#0d141f" opacity=".4">' +
+          '<path d="M118 196 Q140 186 162 198 Q140 206 118 196 Z"/>' +
+          '<path d="M60 236 Q84 226 108 238 Q84 246 60 236 Z"/>' +
+        '</g>' +
+        /* 右侧远处的雪坡谷地 */
+        '<path d="M296 268 Q358 236 470 190 Q520 170 570 176 L570 268 Z" fill="#141d29"/>' +
+        '<path d="M296 268 Q358 236 470 190 Q520 170 570 176" fill="none" stroke="url(#clSnow)" ' +
+          'stroke-width="2.5" stroke-opacity=".3" stroke-linecap="round"/>' +
+        /* 垭口红旗：插在雪壁肩头，快到顶就能看到它 */
+        '<path d="M176 98 L176 60" stroke="#7d6440" stroke-width="2" stroke-linecap="round"/>' +
+        '<path d="M177 60 L201 67 L177 74 Z" fill="#b23b30"/>';
       area.appendChild(mtn);
+
+      /* 飘雪：十二片小雪点，跟着下面的主循环走，不额外开定时器 */
+      var flakes = [];
+      for (var fi = 0; fi < 12; fi++) {
+        var flake = el('div', 'climb-flake');
+        flake.style.left = (Math.random() * 556) + 'px';
+        flake.style.top = (Math.random() * 264) + 'px';
+        area.appendChild(flake);
+        flakes.push({
+          el: flake,
+          v: 0.45 + Math.random() * 0.75,
+          ph: Math.random() * 6.28,
+          s: 0.25 + Math.random() * 0.45
+        });
+      }
 
       var team = el('div', 'climb-team', SVG.soldier);
       area.appendChild(team);
@@ -1596,6 +1668,17 @@
       /* 单循环驱动：进度与风雪都在这里推进，不再额外开定时器 */
       var h = every(40, function () {
         if (done) return;
+
+        /* ---- 飘雪推进：落下 + 轻轻左右摆，出界回到顶上再来 ---- */
+        for (var fk = 0; fk < flakes.length; fk++) {
+          var fe = flakes[fk];
+          fe.ph += 0.02;
+          var fy = parseFloat(fe.el.style.top) + fe.v;
+          var fx = parseFloat(fe.el.style.left) + Math.sin(fe.ph) * fe.s;
+          if (fy > 268) { fy = -4; fx = Math.random() * 556; }
+          fe.el.style.top = fy + 'px';
+          fe.el.style.left = fx + 'px';
+        }
 
         /* ---- 风雪：从右往左扫过，约 1.4 秒走完 ---- */
         if (gust) {
@@ -1623,7 +1706,9 @@
         if (gust) d = holding ? -0.18 : 0;    /* 风雪里硬爬会打滑，停手最稳 */
         else d = holding ? 0.72 : -0.22;      /* 平常：按住上爬，松手下滑 */
         alt = Math.max(0, Math.min(100, alt + d));
-        team.style.bottom = (14 + alt * 1.55) + 'px';
+        /* 斜着沿山脊往上爬：越爬越靠上、也越靠左，封顶时人还留在画面里 */
+        team.style.bottom = (14 + alt * 1.05) + 'px';
+        team.style.left = (118 - alt * 0.55) + 'px';
         team.style.opacity = gust ? '.6' : '1';
         altEl.textContent = '海拔 ' + (3000 + Math.round(alt * 11.1)) + ' 米 / 4,110 米';
         fill.style.height = alt + '%';
@@ -2528,8 +2613,8 @@
           '<div class="thx-sub">你的话语已化作星光，将汇聚成我们共同的五星红旗。</div>' +
           (echo ? '<div class="echo">' + echo + '</div>' : '') +
           '<div class="thx-acts">' +
-            '<button class="home-btn">返 回 主 页</button>' +
-            '<span class="stay-tip">（也可以停在这里，多陪他们一会儿）</span>' +
+            '<button class="home-btn">继 续</button>' +
+            '<span class="stay-tip">（后面还有最后一页，也可以先停在这里，多陪他们一会儿）</span>' +
           '</div>';
         thanks.classList.add('show');
 
