@@ -275,9 +275,12 @@
      写死后 setPhoto 与预载捂热的是同一个 URL，点开即显 */
   var DOOR_EXT = { 1: 'jpg', 2: 'jpg', 3: 'webp', 4: 'jpg', 5: 'jpg', 6: 'jpg', 7: 'jpg', 8: 'jpg' };
   function setPhoto(area, i) {
-    area.innerHTML = '<div class="photo-stack">' + doorArt(i) + '<img class="door-photo" alt=""></div>';
+    area.innerHTML = '<div class="photo-stack">' + doorArt(i) + '<img class="door-photo" alt="" decoding="async"></div>';
     var img = area.querySelector('.door-photo');
     if (!img) return;
+    /* 图真的解码完成再加 .on 触发显影（桌面是 blur→sharp，手机是 opacity 淡入）。
+       提前显影的话，冷启动时图还在路上，等它到了会毫无过渡地蹦出来。 */
+    img.addEventListener('load', function () { img.classList.add('on'); });
     /* 加载失败自动回退：img 移除后透出手绘插画 */
     img.addEventListener('error', function () {
       if (img.parentNode) img.parentNode.removeChild(img);
@@ -285,17 +288,27 @@
     img.src = BASE + 'assets/door' + (i + 1) + '.' + (DOOR_EXT[i + 1] || 'jpg');
   }
 
-  /* 图片预载：进场后就把全部门图和人物立绘并行拉进缓存，点开门的那一刻不等网络 */
-  (function preloadArt() {
-    var urls = ['assets/door-frame.png', 'assets/door9.jpg',
-                'assets/soldier.png', 'assets/soldier-salute.png',
-                'assets/student.png', 'assets/student-salute.png'];
-    for (var n = 1; n <= 8; n++) urls.push('assets/door' + n + '.' + (DOOR_EXT[n] || 'jpg'));
+  /* 图片预载：分三批，别用十几个并发把手机带宽占满。
+     第一批（立刻）：门板 + 前两扇门的照片，玩家最早看到的；
+     第二批/第三批（延后）：其余门图与人物立绘，等开场动画跑起来之后再慢慢灌。
+     手机上同时开十几个连接会互相拖，反而让第一张要用的图更慢。 */
+  function preloadBatch(urls) {
     for (var f = 0; f < urls.length; f++) {
       var im = new Image();
       im.src = BASE + urls[f];
     }
-  })();
+  }
+  function preloadArt() {
+    preloadBatch(['assets/door-frame.webp', 'assets/door1.jpg', 'assets/door2.jpg']);
+    setTimeout(function () {
+      preloadBatch(['assets/door3.webp', 'assets/door4.jpg', 'assets/door5.jpg', 'assets/door6.jpg']);
+    }, 2600);
+    setTimeout(function () {
+      preloadBatch(['assets/door7.jpg', 'assets/door8.jpg', 'assets/door9.jpg',
+                    'assets/soldier.webp', 'assets/soldier-salute.webp',
+                    'assets/student.webp', 'assets/student-salute.webp']);
+    }, 6000);
+  }
 
   /* ============ Web Audio：拟真打字机 / 音效 ============ */
   var audio = { ctx: null, noise: null };
@@ -947,7 +960,7 @@
         var door = el('div', 'door');
         door.style.left = x + 'px';
         door.style.top  = y + 'px';
-        door.style.backgroundImage = 'url(' + BASE + 'assets/door-frame.png)';
+        door.style.backgroundImage = 'url(' + BASE + 'assets/door-frame.webp)';
         door.style.animationDelay = (i * 0.35) + 's, ' + (i * 0.4) + 's';
         door.innerHTML =
           '<div class="star-halo"></div>' +
@@ -1167,7 +1180,7 @@
         '</div>' +
         '<div class="nd-cap">这一扇，留给现在的你</div>' +
         '<div class="nd-tip">按 住 门 ，往 右 推 开</div>';
-      /* 第九门专用门图：火炬传火（assets/door9.jpg），八门仍用 door-frame.png */
+      /* 第九门专用门图：火炬传火（assets/door9.jpg），八门仍用 door-frame.webp */
       wrap.querySelector('.nd-door').style.backgroundImage = 'url(' + BASE + 'assets/door9.jpg)';
       sceneDoors.appendChild(wrap);
 
@@ -2021,11 +2034,11 @@
       var figs = el('div', 'figures');
       /* 双层图：fa = 常姿帧，fb = 动作帧（敬礼），换帧即交叉淡入 */
       var soldier = el('div', 'figure soldier',
-        '<img class="fa" src="' + BASE + 'assets/soldier.png" alt="老兵">' +
-        '<img class="fb" src="' + BASE + 'assets/soldier-salute.png" alt="">');
+        '<img class="fa" src="' + BASE + 'assets/soldier.webp" alt="老兵">' +
+        '<img class="fb" src="' + BASE + 'assets/soldier-salute.webp" alt="">');
       var student = el('div', 'figure student',
-        '<img class="fa" src="' + BASE + 'assets/student.png" alt="少年">' +
-        '<img class="fb" src="' + BASE + 'assets/student-salute.png" alt="">');
+        '<img class="fa" src="' + BASE + 'assets/student.webp" alt="少年">' +
+        '<img class="fb" src="' + BASE + 'assets/student-salute.webp" alt="">');
       figs.appendChild(soldier);
       figs.appendChild(student);
       sceneRelay.appendChild(figs);
@@ -2766,6 +2779,7 @@
     /* ---------- 启动 ---------- */
     buildIntro();
     sceneIntro.classList.remove('hidden');
+    preloadArt();   /* 开场动画跑起来之后再分批灌图，别跟首屏抢带宽 */
 
     /* ---------- 卸载 ---------- */
     return {

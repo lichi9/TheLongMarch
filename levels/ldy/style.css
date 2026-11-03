@@ -2437,7 +2437,28 @@ html, body {
   transition: filter 1.4s ease;
   z-index: 2;
 }
-.ldy21 .door-modal .photo.clear .door-photo { filter: blur(0) grayscale(1) contrast(1.05); }
+/* 显影的触发绑在图片「真的加载完」那一刻（.on 由 JS 在 onload 里加），
+   不再固定 60ms 后无条件变清晰——否则图还在路上就已经"显"完了，
+   等它姗姗来迟时会毫无过渡地蹦出来。 */
+.ldy21 .door-modal .photo.clear .door-photo.on { filter: blur(0) grayscale(1) contrast(1.05); }
+
+/* 手机/平板上「显影」不用模糊滤镜。
+   一个满幅 img 上挂 blur(10px) + 1.4s 过渡，等于每帧做一次高斯模糊重算，
+   中低端安卓和微信内置浏览器会直接卡在出图那几秒（用户反馈的"卡着出不了图"）。
+   改成透明度淡入 + 极轻微缩放：观感同样是照片慢慢显影，但走的是合成层，几乎零开销。 */
+@media (pointer: coarse) {
+  .ldy21 .door-modal .photo .door-photo {
+    filter: grayscale(1);
+    opacity: 0;
+    transform: scale(1.02);
+    transition: opacity .85s ease, transform 1.6s ease;
+  }
+  .ldy21 .door-modal .photo.clear .door-photo.on {
+    filter: grayscale(1);
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 
 /* ============ 触屏设备降载（手机防卡） ============ */
 .ldy21.touch { -webkit-tap-highlight-color: transparent; }
