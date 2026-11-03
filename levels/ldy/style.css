@@ -1362,6 +1362,67 @@ html, body {
 }
 .ldy21 .namewall.on { opacity: 1; }
 .ldy21 .namewall.out { opacity: 0; transition: opacity 1.1s ease; }
+/* 终幕：故事讲完后的收尾卡——比英名廊温暖，给出口 */
+.ldy21 .finale {
+  position: absolute;
+  left: 0; top: 0; width: 100%; height: 100%;
+  z-index: 96;
+  background: radial-gradient(ellipse at 50% 30%, #10141f 0%, #050608 60%, #000 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  text-align: center;
+  font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+.ldy21 .finale.on { opacity: 1; }
+.ldy21 .finale .fn-star { width: 34px; height: 34px; filter: drop-shadow(0 0 14px rgba(255, 224, 140, .75)); }
+.ldy21 .finale .fn-star svg { width: 100%; height: 100%; display: block; }
+.ldy21 .finale .fn-line1 {
+  font-size: 27px;
+  color: #e8d9a8;
+  letter-spacing: 6px;
+}
+.ldy21 .finale .fn-line2 {
+  font-size: 16px;
+  color: #9c9077;
+  letter-spacing: 2px;
+  line-height: 1.9;
+}
+.ldy21 .finale .fn-btns {
+  display: flex;
+  gap: 18px;
+  margin-top: 26px;
+}
+.ldy21 .finale .fn-btn {
+  font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+  font-size: 16px;
+  letter-spacing: 3px;
+  color: #ffd98e;
+  background: rgba(255, 215, 120, .07);
+  border: 1px solid rgba(255, 210, 120, .5);
+  border-radius: 999px;
+  padding: 10px 30px;
+  cursor: pointer;
+  transition: background .25s, box-shadow .25s;
+}
+.ldy21 .finale .fn-btn:hover {
+  background: rgba(255, 215, 120, .2);
+  box-shadow: 0 0 16px rgba(255, 210, 110, .35);
+}
+.ldy21 .finale .fn-ghost { color: #b0a487; border-color: rgba(176, 164, 135, .4); }
+.ldy21 .finale .fn-bye {
+  display: none;
+  font-size: 17px;
+  color: #cfc3a4;
+  letter-spacing: 3px;
+  line-height: 2;
+  margin-top: 20px;
+}
+.ldy21 .finale .fn-bye.show { display: block; }
 .ldy21 .namewall .nw-line {
   font-family: 'KaiTi', 'STKaiti', '楷体', 'SimSun', serif;
   font-size: 27px;

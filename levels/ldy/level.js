@@ -2550,7 +2550,46 @@
         if (s) s.classList.add('on');
       });
       after(5600, function () { w.classList.add('out'); });
-      after(6900, finish);
+      after(6900, finale);
+    }
+
+    /* 终幕：英名廊之后不再"黑屏了事"——故事讲完，给出口。
+       通关通知照发（嵌入地图时由地图解锁并接手）；单独运行时这层卡就是收尾 */
+    function finale() {
+      finish();
+      var f = el('div', 'finale',
+        '<div class="fn-star">' + SVG.star4 + '</div>' +
+        '<div class="fn-line1">故 事 ，讲 完 了 。</div>' +
+        '<div class="fn-line2">火种在你手里。每一代人，都要走好自己的长征路。</div>' +
+        '<div class="fn-btns">' +
+          '<button class="fn-btn" data-act="again">再 走 一 遍</button>' +
+          '<button class="fn-btn fn-ghost" data-act="exit">退 出 关 卡</button>' +
+        '</div>' +
+        '<div class="fn-bye"></div>');
+      stage.appendChild(f);
+      after(80, function () { f.classList.add('on'); });
+      f.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('.fn-btn') : null;
+        if (!btn) return;
+        if (btn.dataset.act === 'again') {
+          try { global.location.reload(); } catch (err) {}
+          return;
+        }
+        /* 退出：嵌入时通知主程序收尾；单独运行时给一句告别 */
+        var embedded = false;
+        try { embedded = global.parent && global.parent !== global; } catch (err) {}
+        if (embedded) {
+          try { global.parent.postMessage({ type: 'cz:exit' }, '*'); } catch (err) {}
+        } else {
+          var bye = f.querySelector('.fn-bye');
+          var btns = f.querySelector('.fn-btns');
+          if (btns) btns.style.display = 'none';
+          if (bye) {
+            bye.textContent = '谢谢你，走完了这条路。可以关闭这个页面了。';
+            bye.classList.add('show');
+          }
+        }
+      });
     }
 
     function finish() {
