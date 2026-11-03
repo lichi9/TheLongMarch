@@ -588,7 +588,26 @@
     } catch (e) {}
     if (isTouch) stage.classList.add('touch');
 
+    /* iOS/微信：切后台再回来音频上下文常被挂起，之后全程没声音。
+       任何一次点按都顺手唤醒一下（静音状态除外） */
+    bind(stage, 'pointerdown', function () {
+      try {
+        if (audio.ctx && audio.ctx.state === 'suspended' && !soundMuted) {
+          audio.ctx.resume();
+        }
+      } catch (e) {}
+    });
+
     var rotated = false;        /* 竖屏手机：舞台旋转 90° 铺满全屏 */
+    /* 输入法弹起保护：正在 textarea/input 里打字时 fitStage 先别动 */
+    var lastVW = 0, lastVH = 0;
+    function isTyping() {
+      try {
+        var a = global.document.activeElement;
+        var tag = a && a.tagName ? a.tagName.toUpperCase() : '';
+        return tag === 'TEXTAREA' || tag === 'INPUT';
+      } catch (e) { return false; }
+    }
     /* 竖屏旋转模式下的轻提示：不挡操作，几秒自己走 */
     var rotToastShown = false;
     function rotToast() {
@@ -603,6 +622,10 @@
 
     function fitStage() {
       var vw = global.innerWidth || 1280, vh = global.innerHeight || 720;
+      /* 手机弹出输入法会把视口压矮：正在打字时不重排，
+         否则整个画面被压扁跳动，打完字才恢复 */
+      if (isTyping() && lastVH > 0 && vh < lastVH * 0.72 && Math.abs(vw - lastVW) < 8) return;
+      lastVW = vw; lastVH = vh;
       var wantRot;
       if (rotated) wantRot = !(vw > vh * 1.08);   /* 已旋转：明确横过来了才切回，防临界抖动 */
       else wantRot = vh > vw * 1.08;              /* 未旋转：明确竖着才转 */
@@ -1202,7 +1225,9 @@
           if (prog >= creakAt) { creakAt += 0.34; pluck(96 + prog * 70, 0.05); }
         }
       });
-      var upOff = bind(stage, 'pointerup', function () {
+      var upOff = bind(stage, 'pointerup', function () { releasePush(); });
+      bind(stage, 'pointercancel', function () { releasePush(); });   /* 手机：手指被系统接管 */
+      function releasePush() {
         if (!pushing || opened) return;
         pushing = false;
         wrap.classList.remove('pushing');
@@ -1219,7 +1244,7 @@
         /* 没推够：门缓缓合回去 */
         prog = 0;
         paint();
-      });
+      }
     }
 
     /* ---------- 门模态框：玩法 → 故事 ---------- */
@@ -1613,9 +1638,11 @@
       });
       guestLeft = 4200;   /* 开局给 4.2 秒熟悉手感，再起第一场风雪 */
 
+      function stopHold() { holding = false; area.classList.remove('pulling'); }
       bind(area, 'pointerdown', function () { holding = true; area.classList.add('pulling'); });
-      bind(area, 'pointerup', function () { holding = false; area.classList.remove('pulling'); });
-      bind(area, 'pointerleave', function () { holding = false; area.classList.remove('pulling'); });
+      bind(area, 'pointerup', stopHold);
+      bind(area, 'pointercancel', stopHold);   /* 手机：手指滑出被系统接管时松手 */
+      bind(area, 'pointerleave', stopHold);
       return function () { clearInterval(h); };
     }
 
@@ -1829,6 +1856,33 @@
       var star = el('div', 'union-star', SVG.goldStar);
       area.appendChild(star);
 
+      var place = el('div', 'union-place', '甘肃 · 会宁');
+      area.appendChild(place);
+
+      /* 出发地标注（史料）：每条线从哪里启程，落点即会宁 */
+      var marks = [
+        { x: 44,  y: 196, tx: 44,  ty: 218, t: '瑞金', c: '#d8523f' },
+        { x: 58,  y: 36,  tx: 58,  ty: 24,  t: '罗山', c: '#5da368' },
+        { x: 516, y: 226, tx: 516, ty: 248, t: '苍溪', c: '#c9a03c' },
+        { x: 518, y: 42,  tx: 518, ty: 30,  t: '桑植', c: '#5b8bbd' }
+      ];
+      marks.forEach(function (m) {
+        var dot = global.document.createElementNS(NS, 'circle');
+        dot.setAttribute('cx', m.x); dot.setAttribute('cy', m.y);
+        dot.setAttribute('r', '2.6');
+        dot.setAttribute('fill', m.c); dot.setAttribute('opacity', '.85');
+        svg.appendChild(dot);
+        var tx = global.document.createElementNS(NS, 'text');
+        tx.setAttribute('x', m.tx); tx.setAttribute('y', m.ty);
+        tx.setAttribute('fill', m.c);
+        tx.setAttribute('font-size', '11');
+        tx.setAttribute('text-anchor', 'middle');
+        tx.setAttribute('letter-spacing', '2');
+        tx.setAttribute('opacity', '.8');
+        tx.textContent = m.t;
+        svg.appendChild(tx);
+      });
+
       var list = el('div', 'union-list');
       var done = 0, finished = false;
       routes.forEach(function (r) {
@@ -1848,6 +1902,7 @@
             finished = true;
             tip.textContent = '四路红军，走到了一起。';
             star.classList.add('lit');
+            place.classList.add('show');
             after(1500, win);
           }
         });
@@ -2404,6 +2459,9 @@
       var thanks = gb.querySelector('.thanks');
       var done = false;
 
+      /* 手机上打完字收起键盘：视口恢复后重新校一次舞台 */
+      bind(ta, 'blur', function () { after(300, fitStage); });
+
       /* 从"带走一句话"过来：把那句预先放进输入框，告诉他这是什么 */
       if (carried) {
         var note = gb.querySelector('.carry-note');
@@ -2489,10 +2547,18 @@
         bind(home, 'click', function () {
           if (home.classList.contains('pressed')) return;
           home.classList.add('pressed');
-          after(420, douseOut);
+          /* 不再看熄灯/英名廊，直接进终幕卡收尾 */
+          after(420, finale);
         });
-        /* 兜底：停留超过 45 秒仍不点，也把这一关归档 */
-        after(45000, function () { finish(); });
+        /* 兜底：停留超过 45 秒仍不点，也把这一关归档。
+           但人还在输入框里打字（或已写了字没提交）就别抢——手机上打字慢 */
+        after(45000, function () {
+          if (done) return;
+          var a = null;
+          try { a = global.document.activeElement; } catch (e) {}
+          if (a === ta || (ta.value || '').trim()) return;
+          finish();
+        });
       });
     }
 
