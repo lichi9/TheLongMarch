@@ -26,7 +26,7 @@
   /* ============ 八门数据（严格对应游戏 8 站，会宁会师收尾） ============ */
   var DOORS = [
     { num: '86,000 → 30,000', name: '血战湘江', press: true, relic: '步枪',
-      relicData: '中央红军 29153 支步马枪，平均每百人 40 余支，每支配弹不足 56 发',
+      relicData: '中央红军 29153 支步马枪，平均每 3 人 1 支，每支配弹近 50 发',
       text: '1934年11月底，湘江血战五昼夜。加上此前三道封锁线的消耗，8.6 万人只剩 3 万。' },
     { num: '转折', name: '遵义会议', game: 'gear', relic: '地图',
       relicData: '实事求是，从这里校正了方向',
@@ -115,7 +115,7 @@
     { t: '缅怀历史，传承红军精神！', c: 'red' },
     { t: '星火相传，吾辈自强。', c: 'big' },
     '',
-    { small: '1934.10 —— 1936.10 · 七百三十天' },
+    { small: '1934.10 —— 1936.10 · 七百多个日夜' },
     '',
     { small: '佛山大学易班技术部 · 长征：拾光 · 最终章' }
   ];
@@ -1454,7 +1454,7 @@
 
       var opts = el('div', 'gear-opts');
       var picks = [
-        { t: '更好的武器', fb: '那时他们几乎没有补给，每支步枪只剩约 49 发子弹。' },
+        { t: '更好的武器', fb: '那时他们几乎没有补给，出发时每支步枪平均只配了约 49 发子弹。' },
         { t: '信念、纪律，和人民', ok: true },
         { t: '更充足的粮食', fb: '草地断粮时，他们煮皮带、吃草根，连皮鼓都煮了。' }
       ];
@@ -1710,13 +1710,13 @@
         team.style.bottom = (14 + alt * 1.05) + 'px';
         team.style.left = (118 - alt * 0.55) + 'px';
         team.style.opacity = gust ? '.6' : '1';
-        altEl.textContent = '海拔 ' + (3000 + Math.round(alt * 11.1)) + ' 米 / 4,110 米';
+        altEl.textContent = '海拔 ' + (3000 + Math.round(alt * 11.14)) + ' 米 / 4,114 米';
         fill.style.height = alt + '%';
         if (alt >= 100) {
           done = true;
           holding = false;
           if (gust) { if (gust.el.parentNode) gust.el.parentNode.removeChild(gust.el); gust = null; }
-          altEl.textContent = '海拔 4,110 米 —— 把雪山踩在了脚下';
+          altEl.textContent = '海拔 4,114 米 —— 把雪山踩在了脚下';
           chime();
           after(900, win);
         }
@@ -2698,7 +2698,7 @@
        这一屏不放任何交互——让玩家在数字面前自己安静一会儿 */
     function nameWall() {
       var w = el('div', 'namewall',
-        '<div class="nw-line nw-first">湘江战役纪念馆的英名廊上，<br>刻着 20321 个名字。</div>' +
+        '<div class="nw-line nw-first">湘江战役英名廊上，<br>刻着 20321 个名字。</div>' +
         '<div class="nw-line nw-second">而更多的人，连名字都没有留下。</div>');
       stage.appendChild(w);
       after(80, function () {
