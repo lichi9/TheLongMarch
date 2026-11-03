@@ -1,13 +1,10 @@
-/* 关卡样式
+/* ============================================================
+   levels/jxf/style.css —— 翻越夹金山
 
    ★ 舞台固定 1280 × 720
-   主程序负责把这一层缩放去适配窗口，所以按 1280×720 摆位置就行，
-   不用自己写响应式，也不用管别人屏幕多大。
-
-     想铺满      → width / height: 100%
-     想精确摆放  → 直接用像素，比如 left: 320px
-
-   （这一份跑在 iframe 里，html / body 选择器可以放心用。） */
+   主程序负责整体缩放，这里按像素摆位置即可，不要写响应式。
+   本文件跑在 iframe 里（独立文档），html / body 可以放心写。
+   ============================================================ */
 
 * { box-sizing: border-box; }
 
@@ -15,53 +12,258 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #17120e;
+  background: #0a1118;
 }
 
 #stage {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.probe {
+/* ---------------- 整体 ---------------- */
+
+.jxf {
+  --jxf-ink: #e9f1f7;
+  --jxf-dim: rgba(233, 241, 247, 0.62);
+  --jxf-line: rgba(233, 241, 247, 0.18);
+  --jxf-accent: #c0392b;
+  --jxf-ice: #9ec9e8;
+
+  position: relative;
   width: 100%;
   height: 100%;
+  padding: 46px 96px 28px;
+
+  display: flex;
+  flex-direction: column;
+
+  color: var(--jxf-ink);
+  font-family: "Songti SC", "STSong", "SimSun", "Microsoft YaHei", serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(158, 201, 232, 0.18) 0%, rgba(158, 201, 232, 0) 58%),
+    radial-gradient(ellipse at 50% 118%, #101d28 0%, rgba(16, 29, 40, 0) 62%),
+    #0a1118;
+}
+
+/* 雪线装饰：顶部一层冷光 */
+.jxf::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    rgba(158, 201, 232, 0) 0%,
+    rgba(158, 201, 232, 0.55) 50%,
+    rgba(158, 201, 232, 0) 100%);
+}
+
+/* ---------------- 头部 ---------------- */
+
+.jxf-head {
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.jxf-title {
+  margin: 0 0 12px;
+  font: 700 40px/1.2 "STXingkai", "华文行楷", "KaiTi", "Songti SC", serif;
+  letter-spacing: 10px;
+  text-indent: 10px;
+  color: #f4f9ff;
+  text-shadow: 0 2px 22px rgba(158, 201, 232, 0.45);
+}
+
+.jxf-lead {
+  margin: 0 auto;
+  max-width: 860px;
+  font: 400 15px/1.9 "Songti SC", "STSong", "SimSun", serif;
+  color: var(--jxf-dim);
+  letter-spacing: 0.5px;
+}
+
+/* ---------------- 资源条 ---------------- */
+
+.jxf-bars {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 44px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jxf-bar {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: auto 1fr 44px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.jxf-bar-name {
+  color: var(--jxf-dim);
+  white-space: nowrap;
+}
+
+.jxf-bar-track {
+  position: relative;
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(233, 241, 247, 0.12);
+  overflow: hidden;
+}
+
+.jxf-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--jxf-ice), var(--jxf-accent));
+  transition: width 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.jxf-bar-num {
+  text-align: right;
+  color: var(--jxf-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 见底告警 */
+.jxf-bar[data-low="1"] .jxf-bar-fill { background: var(--jxf-accent); }
+.jxf-bar[data-low="1"] .jxf-bar-name,
+.jxf-bar[data-low="1"] .jxf-bar-num { color: var(--jxf-accent); }
+
+/* ---------------- 主体 ---------------- */
+
+.jxf-main {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 30px;
+  min-height: 0;
+}
+
+.jxf-q {
+  margin: 0;
+  max-width: 900px;
+  font: 400 21px/1.9 "Songti SC", "STSong", "SimSun", serif;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.jxf-choices {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.jxf-btn {
+  flex: 1 1 0;
+  min-height: 118px;
+  padding: 20px 26px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  border: 1px solid var(--jxf-line);
+  border-radius: 4px;
+  background: rgba(233, 241, 247, 0.04);
+  color: inherit;
+  font-family: inherit;
   cursor: pointer;
-  background: radial-gradient(circle at 50% 45%, #f4ead4 0%, #e6d7b6 70%, #d5c29b 100%);
-  transition: background 260ms ease;
-  -webkit-user-select: none;
-  user-select: none;
+
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
-.probe:hover {
-  background: radial-gradient(circle at 50% 45%, #f8f0dc 0%, #ecdfc2 70%, #dccaa4 100%);
+.jxf-btn:hover {
+  border-color: var(--jxf-accent);
+  background: rgba(192, 57, 43, 0.16);
+  transform: translateY(-2px);
 }
 
-.probe-main {
-  margin: 0;
-  font: 700 34px/1.3 "STXingkai", "华文行楷", "KaiTi", serif;
-  color: #8a1a12;
-  letter-spacing: 4px;
-}
+.jxf-btn:active { transform: translateY(0); }
 
-.probe-sub {
-  margin: 0;
-  font: 400 13px/1.6 "Songti SC", "STSong", "SimSun", serif;
-  color: rgba(60, 45, 34, 0.62);
+.jxf-btn-label {
+  font: 600 18px/1.5 "Songti SC", "STSong", "SimSun", serif;
   letter-spacing: 1px;
 }
 
-.probe.is-done {
-  background: radial-gradient(circle at 50% 45%, #b23a2c 0%, #8a1a12 100%);
+.jxf-btn-eff {
+  font: 400 13px/1.4 "Songti SC", "STSong", "SimSun", serif;
+  color: var(--jxf-dim);
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
 }
 
-.probe.is-done .probe-main { color: #f9f0da; }
-.probe.is-done .probe-sub  { color: rgba(249, 240, 218, 0.75); }
+.jxf-fb {
+  min-height: 26px;
+  margin: 0;
+  max-width: 880px;
+  font: 400 15px/1.8 "Songti SC", "STSong", "SimSun", serif;
+  text-align: center;
+  color: var(--jxf-ice);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.jxf-fb.is-show { opacity: 1; }
+
+/* ---------------- 底部 ---------------- */
+
+.jxf-foot {
+  flex: 0 0 auto;
+  text-align: center;
+  font: 400 12px/1.4 "Songti SC", "STSong", "SimSun", serif;
+  letter-spacing: 2px;
+  color: rgba(233, 241, 247, 0.35);
+}
+
+/* ---------------- 结束画面 ---------------- */
+
+.jxf-main.is-ending { gap: 22px; }
+
+.jxf-main.is-ending .jxf-q {
+  font-size: 23px;
+  color: #f4f9ff;
+}
+
+.jxf.is-over .jxf-fb { color: var(--jxf-ice); }
+
+.jxf.is-fail {
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(192, 57, 43, 0.24) 0%, rgba(192, 57, 43, 0) 58%),
+    radial-gradient(ellipse at 50% 118%, #1c1012 0%, rgba(28, 16, 18, 0) 62%),
+    #0d0a0b;
+}
+
+.jxf.is-fail .jxf-main.is-ending .jxf-q { color: #f3d9d4; }
+
+.jxf-again {
+  padding: 11px 34px;
+  border: 1px solid rgba(233, 241, 247, 0.28);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--jxf-ink);
+  font: 400 15px/1 "Songti SC", "STSong", "SimSun", serif;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.jxf-again:hover {
+  border-color: var(--jxf-accent);
+  background: rgba(192, 57, 43, 0.18);
+}
