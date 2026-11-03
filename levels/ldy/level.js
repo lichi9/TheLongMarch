@@ -664,6 +664,17 @@
       return { x: 640 + ox, y: 360 + oy };
     }
 
+    /* 屏幕上的元素矩形 → 舞台本地坐标（旋转模式同样逆变换）。
+       gatherRelics / sparkUp 等动画起点都要走这里，否则竖屏下会从错误位置起飞 */
+    function localFromRect(r) {
+      var b = stage.getBoundingClientRect();
+      var mx = r.left + r.width / 2 - b.left - b.width / 2;
+      var my = r.top + r.height / 2 - b.top - b.height / 2;
+      var ox = mx / stageScale, oy = my / stageScale;
+      if (rotated) return { x: 640 + oy, y: 360 - ox };
+      return { x: 640 + ox, y: 360 + oy };
+    }
+
     var sceneIntro  = el('div', 'abs hidden');
     var sceneDoors  = el('div', 'abs hidden');
     var sceneRelay  = el('div', 'abs hidden');
@@ -1004,15 +1015,14 @@
 
     /* 八门全通：信物从行囊飞出，在中央火苗下集结成堆 */
     function gatherRelics() {
-      var b = stage.getBoundingClientRect();
       var offs = [[0, 0], [-38, 12], [38, 14], [-66, 26], [66, 24], [-24, 42], [26, 44], [0, 60]];
       relicEls.forEach(function (chip, i) {
         if (!chip.classList.contains('got')) return;
         chip.classList.add('taken');
-        var r = chip.getBoundingClientRect();
+        var p = localFromRect(chip.getBoundingClientRect());
         var fly = el('div', 'relic-fly got', chip.innerHTML);
-        fly.style.left = ((r.left - b.left) / stageScale) + 'px';
-        fly.style.top  = ((r.top - b.top) / stageScale) + 'px';
+        fly.style.left = (p.x - 20) + 'px';
+        fly.style.top  = (p.y - 20) + 'px';
         sceneDoors.appendChild(fly);
         after(260 + i * 150, function () {
           var o = offs[i];
@@ -2335,9 +2345,9 @@
     function sparkUp(fromEl) {
       var sx = 640, sy = 460;
       try {
-        var r = fromEl.getBoundingClientRect(), b = stage.getBoundingClientRect();
-        sx = (r.left - b.left + r.width / 2) / stageScale;
-        sy = (r.top - b.top + r.height / 2) / stageScale;
+        var p = localFromRect(fromEl.getBoundingClientRect());
+        sx = p.x;
+        sy = p.y;
       } catch (e) {}
       sx = Math.max(140, Math.min(1140, sx));
       sy = Math.max(140, Math.min(620, sy));

@@ -852,13 +852,27 @@ html, body {
 .ldy21 .red-flash.on { opacity: 1; }
 
 /* --- 四渡赤水 --- */
+/* Q 版江景：上段远山夜空、中段江水波纹、下段草岸——替代纯黑底 */
+.ldy21 .g-cross {
+  background-color: #16283a;
+  background-image:
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='560' height='120' preserveAspectRatio='none'><g fill='%232e4a66'><path d='M0 120 L60 52 Q78 34 96 52 L150 120 Z'/><path d='M120 120 L210 38 Q232 16 254 38 L340 120 Z' fill='%233a5a7e'/><path d='M320 120 L390 58 Q408 40 426 58 L490 120 Z' fill='%232e4a66'/><path d='M450 120 L510 70 Q526 56 542 70 L560 88 L560 120 Z' fill='%23274159'/></g><circle cx='472' cy='30' r='13' fill='%23e8dfb8' opacity='.5'/><g fill='%23d8e4ec' opacity='.5'><circle cx='60' cy='22' r='1.6'/><circle cx='130' cy='14' r='1.2'/><circle cx='210' cy='26' r='1.6'/><circle cx='300' cy='12' r='1.2'/><circle cx='360' cy='30' r='1.4'/></g></svg>"),
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='560' height='102' preserveAspectRatio='none'><rect width='560' height='102' fill='%23243a24'/><path d='M0 0 Q70 14 140 4 T280 6 T420 4 T560 8 L560 0 L0 0 Z' fill='%2335562f'/><g stroke='%234f7a3a' stroke-width='1.6' stroke-linecap='round' fill='none' opacity='.6'><path d='M40 102 Q38 84 44 72'/><path d='M48 102 Q50 86 46 76'/><path d='M150 100 Q148 84 154 74'/><path d='M158 100 Q160 86 156 78'/><path d='M300 102 Q298 86 304 76'/><path d='M308 102 Q310 88 306 80'/><path d='M450 100 Q448 84 454 74'/><path d='M458 100 Q460 86 456 78'/></g><g fill='%23e8c94a' opacity='.55'><circle cx='100' cy='88' r='2.4'/><circle cx='250' cy='92' r='2'/><circle cx='390' cy='90' r='2.4'/><circle cx='510' cy='86' r='2'/></g><g fill='%231d3019' opacity='.5'><ellipse cx='70' cy='100' rx='30' ry='5'/><ellipse cx='330' cy='98' rx='40' ry='6'/><ellipse cx='500' cy='100' rx='28' ry='5'/></g></svg>"),
+    linear-gradient(180deg, #1d3450 0%, #24405e 42%, #1a2c40 42%, #1a2c40 100%);
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-size: 100% 120px, 100% 102px, 100% 100%;
+  background-position: 0 0, 0 166px, 0 0;
+}
 .ldy21 .cross-river {
   position: absolute;
   left: 0; top: 120px;
   width: 100%; height: 46px;
-  background: linear-gradient(180deg, #16283a, #0e1a28);
-  border-top: 1px solid #2c4a66;
-  border-bottom: 1px solid #2c4a66;
+  background-color: #1d4260;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='46' height='23'><g stroke='%237db8d8' stroke-width='1.3' stroke-linecap='round' fill='none' opacity='.38'><path d='M1 8 Q7 3 13 8 T25 8 T37 8 T49 8'/><path d='M-8 19 Q-2 14 4 19 T16 19 T28 19 T40 19 T52 19' opacity='.55'/></g></svg>"), linear-gradient(180deg, #2a5a7e 0%, #1d4260 55%, #17374f 100%);
+  background-size: 46px 23px, 100% 100%;
+  border-top: 2px solid #4a7ea6;
+  border-bottom: 2px solid #4a7ea6;
+  box-shadow: inset 0 0 16px rgba(120, 190, 230, .28);
 }
 .ldy21 .cross-point {
   position: absolute;
@@ -884,9 +898,9 @@ html, body {
   position: absolute;
   top: 124px;
   width: 46px; height: 38px;
-  background: #8c3130;
-  border-radius: 6px 6px 3px 3px;
-  box-shadow: 0 0 10px rgba(200,60,40,.6);
+  background: linear-gradient(180deg, #b04038, #8c3130);
+  border-radius: 9px 9px 14px 14px / 9px 9px 7px 7px;
+  box-shadow: 0 0 10px rgba(200, 60, 40, .6);
 }
 .ldy21 .cross-enemy::before {
   content: '敌';
@@ -895,6 +909,15 @@ html, body {
   line-height: 38px;
   color: #f0d8c8;
   font-size: 17px;
+}
+/* Q 版敌船的船尾波纹 */
+.ldy21 .cross-enemy::after {
+  content: '';
+  position: absolute;
+  left: 5px; right: 5px; bottom: -6px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(190, 225, 245, .4);
 }
 
 /* --- 飞夺泸定桥 --- */
@@ -2456,4 +2479,13 @@ html, body {
   line-height: 2.15;
   letter-spacing: 2px;
   color: #b6a88f;
+}
+
+/* ===== 手机竖屏（旋转模式）：收起常驻行囊 =====
+   竖屏下画面整体旋转铺满，行囊面板会被转到屏幕右下角，
+   看起来像乱弹出的浮层。收集信物时本来就有「获得信物」卡片，
+   信息不丢；横屏（正常握持）下面板照常显示。用 opacity 而非
+   display:none——行囊满时信物集结动画还要读它的真实坐标。 */
+@media (orientation: portrait) {
+  .ldy21 .relics { opacity: 0 !important; pointer-events: none; }
 }
