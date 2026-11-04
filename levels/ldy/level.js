@@ -23,6 +23,13 @@
     } catch (e) { return ''; }
   })();
 
+  /* 静态资源版本号：图片文件名不变、内容会变（换图/换压缩），
+     手机浏览器对无参数的图片 URL 会长期走本地缓存，必须在 URL 上带版本才能刷新。
+     只在 http(s) 下加参数——file:// 双击打开时带 query 可能取不到图 */
+  var ASSET_V = (/^https?:$/i.test((global.location && global.location.protocol) || ''))
+    ? '?v=20261104k' : '';
+  function asset(p) { return BASE + p + ASSET_V; }
+
   /* ============ 八门数据（严格对应游戏 8 站，会宁会师收尾） ============ */
   var DOORS = [
     { num: '86,000 → 30,000', name: '血战湘江', press: true, relic: '步枪',
@@ -295,7 +302,7 @@
     img.addEventListener('error', function () {
       if (img.parentNode) img.parentNode.removeChild(img);
     });
-    img.src = BASE + 'assets/door' + (i + 1) + '.' + (DOOR_EXT[i + 1] || 'jpg');
+    img.src = asset('assets/door' + (i + 1) + '.' + (DOOR_EXT[i + 1] || 'jpg'));
   }
 
   /* 图片预载：分三批，别用十几个并发把手机带宽占满。
@@ -305,7 +312,7 @@
   function preloadBatch(urls) {
     for (var f = 0; f < urls.length; f++) {
       var im = new Image();
-      im.src = BASE + urls[f];
+      im.src = asset(urls[f]);
     }
   }
   function preloadArt() {
@@ -1005,7 +1012,7 @@
         var door = el('div', 'door');
         door.style.left = x + 'px';
         door.style.top  = y + 'px';
-        door.style.backgroundImage = 'url(' + BASE + 'assets/door-frame.webp)';
+        door.style.backgroundImage = 'url(' + asset('assets/door-frame.webp') + ')';
         door.style.animationDelay = (i * 0.35) + 's, ' + (i * 0.4) + 's';
         door.innerHTML =
           '<div class="star-halo"></div>' +
@@ -1226,7 +1233,7 @@
         '<div class="nd-cap">这一扇，留给现在的你</div>' +
         '<div class="nd-tip">按 住 门 ，往 右 推 开</div>';
       /* 第九门专用门图：火炬传火（assets/door9.jpg），八门仍用 door-frame.webp */
-      wrap.querySelector('.nd-door').style.backgroundImage = 'url(' + BASE + 'assets/door9.jpg)';
+      wrap.querySelector('.nd-door').style.backgroundImage = 'url(' + asset('assets/door9.jpg') + ')';
       sceneDoors.appendChild(wrap);
 
       after(120, function () { wrap.classList.add('show'); });
@@ -2080,11 +2087,11 @@
       var figs = el('div', 'figures');
       /* 双层图：fa = 常姿帧，fb = 动作帧（敬礼），换帧即交叉淡入 */
       var soldier = el('div', 'figure soldier',
-        '<img class="fa" src="' + BASE + 'assets/soldier.webp" alt="老兵">' +
-        '<img class="fb" src="' + BASE + 'assets/soldier-salute.webp" alt="">');
+        '<img class="fa" src="' + asset('assets/soldier.webp') + '" alt="老兵">' +
+        '<img class="fb" src="' + asset('assets/soldier-salute.webp') + '" alt="">');
       var student = el('div', 'figure student',
-        '<img class="fa" src="' + BASE + 'assets/student.webp" alt="少年">' +
-        '<img class="fb" src="' + BASE + 'assets/student-salute.webp" alt="">');
+        '<img class="fa" src="' + asset('assets/student.webp') + '" alt="少年">' +
+        '<img class="fb" src="' + asset('assets/student-salute.webp') + '" alt="">');
       figs.appendChild(soldier);
       figs.appendChild(student);
       sceneRelay.appendChild(figs);
