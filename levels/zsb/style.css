@@ -360,31 +360,42 @@ html, body {
 }
 
 .verdict-title {
-  margin: 10px 0 16px;
-  font-size: 36px;
-  letter-spacing: 8px;
+  margin: 6px 0 14px;
+  font-size: 30px;
+  letter-spacing: 7px;
   color: #8a1a12;
 }
 
+/* 九条纪要分两栏，别把一屏塞成一列长条 */
 .recap {
-  list-style: none;
+  display: flex;
+  gap: 30px;
   margin: 0;
   padding: 0;
 }
 
+.recap ol {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .recap li {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   align-items: baseline;
-  padding: 8px 0;
+  padding: 6px 0;
   border-bottom: 1px solid rgba(160, 130, 90, .16);
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .rec-no {
   flex: none;
-  width: 56px;
+  width: 42px;
+  font-size: 13px;
   letter-spacing: 1px;
   color: #8a1a12;
 }

@@ -449,18 +449,22 @@
         grade = '涂改 ' + state.mistakes + ' 处——好在纪要还是立住了。';
       }
 
+      var rows = [];
+      for (var i = 0; i < STEPS.length; i++) {
+        rows.push('<li><span class="rec-no">' + STEPS[i].no + '</span>'
+          + '<span class="rec-text">' + (state.records[i] || '') + '</span></li>');
+      }
+      var half = Math.ceil(rows.length / 2);
+
       var html = ['<div class="verdict">',
         '<p class="verdict-eyebrow">一九三五年一月十七日 · 会议闭幕</p>',
         '<h2 class="verdict-title">会议纪要</h2>',
-        '<ol class="recap">'];
-      for (var i = 0; i < STEPS.length; i++) {
-        if (STEPS[i].kind === 'data') continue;
-        html.push('<li><span class="rec-no">' + STEPS[i].no + '</span>'
-          + '<span class="rec-text">' + (state.records[i] || '') + '</span></li>');
-      }
-      html.push('</ol>');
-      html.push('<p class="verdict-data js-data"></p>');
-      html.push('<p class="verdict-note js-grade"></p>');
+        '<div class="recap">',
+        '<ol>' + rows.slice(0, half).join('') + '</ol>',
+        '<ol>' + rows.slice(half).join('') + '</ol>',
+        '</div>',
+        '<p class="verdict-data js-data"></p>',
+        '<p class="verdict-note js-grade"></p>'];
       html.push('<button class="next js-finish" type="button">结束记录，继续行军</button>');
       html.push('</div>');
 
