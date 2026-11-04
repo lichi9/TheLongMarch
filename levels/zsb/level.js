@@ -252,6 +252,70 @@
     return a;
   }
 
+  /* 音效：WebAudio 现场合成，零素材、不联网 */
+  var Sfx = (function () {
+    var ac = null;
+    var dead = false;
+
+    function ctx() {
+      if (dead) return null;
+      if (ac) return ac;
+      var AC = global.AudioContext || global.webkitAudioContext;
+      if (!AC) { dead = true; return null; }
+      try {
+        ac = new AC();
+      } catch (e) {
+        dead = true;
+        return null;
+      }
+      return ac;
+    }
+
+    function tone(freq, dur, type, vol, delay) {
+      var c = ctx();
+      if (!c) return;
+      if (c.state === 'suspended' && c.resume) {
+        try { c.resume(); } catch (e) {}
+      }
+      var t0 = c.currentTime + (delay || 0);
+      var osc = c.createOscillator();
+      var gain = c.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(vol || 0.06, t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain);
+      gain.connect(c.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.03);
+    }
+
+    return {
+      /* 记对：两声上行 */
+      good: function () {
+        tone(620, 0.10, 'triangle', 0.05, 0);
+        tone(880, 0.14, 'triangle', 0.045, 0.08);
+      },
+      /* 记错：低音短促 */
+      bad: function () {
+        tone(150, 0.18, 'sawtooth', 0.045, 0);
+        tone(110, 0.20, 'sawtooth', 0.035, 0.05);
+      },
+      /* 连击盖印：木头闷响 */
+      stamp: function () {
+        tone(240, 0.09, 'square', 0.05, 0);
+        tone(180, 0.12, 'square', 0.04, 0.05);
+      },
+      /* 归档：三声上行 */
+      done: function () {
+        tone(523, 0.14, 'triangle', 0.05, 0);
+        tone(659, 0.14, 'triangle', 0.05, 0.11);
+        tone(784, 0.22, 'triangle', 0.05, 0.22);
+      }
+    };
+  })();
+
   function shell() {
     return [
       '<div class="hall">',
@@ -276,6 +340,7 @@
       '      <span class="day js-day"></span>',
       '      <ol class="dots js-dots"></ol>',
       '      <span class="slips">涂改 <b class="js-err">0</b> 处</span>',
+      '      <span class="stamps">朱印 <b class="js-stamps">0</b></span>',
       '    </header>',
       '    <div class="sheet js-sheet">',
       '      <p class="prompt js-prompt"></p>',
@@ -294,6 +359,9 @@
       mistakes: 0,
       stepMistakes: 0,
       dataClean: 0,
+      combo: 0,
+      stamps: 0,
+      wrongLog: [],
       answered: false,
       finished: false,
       records: []
@@ -306,6 +374,7 @@
     ui.day = root.querySelector('.js-day');
     ui.dots = root.querySelector('.js-dots');
     ui.err = root.querySelector('.js-err');
+    ui.stamps = root.querySelector('.js-stamps');
     ui.sheet = root.querySelector('.js-sheet');
     ui.prompt = root.querySelector('.js-prompt');
     ui.options = root.querySelector('.js-options');
@@ -379,9 +448,12 @@
       if (!opt.ok) {
         state.mistakes += 1;
         state.stepMistakes += 1;
+        state.combo = 0;
+        if (!state.wrongLog[state.step]) state.wrongLog[state.step] = opt.t;
         ui.err.textContent = state.mistakes;
         btn.disabled = true;
         btn.className = 'opt is-wrong';
+        Sfx.bad();
         say(opt.why, 'bad');
         return;
       }
@@ -391,6 +463,22 @@
       if (STEPS[state.step].kind === 'data' && state.stepMistakes === 0) {
         state.dataClean += 1;
       }
+
+      /* 一次答对才计连击：连对 3 项盖一枚朱印 */
+      if (state.stepMistakes === 0) {
+        state.combo += 1;
+        if (state.combo % 3 === 0) {
+          state.stamps += 1;
+          ui.stamps.textContent = state.stamps;
+          stampFx();
+          Sfx.stamp();
+        } else {
+          Sfx.good();
+        }
+      } else {
+        Sfx.good();
+      }
+
       btn.className = 'opt is-right';
       lockOptions();
       say(opt.why, 'good');
@@ -408,6 +496,18 @@
     function say(text, kind) {
       ui.note.textContent = text;
       ui.note.className = 'note js-note is-' + kind;
+    }
+
+    /* 盖印：一枚朱印落下再淡出，纯 DOM + CSS 动画 */
+    function stampFx() {
+      var seal = document.createElement('span');
+      seal.className = 'stamp-fx';
+      seal.setAttribute('aria-hidden', 'true');
+      seal.textContent = '批';
+      ui.sheet.appendChild(seal);
+      global.setTimeout(function () {
+        if (seal.parentNode) seal.parentNode.removeChild(seal);
+      }, 900);
     }
 
     function advance() {
@@ -455,25 +555,69 @@
           + '<span class="rec-text">' + (state.records[i] || '') + '</span></li>');
       }
       var half = Math.ceil(rows.length / 2);
+      var recapHtml = '<div class="recap">'
+        + '<ol>' + rows.slice(0, half).join('') + '</ol>'
+        + '<ol>' + rows.slice(half).join('') + '</ol>'
+        + '</div>';
+
+      var wrongRows = [];
+      for (var w = 0; w < STEPS.length; w++) {
+        if (!state.wrongLog[w]) continue;
+        wrongRows.push('<li><span class="rec-no">' + STEPS[w].no + '</span>'
+          + '<span class="wrong-text">你记：<em>' + state.wrongLog[w] + '</em>'
+          + '<br>应为：<b>' + (state.records[w] || '') + '</b></span></li>');
+      }
+      var wrongHtml = wrongRows.length
+        ? '<ul class="wrongs">' + wrongRows.join('') + '</ul>'
+        : '<p class="wrongs-empty">没有涂改，九项都记对了。</p>';
 
       var html = ['<div class="verdict">',
         '<p class="verdict-eyebrow">一九三五年一月十七日 · 会议闭幕</p>',
+        '<div class="verdict-head">',
         '<h2 class="verdict-title">会议纪要</h2>',
-        '<div class="recap">',
-        '<ol>' + rows.slice(0, half).join('') + '</ol>',
-        '<ol>' + rows.slice(half).join('') + '</ol>',
+        '<div class="tabs">',
+        '<button class="tab is-on js-tab-recap" type="button">纪要</button>',
+        wrongRows.length
+          ? '<button class="tab js-tab-wrong" type="button">错题 ' + wrongRows.length + '</button>'
+          : '',
         '</div>',
+        '</div>',
+        '<div class="pane js-pane-recap">' + recapHtml + '</div>',
+        '<div class="pane js-pane-wrong" hidden>' + wrongHtml + '</div>',
         '<p class="verdict-data js-data"></p>',
-        '<p class="verdict-note js-grade"></p>'];
-      html.push('<button class="next js-finish" type="button">结束记录，继续行军</button>');
-      html.push('</div>');
+        '<p class="verdict-note js-grade"></p>',
+        '<button class="next js-finish" type="button">结束记录，继续行军</button>',
+        '</div>'];
 
       ui.sheet.innerHTML = html.join('');
       ui.sheet.querySelector('.js-data').textContent =
-        '数字核对 ' + DATA_TOTAL + ' 题：一次答对 ' + state.dataClean + ' 题';
+        '数字核对 ' + DATA_TOTAL + ' 题：一次答对 ' + state.dataClean + ' 题　·　朱印 '
+        + state.stamps + ' 枚';
       ui.sheet.querySelector('.js-grade').textContent = grade
         + '　决议：增选常委、取消“三人团”，由张闻天起草。';
       ui.sheet.querySelector('.js-finish').addEventListener('click', finish);
+
+      /* 纪要 / 错题 两个视图，同一块区域切换，不挤版面 */
+      var tabRecap = ui.sheet.querySelector('.js-tab-recap');
+      var tabWrong = ui.sheet.querySelector('.js-tab-wrong');
+      var paneRecap = ui.sheet.querySelector('.js-pane-recap');
+      var paneWrong = ui.sheet.querySelector('.js-pane-wrong');
+
+      function showPane(which) {
+        paneRecap.hidden = which !== 'recap';
+        paneWrong.hidden = which !== 'wrong';
+        paneRecap.scrollTop = 0;
+        paneWrong.scrollTop = 0;
+        tabRecap.className = 'tab js-tab-recap' + (which === 'recap' ? ' is-on' : '');
+        if (tabWrong) {
+          tabWrong.className = 'tab js-tab-wrong' + (which === 'wrong' ? ' is-on' : '');
+        }
+      }
+
+      tabRecap.addEventListener('click', function () { showPane('recap'); });
+      if (tabWrong) {
+        tabWrong.addEventListener('click', function () { showPane('wrong'); });
+      }
 
       for (var d = 0; d < ui.dotItems.length; d++) {
         ui.dotItems[d].className = 'is-done';
@@ -483,6 +627,7 @@
     function finish() {
       if (state.finished) return;
       state.finished = true;
+      Sfx.done();
 
       /* 嵌在主程序里：只发消息，过场由父页统一播 */
       if (global.parent && global.parent !== global) {
