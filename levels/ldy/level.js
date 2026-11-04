@@ -142,11 +142,21 @@
       '<stop offset="0%" stop-color="#d8261a"/><stop offset="45%" stop-color="#cf1b12"/>' +
       '<stop offset="100%" stop-color="#b3120c"/></linearGradient></defs>' +
       '<rect width="' + W + '" height="' + H + '" fill="url(#ldyFlag)"/>';
-    /* 布面褶影：几条极淡的竖向暗带，让旗不至于像一块色块 */
-    for (var f = 0; f < 5; f++) {
-      s += '<rect x="' + (18 + f * 58) + '" y="0" width="' + (10 + f * 3) + '" height="' + H +
-           '" fill="#000" opacity="' + (0.05 + f * 0.008) + '"/>';
-    }
+    /* 布面褶影：几道 S 形弧线加高斯模糊，晕开成柔和的布料明暗——
+       不能用笔直竖条（像条纹），也不能留硬边弧线（还是像条纹） */
+    var folds = [
+      'M62 0 C52 40 70 80 60 120 C52 156 64 184 56 200',
+      'M150 0 C162 36 144 72 156 110 C166 148 148 180 158 200',
+      'M236 0 C226 44 246 88 234 132 C226 164 240 186 230 200'
+    ];
+    s += '<defs><filter id="ldyFBlur" x="-30%" y="-10%" width="160%" height="120%">' +
+         '<feGaussianBlur stdDeviation="9"/></filter></defs>';
+    s += '<g filter="url(#ldyFBlur)">';
+    folds.forEach(function (d, f) {
+      s += '<path d="' + d + '" fill="none" stroke="#8f120d" stroke-width="' + (20 + f * 6) +
+           '" opacity="' + (0.22 + f * 0.03) + '" stroke-linecap="round"/>';
+    });
+    s += '</g>';
     s += '<polygon points="' + starPoly(bigC[0], bigC[1], bigR, 0) + '" fill="#ffde00"/>';
     smalls.forEach(function (p) {
       var cx = p[0] * U, cy = p[1] * U;
@@ -481,6 +491,41 @@
       g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
       osc.connect(g2); g2.connect(audio.ctx.destination);
       osc.start(t); osc.stop(t + 0.52);
+    } catch (e) {}
+  }
+
+  /* 风雪呼啸：白噪声过带通扫频，风头由远及近再掠过（约 1.6 秒，与风雪动画同步） */
+  function windGust() {
+    if (!audio.ctx || !audio.noise) return;
+    try {
+      var t = audio.ctx.currentTime;
+      var src = audio.ctx.createBufferSource();
+      src.buffer = audio.noise;
+      src.loop = true;
+      src.playbackRate.value = 0.8;
+      var bp = audio.ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.Q.value = 0.9;
+      bp.frequency.setValueAtTime(340, t);
+      bp.frequency.linearRampToValueAtTime(920, t + 0.55);
+      bp.frequency.linearRampToValueAtTime(420, t + 1.6);
+      var g = audio.ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.11, t + 0.4);
+      g.gain.linearRampToValueAtTime(0.05, t + 1.0);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 1.65);
+      /* 一缕低频“呜——”给风加骨架 */
+      var osc = audio.ctx.createOscillator();
+      var g2 = audio.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(190, t);
+      osc.frequency.linearRampToValueAtTime(150, t + 1.6);
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.linearRampToValueAtTime(0.028, t + 0.5);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+      src.connect(bp); bp.connect(g); g.connect(audio.ctx.destination);
+      osc.connect(g2); g2.connect(audio.ctx.destination);
+      src.start(t); src.stop(t + 1.7);
+      osc.start(t); osc.stop(t + 1.65);
     } catch (e) {}
   }
 
@@ -1708,6 +1753,7 @@
             var g = el('div', 'climb-gust');
             g.style.left = '580px';
             area.appendChild(g);
+            windGust();
             gust = { el: g, left: 580 };
             guestLeft = 6200;               /* 下一场在 6.2 秒后 */
             tip.textContent = '风雪来了——先停一停，抓稳前面的人！';
