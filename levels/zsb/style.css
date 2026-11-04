@@ -394,8 +394,15 @@ html, body {
   color: #423426;
 }
 
+.verdict-data {
+  margin: 12px 0 0;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #8a1a12;
+}
+
 .verdict-note {
-  margin: 16px 0 0;
+  margin: 14px 0 0;
   padding-top: 14px;
   border-top: 1px dashed #ddcdad;
   font-size: 14px;

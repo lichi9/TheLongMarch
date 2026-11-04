@@ -1,9 +1,9 @@
 /* ============================================================
    遵义会议 · 会场记录
 
-   玩法：你是会议记录员。会议按议程一项项推进，每一项要在几个
-   说法里挑出与史实相符的那一条记下来；记错会留下涂改。
-   六项议程走完，会议纪要归档，通关。
+   玩法：你是会议记录员。六项议程 + 三道数字核对，每一项要在
+   几个说法里挑出与史实相符的那一条；记错会留下涂改。
+   选项顺序每次进入都随机打乱，靠「总选甲」是蒙不到的。
 
    接入方式（见 docs/level-api.md）：
      - 入口 levels/zsb/index.html
@@ -14,10 +14,10 @@
 (function (global) {
   'use strict';
 
-  var LETTERS = ['甲', '乙', '丙'];
+  var LETTERS = ['甲', '乙', '丙', '丁'];
 
-  /* 六项议程。ok: true 的那条才是会议记录该写下的；
-     recap 是收尾时「会议纪要」那一行。 */
+  /* 九项：六项议程 + 三道数字核对（kind: 'data'）。
+     ok: true 的那条才是该记下的；recap 是收尾「会议纪要」里那一行。 */
   var STEPS = [
     {
       no: '会前',
@@ -151,14 +151,106 @@
           why: '会议要的是一份自己的总结。'
         }
       ]
+    },
+
+    /* ---------- 数字核对：归档前把数字对一遍 ---------- */
+
+    {
+      no: '核对一',
+      day: '会后整理 · 数字',
+      kind: 'data',
+      prompt: '整理记录时要核对数字：湘江一战之后，中央红军还剩多少人？',
+      options: [
+        {
+          t: '三万余人',
+          ok: true,
+          why: '出发时八万六千人，过湘江只剩三万余人——折损过半。',
+          recap: '湘江之后，全军剩三万余人'
+        },
+        {
+          t: '五万余人',
+          ok: false,
+          why: '没有这么多。湘江一战是长征中最惨烈的一仗，折损过半。'
+        },
+        {
+          t: '一万余人',
+          ok: false,
+          why: '还要多一些。此时全军约三万余人，仍是主力。'
+        }
+      ]
+    },
+    {
+      no: '核对二',
+      day: '会后整理 · 数字',
+      kind: 'data',
+      prompt: '会议从一月十五日开到十七日，前后一共几天？',
+      options: [
+        {
+          t: '三天',
+          ok: true,
+          why: '十五、十六、十七，三天开完，议程排得很紧。',
+          recap: '会议开了三天'
+        },
+        {
+          t: '一天',
+          ok: false,
+          why: '一天装不下：十五日报告与发言，十六日议组织，十七日收尾。'
+        },
+        {
+          t: '七天',
+          ok: false,
+          why: '没有七天。会期只有三天，此后部队移师北上。'
+        }
+      ]
+    },
+    {
+      no: '核对三',
+      day: '会后整理 · 数字',
+      kind: 'data',
+      prompt: '决议全称是《中共中央关于反对敌人几次“围剿”的总结的决议》？',
+      options: [
+        {
+          t: '五次',
+          ok: true,
+          why: '第五次反“围剿”的失利，正是这场会议要总结的东西。',
+          recap: '决议总结的是第五次反“围剿”'
+        },
+        {
+          t: '四次',
+          ok: false,
+          why: '四次反“围剿”是打赢了的，问题出在第五次。'
+        },
+        {
+          t: '六次',
+          ok: false,
+          why: '当时才到第五次，第六次“围剿”还没来。'
+        }
+      ]
     }
   ];
+
+  var DATA_TOTAL = 0;
+  for (var n = 0; n < STEPS.length; n++) {
+    if (STEPS[n].kind === 'data') DATA_TOTAL += 1;
+  }
 
   var VERDICT = [
     '增选毛泽东为政治局常委',
     '取消长征前成立的“三人团”，仍由朱德、周恩来指挥军事',
     '委托张闻天起草会议决议'
   ];
+
+  /* 洗牌：每次渲染都换顺序，避免「答案总在第一个」 */
+  function shuffled(list) {
+    var a = list.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i];
+      a[i] = a[j];
+      a[j] = tmp;
+    }
+    return a;
+  }
 
   function shell() {
     return [
@@ -197,7 +289,15 @@
   }
 
   function mount(root, ctx) {
-    var state = { step: 0, mistakes: 0, answered: false, finished: false, records: [] };
+    var state = {
+      step: 0,
+      mistakes: 0,
+      stepMistakes: 0,
+      dataClean: 0,
+      answered: false,
+      finished: false,
+      records: []
+    };
     var ui = {};
 
     root.innerHTML = shell();
@@ -229,6 +329,8 @@
       var last = state.step === STEPS.length - 1;
 
       state.answered = false;
+      state.stepMistakes = 0;
+
       ui.step.textContent = step.no;
       ui.day.textContent = step.day;
       ui.prompt.textContent = step.prompt;
@@ -237,13 +339,14 @@
       ui.next.hidden = true;
       ui.next.textContent = last ? '归档' : '下一项';
 
+      var order = shuffled(step.options);
       ui.options.innerHTML = '';
-      for (var k = 0; k < step.options.length; k++) {
-        ui.options.appendChild(optionButton(step.options[k], k));
+      for (var k = 0; k < order.length; k++) {
+        ui.options.appendChild(optionButton(order[k], k));
       }
 
       for (var d = 0; d < ui.dotItems.length; d++) {
-        var cls = 'js-dot';
+        var cls = '';
         if (d < state.step) cls += ' is-done';
         if (d === state.step) cls += ' is-now';
         ui.dotItems[d].className = cls;
@@ -275,6 +378,7 @@
 
       if (!opt.ok) {
         state.mistakes += 1;
+        state.stepMistakes += 1;
         ui.err.textContent = state.mistakes;
         btn.disabled = true;
         btn.className = 'opt is-wrong';
@@ -284,6 +388,9 @@
 
       state.answered = true;
       state.records[state.step] = opt.recap;
+      if (STEPS[state.step].kind === 'data' && state.stepMistakes === 0) {
+        state.dataClean += 1;
+      }
       btn.className = 'opt is-right';
       lockOptions();
       say(opt.why, 'good');
@@ -321,7 +428,7 @@
         advance();
         return;
       }
-      if (k < '1' || k > '3') return;
+      if (k < '1' || k > '4') return;
       var idx = Number(k) - 1;
       var btns = ui.options.querySelectorAll('.opt');
       if (btns[idx] && !btns[idx].disabled) {
@@ -347,20 +454,25 @@
         '<h2 class="verdict-title">会议纪要</h2>',
         '<ol class="recap">'];
       for (var i = 0; i < STEPS.length; i++) {
+        if (STEPS[i].kind === 'data') continue;
         html.push('<li><span class="rec-no">' + STEPS[i].no + '</span>'
           + '<span class="rec-text">' + (state.records[i] || '') + '</span></li>');
       }
       html.push('</ol>');
+      html.push('<p class="verdict-data js-data"></p>');
       html.push('<p class="verdict-note js-grade"></p>');
       html.push('<button class="next js-finish" type="button">结束记录，继续行军</button>');
       html.push('</div>');
 
       ui.sheet.innerHTML = html.join('');
-      ui.sheet.querySelector('.js-grade').textContent = grade + '　决议：' + VERDICT.join('；') + '。';
+      ui.sheet.querySelector('.js-data').textContent =
+        '数字核对 ' + DATA_TOTAL + ' 题：一次答对 ' + state.dataClean + ' 题';
+      ui.sheet.querySelector('.js-grade').textContent = grade
+        + '　决议：增选常委、取消“三人团”，由张闻天起草。';
       ui.sheet.querySelector('.js-finish').addEventListener('click', finish);
 
       for (var d = 0; d < ui.dotItems.length; d++) {
-        ui.dotItems[d].className = 'js-dot is-done';
+        ui.dotItems[d].className = 'is-done';
       }
     }
 
