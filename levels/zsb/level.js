@@ -334,21 +334,58 @@
       '    </ul>',
       '    <div class="seal" aria-hidden="true"><span>遵</span><span>义</span></div>',
       '  </aside>',
-      '  <section class="desk">',
-      '    <header class="desk-head">',
-      '      <span class="step-no js-step">会前</span>',
-      '      <span class="day js-day"></span>',
-      '      <ol class="dots js-dots"></ol>',
-      '      <span class="slips">涂改 <b class="js-err">0</b> 处</span>',
-      '      <span class="stamps">朱印 <b class="js-stamps">0</b></span>',
-      '    </header>',
-      '    <div class="sheet js-sheet">',
-      '      <p class="prompt js-prompt"></p>',
-      '      <div class="options js-options"></div>',
-      '      <p class="note js-note" role="status" aria-live="polite"></p>',
-      '      <button class="next js-next" type="button" hidden>下一项</button>',
-      '    </div>',
-      '  </section>',
+      '  <section class="desk js-desk"></section>',
+      '</div>'
+    ].join('');
+  }
+
+  /* 三段进度：会前 / 五项议程 / 三道核对，按 STEPS 推导，不写死 */
+  function segOf(step) {
+    if (step.kind === 'data') return 'data';
+    return step.no === '会前' ? 'pre' : 'agenda';
+  }
+
+  var SEGMENTS = [
+    { key: 'pre', label: '会前' },
+    { key: 'agenda', label: '议程' },
+    { key: 'data', label: '核对' }
+  ];
+
+  function gameHtml() {
+    var head = ['<header class="desk-head">', '<div class="segs js-segs">'];
+    for (var s = 0; s < SEGMENTS.length; s++) {
+      var seg = SEGMENTS[s];
+      var ticks = '';
+      for (var t = 0; t < STEPS.length; t++) {
+        if (segOf(STEPS[t]) === seg.key) ticks += '<i></i>';
+      }
+      head.push('<span class="seg" data-seg="' + seg.key + '"><b>' + seg.label + '</b>' + ticks + '</span>');
+    }
+    head.push('</div>');
+    head.push('<span class="slips">涂改 <b class="js-err">0</b> 处</span>');
+    head.push('<span class="stamps">朱印 <b class="js-stamps">0</b></span>');
+    head.push('</header>');
+
+    return [
+      head.join(''),
+      '<div class="sheet js-sheet">',
+      '  <p class="dateline"><span class="js-step">会前</span><span class="js-day"></span></p>',
+      '  <p class="prompt js-prompt"></p>',
+      '  <div class="options js-options"></div>',
+      '  <p class="note js-note" role="status" aria-live="polite"></p>',
+      '  <button class="next js-next" type="button" hidden>下一项</button>',
+      '</div>'
+    ].join('');
+  }
+
+  function introHtml() {
+    return [
+      '<div class="intro">',
+      '  <p class="intro-date">一九三五年一月十五日 · 遵义老城</p>',
+      '  <h2 class="intro-title">你被指定为<br>这场会议的记录员</h2>',
+      '  <p class="intro-sub">三天，九项议程。会前的争论、会场上的发言、组织的调整，<br>还有几笔要核对的数字——每一项都要记准。</p>',
+      '  <p class="intro-hint">连续记对三项，可盖一枚朱印。</p>',
+      '  <button class="next js-enter" type="button">推门进去</button>',
       '</div>'
     ].join('');
   }
@@ -364,32 +401,49 @@
       wrongLog: [],
       answered: false,
       finished: false,
+      started: false,
       records: []
     };
     var ui = {};
+    var segments = { pre: [], agenda: [], data: [] };
+    var desk = null;
+
+    for (var m = 0; m < STEPS.length; m++) {
+      segments[segOf(STEPS[m])].push(m);
+    }
 
     root.innerHTML = shell();
+    desk = root.querySelector('.js-desk');
+    showIntro();
 
-    ui.step = root.querySelector('.js-step');
-    ui.day = root.querySelector('.js-day');
-    ui.dots = root.querySelector('.js-dots');
-    ui.err = root.querySelector('.js-err');
-    ui.stamps = root.querySelector('.js-stamps');
-    ui.sheet = root.querySelector('.js-sheet');
-    ui.prompt = root.querySelector('.js-prompt');
-    ui.options = root.querySelector('.js-options');
-    ui.note = root.querySelector('.js-note');
-    ui.next = root.querySelector('.js-next');
-
-    for (var i = 0; i < STEPS.length; i++) {
-      ui.dots.appendChild(document.createElement('li'));
+    /* 开场：一屏交代「你是谁、要做什么」，点进去才开始计时读题 */
+    function showIntro() {
+      desk.innerHTML = introHtml();
+      desk.querySelector('.js-enter').addEventListener('click', start);
     }
-    ui.dotItems = root.querySelectorAll('.dots li');
 
-    ui.next.addEventListener('click', advance);
-    global.document.addEventListener('keydown', onKey);
+    function start() {
+      if (state.started) return;
+      state.started = true;
 
-    renderStep();
+      desk.innerHTML = gameHtml();
+
+      ui.step = desk.querySelector('.js-step');
+      ui.day = desk.querySelector('.js-day');
+      ui.segs = desk.querySelectorAll('.seg');
+      ui.err = desk.querySelector('.js-err');
+      ui.stamps = desk.querySelector('.js-stamps');
+      ui.sheet = desk.querySelector('.js-sheet');
+      ui.prompt = desk.querySelector('.js-prompt');
+      ui.options = desk.querySelector('.js-options');
+      ui.note = desk.querySelector('.js-note');
+      ui.next = desk.querySelector('.js-next');
+
+      ui.next.addEventListener('click', advance);
+      global.document.addEventListener('keydown', onKey);
+
+      renderStep();
+    }
 
     /* ---------- 渲染 ---------- */
 
@@ -414,11 +468,31 @@
         ui.options.appendChild(optionButton(order[k], k));
       }
 
-      for (var d = 0; d < ui.dotItems.length; d++) {
-        var cls = '';
-        if (d < state.step) cls += ' is-done';
-        if (d === state.step) cls += ' is-now';
-        ui.dotItems[d].className = cls;
+      renderSegments();
+    }
+
+    /* 三段进度：当前段高亮，段内已答的画实，正在答的加圈 */
+    function renderSegments() {
+      for (var s = 0; s < ui.segs.length; s++) {
+        var box = ui.segs[s];
+        var key = box.getAttribute('data-seg');
+        var list = segments[key];
+        var at = list.indexOf(state.step);
+        var ticks = box.querySelectorAll('i');
+        var finished = list.length > 0 && list[list.length - 1] < state.step;
+
+        for (var t = 0; t < ticks.length; t++) {
+          var cls = '';
+          if (at >= 0) {
+            if (t < at) cls = 'is-done';
+            else if (t === at) cls = 'is-now';
+          } else if (finished) {
+            cls = 'is-done';
+          }
+          ticks[t].className = cls;
+        }
+
+        box.className = 'seg' + (at >= 0 ? ' is-current' : '');
       }
     }
 
@@ -540,13 +614,13 @@
     /* ---------- 收尾 ---------- */
 
     function showVerdict() {
-      var grade;
+      var ending;
       if (state.mistakes === 0) {
-        grade = '一字未改——这三天，你记得很稳。';
-      } else if (state.mistakes <= 2) {
-        grade = '涂改 ' + state.mistakes + ' 处，关键的地方都记对了。';
+        ending = { seal: '准予归档', cls: 'is-ok', line: '一字未改，纪当即日归档。' };
+      } else if (state.mistakes <= 3) {
+        ending = { seal: '准予归档', cls: 'is-ok', line: '页边有几处涂改，纪要与原件一并归档。' };
       } else {
-        grade = '涂改 ' + state.mistakes + ' 处——好在纪要还是立住了。';
+        ending = { seal: '退回重抄', cls: 'is-back', line: '涂改太多，记录被退回，重抄一遍才归档。' };
       }
 
       var rows = [];
@@ -571,19 +645,35 @@
         ? '<ul class="wrongs">' + wrongRows.join('') + '</ul>'
         : '<p class="wrongs-empty">没有涂改，九项都记对了。</p>';
 
+      var cardHtml = ['<div class="share-card ' + ending.cls + '">',
+        '<p class="card-eyebrow">一九三五 · 一 · 十五 — 十七 · 遵义</p>',
+        '<h3 class="card-title">会议纪要</h3>',
+        '<ul class="card-list">',
+        '<li>增选毛泽东为政治局常委</li>',
+        '<li>取消“三人团”，仍由朱德、周恩来指挥军事</li>',
+        '<li>委托张闻天起草会议决议</li>',
+        '</ul>',
+        '<p class="card-foot">涂改 ' + state.mistakes + ' 处 · 朱印 ' + state.stamps
+          + ' 枚 · 数字核对 ' + state.dataClean + '/' + DATA_TOTAL + '</p>',
+        '<span class="card-seal">' + ending.seal + '</span>',
+        '</div>'].join('');
+
       var html = ['<div class="verdict">',
         '<p class="verdict-eyebrow">一九三五年一月十七日 · 会议闭幕</p>',
         '<div class="verdict-head">',
         '<h2 class="verdict-title">会议纪要</h2>',
+        '<span class="verdict-seal ' + ending.cls + '">' + ending.seal + '</span>',
         '<div class="tabs">',
         '<button class="tab is-on js-tab-recap" type="button">纪要</button>',
         wrongRows.length
           ? '<button class="tab js-tab-wrong" type="button">错题 ' + wrongRows.length + '</button>'
           : '',
+        '<button class="tab js-tab-card" type="button">卡片</button>',
         '</div>',
         '</div>',
         '<div class="pane js-pane-recap">' + recapHtml + '</div>',
         '<div class="pane js-pane-wrong" hidden>' + wrongHtml + '</div>',
+        '<div class="pane js-pane-card" hidden>' + cardHtml + '</div>',
         '<p class="verdict-data js-data"></p>',
         '<p class="verdict-note js-grade"></p>',
         '<button class="next js-finish" type="button">结束记录，继续行军</button>',
@@ -593,35 +683,39 @@
       ui.sheet.querySelector('.js-data').textContent =
         '数字核对 ' + DATA_TOTAL + ' 题：一次答对 ' + state.dataClean + ' 题　·　朱印 '
         + state.stamps + ' 枚';
-      ui.sheet.querySelector('.js-grade').textContent = grade
+      ui.sheet.querySelector('.js-grade').textContent = ending.line
         + '　决议：增选常委、取消“三人团”，由张闻天起草。';
       ui.sheet.querySelector('.js-finish').addEventListener('click', finish);
 
-      /* 纪要 / 错题 两个视图，同一块区域切换，不挤版面 */
+      /* 纪要 / 错题 / 卡片 三个视图共用一块区域，切着看不挤版面 */
       var tabRecap = ui.sheet.querySelector('.js-tab-recap');
       var tabWrong = ui.sheet.querySelector('.js-tab-wrong');
+      var tabCard = ui.sheet.querySelector('.js-tab-card');
       var paneRecap = ui.sheet.querySelector('.js-pane-recap');
       var paneWrong = ui.sheet.querySelector('.js-pane-wrong');
+      var paneCard = ui.sheet.querySelector('.js-pane-card');
 
       function showPane(which) {
         paneRecap.hidden = which !== 'recap';
         paneWrong.hidden = which !== 'wrong';
+        paneCard.hidden = which !== 'card';
         paneRecap.scrollTop = 0;
         paneWrong.scrollTop = 0;
+        paneCard.scrollTop = 0;
         tabRecap.className = 'tab js-tab-recap' + (which === 'recap' ? ' is-on' : '');
+        tabCard.className = 'tab js-tab-card' + (which === 'card' ? ' is-on' : '');
         if (tabWrong) {
           tabWrong.className = 'tab js-tab-wrong' + (which === 'wrong' ? ' is-on' : '');
         }
       }
 
       tabRecap.addEventListener('click', function () { showPane('recap'); });
+      tabCard.addEventListener('click', function () { showPane('card'); });
       if (tabWrong) {
         tabWrong.addEventListener('click', function () { showPane('wrong'); });
       }
 
-      for (var d = 0; d < ui.dotItems.length; d++) {
-        ui.dotItems[d].className = 'is-done';
-      }
+      renderSegments();
     }
 
     function finish() {
