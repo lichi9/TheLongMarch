@@ -23,6 +23,7 @@
       no: '会前',
       day: '一九三四年十二月 — 一九三五年一月',
       prompt: '湘江一战，中央红军从八万六千人减到三万余人。进贵州后一路都在争：仗该怎么打？',
+      hint: '通道、黎平、猴场一连开了几次会，争论一路没停——到遵义，该把话讲到底了。',
       options: [
         {
           t: '先开个会，把第五次反“围剿”以来的军事路线摊开谈。',
@@ -46,6 +47,7 @@
       no: '第一项',
       day: '一月十五日',
       prompt: '博古作关于第五次反“围剿”的总结报告，把失利归因于敌强我弱。这一句怎么记？',
+      hint: '敌强我弱是实情，但指挥上的错误是能避免的那一半——不少人这么看。',
       options: [
         {
           t: '照原话记：责任在客观条件，军事指挥没有问题。',
@@ -64,6 +66,7 @@
       no: '第二项',
       day: '一月十五日',
       prompt: '周恩来作副报告，主动承担责任。随后要有人系统批评军事路线，谁来讲？',
+      hint: '张闻天手里有一份备好的提纲，毛泽东也记了厚厚一叠纸。',
       options: [
         {
           t: '张闻天（洛甫）作反报告，毛泽东随后作长篇发言。',
@@ -87,6 +90,7 @@
       no: '第三项',
       day: '一月十五日',
       prompt: '毛泽东讲完，会场沉默了一会儿。接下来谁先开口？',
+      hint: '王稼祥是躺在担架上进的会场，发言却最短最硬。',
       options: [
         {
           t: '王稼祥先表态支持，朱德、陈云、刘少奇等随后发言。',
@@ -110,6 +114,7 @@
       no: '第四项',
       day: '一月十六日',
       prompt: '会议进入组织问题。最关键的一条是——',
+      hint: '要动的不是某个人的职务，而是“三个人说了算”的那套办法。',
       options: [
         {
           t: '增选毛泽东为政治局常委，取消“三人团”，仍由朱德、周恩来指挥军事。',
@@ -133,6 +138,7 @@
       no: '第五项',
       day: '一月十七日',
       prompt: '会议闭幕前还有两件收尾的事：决议由谁起草，会后由谁负总责？',
+      hint: '会前就有人提过：总结该由作反报告的那个人来写。',
       options: [
         {
           t: '委托张闻天起草决议；会后常委分工，由张闻天代替博古负总责。',
@@ -160,6 +166,7 @@
       day: '会后整理 · 数字',
       kind: 'data',
       prompt: '整理记录时要核对数字：湘江一战之后，中央红军还剩多少人？',
+      hint: '出发时八万六千人，过了湘江，点名册薄了一半还多。',
       options: [
         {
           t: '三万余人',
@@ -184,6 +191,7 @@
       day: '会后整理 · 数字',
       kind: 'data',
       prompt: '会议从一月十五日开到十七日，前后一共几天？',
+      hint: '十五日报告与发言，十六日议组织，十七日收尾——照着排。',
       options: [
         {
           t: '三天',
@@ -208,6 +216,7 @@
       day: '会后整理 · 数字',
       kind: 'data',
       prompt: '决议全称是《中共中央关于反对敌人几次“围剿”的总结的决议》？',
+      hint: '标题里的数字，正是湘江之前刚打完、没能打破的那一仗。',
       options: [
         {
           t: '五次',
@@ -307,6 +316,11 @@
         tone(240, 0.09, 'square', 0.05, 0);
         tone(180, 0.12, 'square', 0.04, 0.05);
       },
+      /* 翻档案：短促的纸声 */
+      page: function () {
+        tone(340, 0.05, 'square', 0.028, 0);
+        tone(270, 0.06, 'square', 0.026, 0.045);
+      },
       /* 归档：三声上行 */
       done: function () {
         tone(523, 0.14, 'triangle', 0.05, 0);
@@ -369,8 +383,10 @@
     return [
       head.join(''),
       '<div class="sheet js-sheet">',
-      '  <p class="dateline"><span class="js-step">会前</span><span class="js-day"></span></p>',
+      '  <p class="dateline"><span class="js-step">会前</span><span class="js-day"></span>',
+      '    <button class="lookup js-lookup" type="button">翻档案</button></p>',
       '  <p class="prompt js-prompt"></p>',
+      '  <p class="archive js-archive" hidden></p>',
       '  <div class="options js-options"></div>',
       '  <p class="note js-note" role="status" aria-live="polite"></p>',
       '  <button class="next js-next" type="button" hidden>下一项</button>',
@@ -384,7 +400,7 @@
       '  <p class="intro-date">一九三五年一月十五日 · 遵义老城</p>',
       '  <h2 class="intro-title">你被指定为<br>这场会议的记录员</h2>',
       '  <p class="intro-sub">三天，九项议程。会前的争论、会场上的发言、组织的调整，<br>还有几笔要核对的数字——每一项都要记准。</p>',
-      '  <p class="intro-hint">连续记对三项，可盖一枚朱印。</p>',
+      '  <p class="intro-hint">连续记对三项，可盖一枚朱印；<br>「翻档案」能查一条线索，但会打断连击。</p>',
       '  <button class="next js-enter" type="button">推门进去</button>',
       '</div>'
     ].join('');
@@ -398,6 +414,8 @@
       dataClean: 0,
       combo: 0,
       stamps: 0,
+      archiveUsed: 0,
+      usedArchive: false,
       wrongLog: [],
       answered: false,
       finished: false,
@@ -438,8 +456,11 @@
       ui.options = desk.querySelector('.js-options');
       ui.note = desk.querySelector('.js-note');
       ui.next = desk.querySelector('.js-next');
+      ui.lookup = desk.querySelector('.js-lookup');
+      ui.archive = desk.querySelector('.js-archive');
 
       ui.next.addEventListener('click', advance);
+      ui.lookup.addEventListener('click', lookup);
       global.document.addEventListener('keydown', onKey);
 
       renderStep();
@@ -453,6 +474,7 @@
 
       state.answered = false;
       state.stepMistakes = 0;
+      state.usedArchive = false;
 
       ui.step.textContent = step.no;
       ui.day.textContent = step.day;
@@ -461,6 +483,10 @@
       ui.note.className = 'note js-note';
       ui.next.hidden = true;
       ui.next.textContent = last ? '归档' : '下一项';
+      ui.archive.hidden = true;
+      ui.archive.textContent = '';
+      ui.lookup.disabled = false;
+      ui.lookup.textContent = '翻档案';
 
       var order = shuffled(step.options);
       ui.options.innerHTML = '';
@@ -534,9 +560,10 @@
 
       state.answered = true;
       state.records[state.step] = opt.recap;
-      if (STEPS[state.step].kind === 'data' && state.stepMistakes === 0) {
+      if (STEPS[state.step].kind === 'data' && state.stepMistakes === 0 && !state.usedArchive) {
         state.dataClean += 1;
       }
+      ui.lookup.disabled = true;
 
       /* 一次答对才计连击：连对 3 项盖一枚朱印 */
       if (state.stepMistakes === 0) {
@@ -582,6 +609,23 @@
       global.setTimeout(function () {
         if (seal.parentNode) seal.parentNode.removeChild(seal);
       }, 900);
+    }
+
+    /* 翻档案：给一条线索，代价是连击清零 */
+    function lookup() {
+      if (state.finished || state.answered || state.usedArchive) return;
+      var step = STEPS[state.step];
+      if (!step.hint) return;
+
+      state.usedArchive = true;
+      state.archiveUsed += 1;
+      state.combo = 0;
+
+      ui.archive.textContent = step.hint;
+      ui.archive.hidden = false;
+      ui.lookup.disabled = true;
+      ui.lookup.textContent = '档案已翻';
+      Sfx.page();
     }
 
     function advance() {
@@ -682,7 +726,7 @@
       ui.sheet.innerHTML = html.join('');
       ui.sheet.querySelector('.js-data').textContent =
         '数字核对 ' + DATA_TOTAL + ' 题：一次答对 ' + state.dataClean + ' 题　·　朱印 '
-        + state.stamps + ' 枚';
+        + state.stamps + ' 枚　·　查档 ' + state.archiveUsed + ' 次';
       ui.sheet.querySelector('.js-grade').textContent = ending.line
         + '　决议：增选常委、取消“三人团”，由张闻天起草。';
       ui.sheet.querySelector('.js-finish').addEventListener('click', finish);
