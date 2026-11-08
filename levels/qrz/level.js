@@ -23,11 +23,12 @@
   /* 敌军巡逻：直线往返（dx/dy 单位向量，span 行程，speed 像素/秒）
      plane: true 为敌机，圆周盘旋（r 半径，speed 角速度） */
   var ENEMIES = [
-    { x: 420, y: 150, dx: 0, dy: 1, span: 260, speed: 95 },
+    /* 顶部 0~190px 是 HUD 区，巡逻路线都压在它下面，避免被标题带挡住 */
+    { x: 420, y: 205, dx: 0, dy: 1, span: 240, speed: 95 },
     { x: 640, y: 330, dx: 1, dy: 0, span: 300, speed: 120 },
-    { x: 880, y: 160, dx: 0, dy: 1, span: 230, speed: 105 },
-    { x: 540, y: 90,  dx: 1, dy: 0, span: 220, speed: 135 },
-    { x: 640, y: 250, plane: true, r: 130, speed: 1.1 },
+    { x: 880, y: 215, dx: 0, dy: 1, span: 210, speed: 105 },
+    { x: 540, y: 195, dx: 1, dy: 0, span: 220, speed: 135 },
+    { x: 640, y: 275, plane: true, r: 130, speed: 1.1 },
     { x: 640, y: 470, plane: true, r: 120, speed: -1.3 },
     { x: 480, y: 480, dx: 1, dy: 0, span: 320, speed: 140 },
     { x: 760, y: 600, dx: 0, dy: 1, span: 200, speed: 115 },
@@ -38,7 +39,7 @@
   var W = 1280, H = 720;
   var PLAYER_R = 16, ENEMY_R = 15, DOCK_R = 26;
   var PLAYER_SPEED = 235;
-  var SPAWN = { x: 640, y: 690 };
+  var SPAWN = { x: 640, y: 655 };
 
   var STATE = { START: 0, PLAY: 1, CROSS_OK: 2, WIN: 3 };
 
@@ -97,6 +98,7 @@
     var crossIdx = 0;
     var keys = {};
     var lastT = 0, rafId = 0, t = 0, shakeT = 0;
+    var winTimer = 0, winPhase = 0;   /* 0=第四渡完成卡, 1=结束卡 */
     var done = false;
 
     /* ---------- HUD ---------- */
@@ -123,13 +125,24 @@
     /* ---------- 消息层 ---------- */
     function showMsg(html, cls) {
       msgLayer.innerHTML = '<div class="msg ' + (cls || '') + '">' + html + '</div>';
+      msgLayer.classList.add('dim');     /* 只在有消息时压暗，隐藏时一并撤掉 */
       var el = msgLayer.firstChild;
       requestAnimationFrame(function () { el.classList.add('on'); });
       return el;
     }
-    function hideMsg() { msgLayer.innerHTML = ''; }
+    function hideMsg() {
+      msgLayer.innerHTML = '';
+      msgLayer.classList.remove('dim');
+    }
 
     /* ---------- 通关 ---------- */
+    function winBtnText() {
+      try {
+        if (window.parent && window.parent !== window) return '即将返回选关 · 点击可直接结束';
+      } catch (e) {}
+      return '点击屏幕或按回车 · 通关';
+    }
+
     function finish() {
       if (done) return;
       done = true;
@@ -139,7 +152,9 @@
           return;
         }
       } catch (e) {}
-      showMsg('<p class="msg-main">通关</p><p class="msg-sub">四渡赤水 · 流程已通</p>', 'win');
+      /* 单独打开（没有主程序）：结束卡已经在了，只把提示改成已通关 */
+      var btn = document.getElementById('win-btn');
+      if (btn) btn.textContent = '已通关';
     }
 
     /* ---------- 几何 ---------- */
@@ -193,14 +208,23 @@
           if (crossIdx >= CROSSES.length) {
             state = STATE.WIN;
             renderHud();
-            showMsg(
-              '<p class="msg-main">四渡赤水 · 跳出重围</p>' +
-              '<p class="msg-sub">一渡土城，二渡太平，三渡茅台，四渡二郎滩。<br>' +
-              '声东击西，避实击虚，三万红军跳出四十万敌军的包围圈。</p>' +
-              '<p class="msg-btn">点击屏幕或按回车 · 结束</p>', 'win');
-            /* 主程序约定：收到 cz:done 立刻关闭关卡回面板，
-               所以嵌在游戏里时直接通知，不等待玩家点击 */
-            setTimeout(finish, 400);
+            /* 先单独显示第四渡完成，让人看清，再切结束卡 */
+            var last = CROSSES[CROSSES.length - 1];
+            showMsg('<p class="msg-main ok">' + last.name + ' · 完成</p>' +
+                    '<p class="msg-sub">' + last.tip + '（' + last.date + '）</p>', 'ok');
+
+            winTimer = setTimeout(function () {
+              if (state !== STATE.WIN) return;
+              winPhase = 1;
+              showMsg(
+                '<p class="msg-sub">一渡土城，二渡太平，三渡茅台，四渡二郎滩。</p>' +
+                '<p class="msg-main">四渡赤水 · 跳出重围</p>' +
+                '<p class="msg-sub">声东击西，避实击虚，三万红军跳出四十万敌军的包围圈。</p>' +
+                '<p class="msg-btn" id="win-btn">' + winBtnText() + '</p>', 'win');
+              /* 主程序收到 cz:done 会立刻关掉关卡，
+                 所以留足时间让人读完，也可以点击提前结束 */
+              winTimer = setTimeout(finish, 5600);
+            }, 2400);
           } else {
             state = STATE.CROSS_OK;
             renderHud();
@@ -208,7 +232,7 @@
                     '<p class="msg-sub">' + CROSSES[crossIdx - 1].tip + '</p>', 'ok');
             setTimeout(function () {
               if (state === STATE.CROSS_OK) { hideMsg(); state = STATE.PLAY; renderHud(); }
-            }, 1500);
+            }, 2600);
           }
         }
       }
@@ -242,7 +266,7 @@
     }
     function onKeyDown(e) {
       if (state === STATE.START && (e.key === 'Enter' || e.key === ' ')) { startPlay(); return; }
-      if (state === STATE.WIN && (e.key === 'Enter' || e.key === ' ')) { finish(); return; }
+      if (state === STATE.WIN && (e.key === 'Enter' || e.key === ' ')) { endWin(); return; }
       setKey(e, true);
     }
     function onKeyUp(e) { setKey(e, false); }
@@ -253,9 +277,16 @@
       renderHud();
     }
 
+    /* 通关卡片：看完再走，也可以主动提前结束（只在结束卡阶段可点） */
+    function endWin() {
+      if (winPhase !== 1) return;      /* 第四渡完成卡不让点，保证能看清 */
+      if (winTimer) { clearTimeout(winTimer); winTimer = 0; }
+      finish();
+    }
+
     field.addEventListener('click', function () {
       if (state === STATE.START) { startPlay(); return; }
-      if (state === STATE.WIN) { finish(); }
+      if (state === STATE.WIN) { endWin(); }
     });
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);

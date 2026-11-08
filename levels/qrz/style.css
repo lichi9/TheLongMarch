@@ -77,6 +77,11 @@ html, body {
   text-align: center;
   pointer-events: none;
   z-index: 10;
+  /* 底衬：让巡逻兵从字后面过时不干扰阅读 */
+  background: linear-gradient(180deg,
+    rgba(242,233,214,0.92) 0%,
+    rgba(242,233,214,0.82) 62%,
+    rgba(242,233,214,0) 100%);
 }
 .hud-title {
   font: 700 40px/1.2 "STXingkai", "华文行楷", "KaiTi", serif;
@@ -183,8 +188,11 @@ html, body {
   justify-content: center;
   pointer-events: none;
   z-index: 20;
-  background: rgba(23,19,15,0.35);
+  background: rgba(23,19,15,0);
+  transition: background 260ms ease;
 }
+/* 有消息时才压暗整屏，隐藏后完全透明，不残留灰纱 */
+.msg-layer.dim { background: rgba(23,19,15,0.35); }
 .msg {
   background: rgba(23,19,15,0.94);
   color: #f2e9d6;
@@ -216,7 +224,7 @@ html, body {
 .msg-btn {
   margin: 18px 0 0;
   font: 700 14px/1 "SimHei", sans-serif;
-  color: #c8483a;
+  color: #e8c56a;          /* 深色卡面上用金色，红字看不清 */
   letter-spacing: 3px;
   animation: btn-blink 1.4s ease infinite;
 }
