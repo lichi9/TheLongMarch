@@ -1,233 +1,98 @@
-/* 四渡赤水 · 连线 —— levels/ljm/style.css
+/* 四渡赤水 · 连线 —— levels/ljm/style.css （增强版） */
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-   ★ 舞台固定 1280 × 720
-   主程序负责把这一层整体缩放去适配窗口，所以这里按 1280×720 摆位置，
-   不写响应式、不读 window.innerWidth。
-
-   本文件跑在独立 iframe 里，html / body 选择器可以放心用。 */
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  height: 100%;
+html, body {
+  width: 1280px; height: 720px;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: #1a1410;
   overflow: hidden;
-  background: #17120e;
 }
 
-body {
-  font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
-  color: #2e241b;
-  -webkit-user-select: none;
-  user-select: none;
-}
+#stage { width: 1280px; height: 720px; display: flex; align-items: center; justify-content: center; }
 
-#stage {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle at 50% 42%, #2c2319 0%, #17120e 72%);
-}
-
-/* ---------- 画布：1120 × 640 居中 ---------- */
 #board {
   position: relative;
-  width: 1120px;
-  height: 640px;
-  padding: 24px 44px 18px;
-  display: flex;
-  flex-direction: column;
-  background: #f4ecd9;
+  width: 1120px; height: 640px;
+  background: linear-gradient(160deg, #2a1d14, #140d09);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.55),
-    inset 0 0 0 1px rgba(120, 92, 55, 0.35);
-  transition: box-shadow 0.3s ease;
-}
-
-#board.is-done {
-  box-shadow:
-    0 0 0 4px #c8a15a,
-    0 24px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
 }
 
 #mapBg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
   object-fit: cover;
-  opacity: 0.18;
-  filter: sepia(0.35);
-  pointer-events: none;
-  z-index: 0;
+  opacity: .22;
+  filter: saturate(.8);
 }
+#canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 
-#canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 2;
+.head { position: absolute; top: 18px; left: 0; right: 0; text-align: center; z-index: 2; }
+.head h1 {
+  color: #f4c95d; letter-spacing: 4px; font-size: 26px;
+  text-shadow: 0 2px 8px rgba(0,0,0,.6);
 }
+.head .info { color: #d9c4a8; font-size: 13px; margin-top: 6px; opacity: .85; }
 
-/* ---------- 标题 ---------- */
-.head {
-  position: relative;
-  z-index: 3;
-  margin-bottom: 12px;
-  text-align: center;
+/* 数据条 */
+.stats {
+  position: absolute; top: 78px; left: 0; right: 0; z-index: 2;
+  display: flex; justify-content: center; gap: 14px;
 }
-
-h1 {
-  margin: 0 0 5px;
-  font: 700 32px/1.2 "STXingkai", "华文行楷", "KaiTi", serif;
-  color: #8a1a12;
-  letter-spacing: 4px;
+.stat {
+  min-width: 96px; padding: 6px 12px; text-align: center;
+  background: rgba(120,40,30,.35);
+  border: 1px solid rgba(244,201,93,.4);
+  border-radius: 10px; backdrop-filter: blur(2px);
 }
+.stat .num { display: block; color: #f4c95d; font-size: 18px; font-weight: 700; }
+.stat .lab { display: block; color: #d9c4a8; font-size: 11px; margin-top: 2px; }
 
-.info {
-  margin: 0;
-  font-size: 14px;
-  letter-spacing: 1px;
-  color: #6b5a44;
-}
-
-/* ---------- 连线区 ---------- */
+/* 卡片列 */
 .row {
-  position: relative;
-  z-index: 3;
-  flex: 1;
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
+  position: absolute; top: 148px; left: 0; right: 0; z-index: 2;
+  display: flex; justify-content: space-between;
+  padding: 0 70px;
 }
-
-.col {
-  width: 410px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 14px;
-}
+.col { display: flex; flex-direction: column; gap: 12px; width: 380px; }
 
 .card {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  padding: 10px 18px;
-  border: 2px solid #c9b891;
+  padding: 11px 16px; font-size: 14px; line-height: 1.35;
+  color: #f5ede0;
+  background: rgba(38,28,20,.92);
+  border: 1.5px solid rgba(244,201,93,.5);
   border-radius: 10px;
-  background: rgba(255, 252, 244, 0.9);
-  font-size: 16px;
-  line-height: 1.45;
-  cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    border-color 0.15s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease;
+  cursor: pointer; transition: all .15s ease;
+  user-select: none;
 }
+.card:hover { border-color: #f4c95d; transform: translateY(-1px); }
+.card.selected { background: #6b4a1a; border-color: #f4c95d; box-shadow: 0 0 0 2px rgba(244,201,93,.5); }
+.card.correct { background: rgba(44,110,73,.85); border-color: #5fae7e; cursor: default; }
+.card.wrong { background: rgba(163,58,44,.85); border-color: #d07a6a; animation: shake .4s; }
+@keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
 
-#left .card {
-  justify-content: flex-start;
-  text-align: left;
+/* 史实面板 */
+.fact-panel {
+  position: absolute; left: 70px; right: 70px; bottom: 64px; z-index: 2;
+  background: rgba(20,13,9,.9);
+  border: 1px solid rgba(244,201,93,.35);
+  border-radius: 10px; padding: 10px 16px;
 }
+.fact-title { color: #f4c95d; font-size: 13px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+.fact-body { color: #e7d8c2; font-size: 13px; line-height: 1.6; min-height: 38px; }
 
-#right .card {
-  justify-content: flex-end;
-  text-align: right;
+/* 按钮 & 结果 */
+.btns { position: absolute; bottom: 16px; right: 70px; z-index: 3; }
+.btns button {
+  padding: 8px 22px; font-size: 14px;
+  color: #1a1410; background: #f4c95d; border: none; border-radius: 8px;
+  cursor: pointer; font-weight: 600; transition: filter .15s;
 }
-
-.card:hover {
-  transform: translateY(-2px);
-  border-color: #a98d5b;
-  box-shadow: 0 6px 14px rgba(80, 55, 25, 0.16);
-}
-
-.card.selected {
-  border-color: #c62828;
-  background: #fff1ee;
-  box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.14);
-}
-
-.card.correct {
-  border-color: #2c6e49;
-  background: #e9f3ea;
-  color: #245c3d;
-  cursor: default;
-}
-
-.card.correct:hover {
-  transform: none;
-  box-shadow: none;
-}
-
-.card.wrong {
-  border-color: #a33a2c;
-  background: #fbe9e6;
-  animation: shake 0.4s ease;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%      { transform: translateX(-6px); }
-  40%      { transform: translateX(6px); }
-  60%      { transform: translateX(-4px); }
-  80%      { transform: translateX(4px); }
-}
-
-/* ---------- 按钮与结果 ---------- */
-.btns {
-  position: relative;
-  z-index: 3;
-  margin-top: 14px;
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
-button {
-  padding: 9px 22px;
-  border: 0;
-  border-radius: 8px;
-  background: #8a1a12;
-  color: #f9f0da;
-  font-family: inherit;
-  font-size: 15px;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-button:hover {
-  background: #a3251a;
-}
-
-button:active {
-  transform: translateY(1px);
-}
-
-button:focus-visible {
-  outline: 2px solid #c8a15a;
-  outline-offset: 3px;
-}
-
+.btns button:hover { filter: brightness(1.08); }
 #result {
-  position: relative;
-  z-index: 3;
-  height: 22px;
-  margin-top: 8px;
-  text-align: center;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #2c6e49;
+  position: absolute; bottom: 18px; left: 70px; z-index: 3;
+  color: #5fae7e; font-size: 15px; font-weight: 700;
 }
+#board.is-done .head h1 { animation: glow 1.2s ease infinite alternate; }
+@keyframes glow { from { text-shadow: 0 0 6px #f4c95d; } to { text-shadow: 0 0 22px #f4c95d; } }
