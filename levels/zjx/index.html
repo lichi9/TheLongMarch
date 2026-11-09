@@ -32,6 +32,22 @@
   var H = canvas.height;       // 逻辑高 600
   var FONT = '"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif';
 
+  /* ==================== 与主程序的约定 ====================
+     这个文件固定叫 index.html，地图那边就是按 levels/zjx/index.html 找的。
+     单独双击打开时 IN_FRAME 为 false，一切照常；
+     被地图用 iframe 嵌进来时，通关要 postMessage 一声，
+     否则地图不知道你打完了，卡片一直是灰的。 */
+  var IN_FRAME = (function () {
+    try { return !!(window.parent && window.parent !== window); }
+    catch (e) { return false; }
+  })();
+
+  function sendDone() {
+    try {
+      if (IN_FRAME) window.parent.postMessage({ type: 'cz:done' }, '*');
+    } catch (e) { /* 跨域被挡也不影响本地游玩 */ }
+  }
+
   /* ==================== 史实参数 ==================== */
   var BRIDGE_LEN = 103.67;     // 泸定桥铁索净跨 103.67 米，这就是全程距离
   var MAX_SOLDIERS = 22;       // 22 名突击队员，一人一条命
@@ -2475,7 +2491,7 @@
 
       ctx.fillStyle = '#7ee08a';
       ctx.font = 'bold 21px ' + FONT;
-      ctx.fillText('按 空格 再冲一次', W / 2, py + 302);
+      ctx.fillText(IN_FRAME ? '按 空格 交令，回地图' : '按 空格 再冲一次', W / 2, py + 302);
     }
   }
 
@@ -2577,6 +2593,8 @@
         if (!slip.active) keys.fire = true;   // 按住连射
       } else if (state === 'fire') {
         keys.fire = true;                     // 火海里按住空格加速冲锋
+      } else if (state === 'win' && IN_FRAME) {
+        sendDone();                           // 嵌在地图里：交令，过场交给主程序
       } else if (state === 'ready' || state === 'over' || state === 'win') {
         startGame();
         keys.fire = true;
@@ -2599,12 +2617,20 @@
 
   canvas.addEventListener('click', function () {
     initAudio();
+    if (state === 'win' && IN_FRAME) { sendDone(); return; }
     if (state === 'ready' || state === 'over' || state === 'win') startGame();
   });
 
   /* ==================== 启动 ==================== */
   resetGame();
   requestAnimationFrame(loop);
+
+  /* 嵌在地图的 iframe 里时，键盘焦点还在父页面上，
+     这时按空格没反应——先抢一次焦点，抢不到就靠点一下画面。 */
+  function grabFocus() { try { window.focus(); } catch (e) {} }
+  grabFocus();
+  window.addEventListener('load', grabFocus);
+  setTimeout(grabFocus, 60);
 })();
 </script>
 </body>
