@@ -1,0 +1,2611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>飞夺泸定桥（1935年5月）</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #06131f; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  /* 画布自适应：保持 960 x 600 的 16:10 比例 */
+  canvas {
+    display: block;
+    width: min(96vw, calc(96vh * 1.6));
+    height: auto;
+    background: #0a3357;
+    border-radius: 10px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.75);
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<canvas id="game" width="960" height="600"></canvas>
+<script>
+(function () {
+  'use strict';
+
+  /* ==================== 基础环境 ==================== */
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width;        // 逻辑宽 960
+  var H = canvas.height;       // 逻辑高 600
+  var FONT = '"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif';
+
+  /* ==================== 史实参数 ==================== */
+  var BRIDGE_LEN = 103.67;     // 泸定桥铁索净跨 103.67 米，这就是全程距离
+  var MAX_SOLDIERS = 22;       // 22 名突击队员，一人一条命
+
+  /* ==================== 版式布局 ==================== */
+  var UI_H       = 104;                      // 顶部信息栏高度
+  var ROPE_COUNT = 4;                        // 4 条通道（扶手铁索）
+  var LANE_Y     = [248, 318, 388, 458];     // 4 条通道的 y 坐标
+  var ROPE_X0    = 60;                       // 铁索左端（此岸）
+  var ROPE_X1    = 620;                      // 铁索右端（对岸岸边）
+  var PANEL_X    = 628;                      // 对岸视图左边界
+  var PLAYER_CX  = 170;                      // 玩家固定 x（镜头跟随）
+  var ENEMY_FRONT_X = 706;                   // 第一排守敌（阵前）
+  var ENEMY_BACK_X  = 872;                   // 第二排守敌（桥头堡）
+  var SAG        = 7;                        // 铁索自然下垂
+
+  /* ==================== 速度设定（真实人体速度） ==================== */
+  var CRAWL_SPEED = 0.6;       // 匍匐：约 0.6 米/秒
+  var WALK_SPEED  = 1.5;       // 行走：约 1.5 米/秒
+  var PX_PER_M    = 62;        // 每 1 米对应的世界滚动像素
+
+  /* ==================== 弹药参数 ==================== */
+  var BULLET_SPEED = 420;      // 敌我子弹速度完全相同
+  var BULLET_DY    = -10;      // 弹道高度：铁索上方 10 像素（人体高度）
+  var PLAYER_FIRE_CD = 0.5;    // 玩家射击间隔
+  var ENEMY_HP     = 5;        // 每名敌人挨 5 发才倒下
+  var RESPAWN_MIN  = 4.5;      // 守敌阵亡后，最快 4.5 秒补位
+  var RESPAWN_MAX  = 7.5;      // 最慢 7.5 秒补位
+
+  /* ==================== 手滑（铁索湿滑）参数 ==================== */
+  var LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';   // 26 个英文字母
+
+  /* ==================== 过桥之后（火海 / 白刃战 / 插旗） ==================== */
+  var GROUND_Y       = 486;    // 桥头场景地面线
+  var FORT_X0        = 690;    // 桥头堡左边界
+  var FORT_X1        = 950;    // 桥头堡右边界
+  var FORT_DEFENDERS = 6;      // 桥头堡驻守敌军人数
+  var FIRE_DUR       = 6.5;    // 火海冲刺基础时长（按住空格可加速）
+  var MELEE_STEP     = 0.30;   // 每一对白刃交手的间隔
+  var CLASH_CX       = 468;    // 双方交手的位置
+  var FLAG_X         = 806;    // 红旗插下的位置（桥头堡门前）
+
+  /* ==================== 运行时状态 ==================== */
+  var state      = 'ready';    // ready / playing / fire / melee / flag / over / win
+  var failReason = 'soldiers'; // soldiers：桥上一人未过；melee：堡垒未克
+  var distance   = 0;          // 已前进米数
+  var lives      = MAX_SOLDIERS;
+  var maxLives   = MAX_SOLDIERS;
+  var speed      = 0;          // 当前速度（米/秒）
+  var scroll     = 0;          // 世界滚动像素
+  var elapsed    = 0;          // 用时
+  var animT      = 0;          // 全局动画时钟（不随状态停止）
+  var shake      = 0;          // 震屏
+  var flash      = 0;          // 全屏闪光
+  var flashColor = '255, 70, 60';
+  var muted      = false;
+  var kills      = 0;          // 累计击毙敌人
+  var medTimer   = 10;         // 补给箱刷新计时
+  var furyT      = 0;          // 勇猛状态剩余秒数（自动猛烈开火）
+
+  /* 过桥后的三个场景 */
+  var fireScene = { t: 0, p: 0, squad: 0, scroll: 0 };
+  var embers    = [];          // 火海飞散的火星
+  var melee     = { t: 0, ourN: 0, theirN: 0, pairs: 0, endT: 0, sfx: -1 };
+  var flagAnim  = { t: 0, dur: 3.6, thud: false };
+
+  var bullets  = [];           // 双方弹药
+  var medkits  = [];           // 弹药补给箱
+  var parts    = [];           // 粒子特效
+  var rings    = [];           // 水面涟漪
+  var debris   = [];           // 水面漂浮物
+  var enemies  = [];           // 两排共 8 名敌人
+
+  var keys = { walk: false, fire: false };
+
+  var player = {
+    lane: 1,
+    y: LANE_Y[1],
+    targetY: LANE_Y[1],
+    invuln: 0,
+    phase: 0,
+    fireCd: 0,
+    recoil: 0,
+    slipOff: 0        // 手滑时身体向下滑出的距离
+  };
+
+  /* 手滑事件 */
+  var slip = {
+    active: false,
+    key: 'A',         // 需要按下的字母
+    t: 0,             // 剩余反应时间
+    limit: 2.8,       // 本次总反应时间
+    next: 7,          // 距下次打滑
+    wrong: 0          // 按错键的闪红提示
+  };
+
+  /* 坠河 → 接替流程 */
+  var rescue = {
+    t: 0,             // 0 表示没有在流程中
+    phase: 'done',    // fall / rise
+    fallY: 0,
+    vy: 0,
+    rot: 0,
+    splashed: false,
+    who: 1,           // 第几位勇士
+    reason: 'bullet'
+  };
+
+  /* ==================== 通用小工具 ==================== */
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+  function roundRect(x, y, w, h, r) {
+    if (r > w / 2) r = w / 2;
+    if (r > h / 2) r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function drawStar(cx, cy, r, color) {
+    ctx.beginPath();
+    for (var i = 0; i < 10; i++) {
+      var rad = (i % 2 === 0) ? r : r * 0.45;
+      var ang = -Math.PI / 2 + i * Math.PI / 5;
+      var x = cx + Math.cos(ang) * rad;
+      var y = cy + Math.sin(ang) * rad;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  /* 圆与矩形碰撞 */
+  function hitCircleRect(cx, cy, r, rx, ry, rw, rh) {
+    var nx = Math.max(rx, Math.min(cx, rx + rw));
+    var ny = Math.max(ry, Math.min(cy, ry + rh));
+    var dx = cx - nx, dy = cy - ny;
+    return dx * dx + dy * dy <= r * r;
+  }
+
+  /* 铁索下垂量 */
+  function sagAt(x) {
+    var t = clamp((x - ROPE_X0) / (ROPE_X1 - ROPE_X0), 0, 1);
+    return 4 * SAG * t * (1 - t);
+  }
+  var PLAYER_SAG = sagAt(PLAYER_CX);
+
+  /* ==================== 极简合成音效（无外部资源） ==================== */
+  var audioCtx = null;
+
+  function initAudio() {
+    if (audioCtx) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    } catch (e) { audioCtx = null; }
+  }
+
+  function beep(freq, dur, type, vol, slideTo) {
+    if (!audioCtx || muted) return;
+    try {
+      var t0 = audioCtx.currentTime;
+      var osc = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      osc.type = type || 'square';
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + dur + 0.03);
+    } catch (e) { /* 忽略音频异常 */ }
+  }
+
+  /* 噪声爆破：用于落水的水花声（全部实时合成，无外部音频） */
+  function noiseBurst(dur, vol, f0, f1, q) {
+    if (!audioCtx || muted) return;
+    try {
+      var sr = audioCtx.sampleRate;
+      var len = Math.max(1, Math.floor(sr * dur));
+      var buf = audioCtx.createBuffer(1, len, sr);
+      var d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) {
+        var k = i / len;
+        // 前段最响、后段迅速衰减，模拟入水冲击
+        d[i] = (Math.random() * 2 - 1) * (1 - k) * (1 - k);
+      }
+      var src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      var flt = audioCtx.createBiquadFilter();
+      flt.type = 'lowpass';
+      flt.Q = q || 1;
+      flt.frequency.setValueAtTime(f0, audioCtx.currentTime);
+      flt.frequency.exponentialRampToValueAtTime(f1, audioCtx.currentTime + dur);
+      var g = audioCtx.createGain();
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+      src.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+      src.start(audioCtx.currentTime);
+    } catch (e) { /* 忽略音频异常 */ }
+  }
+
+  /* 落水音效：水花噪声 + 低沉“噗通” */
+  function splashSound() {
+    noiseBurst(0.75, 0.34, 4200, 260, 0.9);
+    noiseBurst(0.32, 0.18, 1400, 200, 1.4);
+    beep(150, 0.36, 'sine', 0.2, 52);
+  }
+
+  /* ==================== 粒子 ==================== */
+  function spawnParts(x, y, n, color, power, spread) {
+    for (var i = 0; i < n; i++) {
+      var ang = spread ? (Math.random() - 0.5) * 2 : Math.random() * Math.PI * 2;
+      parts.push({
+        x: x, y: y,
+        vx: Math.cos(ang) * (40 + Math.random() * 120) * power,
+        vy: Math.sin(ang) * (40 + Math.random() * 120) * power - 30,
+        life: 0.28 + Math.random() * 0.32,
+        max: 0.6,
+        color: color,
+        size: 1.6 + Math.random() * 2.6
+      });
+    }
+  }
+
+  /* 坠河炸开的水花：水柱 + 涟漪 */
+  function spawnSplash(x, y) {
+    var i;
+    for (i = 0; i < 30; i++) {
+      var a = -Math.PI / 2 + (Math.random() - 0.5) * 1.7;
+      var sp = 110 + Math.random() * 230;
+      parts.push({
+        x: x + (Math.random() - 0.5) * 26,
+        y: y,
+        vx: Math.cos(a) * sp * 0.75,
+        vy: Math.sin(a) * sp,
+        life: 0.45 + Math.random() * 0.55,
+        max: 1,
+        color: Math.random() < 0.3 ? '190, 230, 255' : '235, 250, 255',
+        size: 1.6 + Math.random() * 2.8
+      });
+    }
+    for (i = 0; i < 10; i++) {
+      parts.push({
+        x: x + (Math.random() - 0.5) * 34,
+        y: y + 2,
+        vx: (Math.random() - 0.5) * 90,
+        vy: -20 - Math.random() * 40,
+        life: 0.7 + Math.random() * 0.5,
+        max: 1.2,
+        color: '120, 190, 235',
+        size: 2.4 + Math.random() * 3
+      });
+    }
+    rings.push({ x: x, y: y, r: 6, vr: 210, life: 0.95, max: 0.95 });
+    rings.push({ x: x, y: y, r: 2, vr: 130, life: 1.25, max: 1.25 });
+    splashSound();
+  }
+
+  /* ==================== 初始化 ==================== */
+  function makeEnemy(lane, x, row, idx) {
+    return {
+      lane: lane,
+      x: x,
+      row: row,                    // 0 = 前排，1 = 后排
+      hp: ENEMY_HP,
+      maxHp: ENEMY_HP,
+      alive: true,
+      rise: 1,                     // 出场（从沙袋后升起）动画 0→1
+      timer: 1.6 + idx * 0.9,      // 错开开火节奏
+      flash: 0,
+      muzzle: 0,
+      deadT: 0,
+      respawnAt: RESPAWN_MIN + Math.random() * (RESPAWN_MAX - RESPAWN_MIN)
+    };
+  }
+
+  function initEnemies() {
+    enemies = [];
+    var i;
+    // 前排 4 人（每条铁索一个）
+    for (i = 0; i < ROPE_COUNT; i++) enemies.push(makeEnemy(i, ENEMY_FRONT_X, 0, i));
+    // 后排 4 人（桥头堡前，同样每条铁索一个）
+    for (i = 0; i < ROPE_COUNT; i++) enemies.push(makeEnemy(i, ENEMY_BACK_X, 1, i + 4));
+  }
+
+  function initDebris() {
+    debris = [];
+    for (var i = 0; i < 30; i++) {
+      debris.push({
+        x: Math.random() * (ROPE_X1 + 120) - 60,
+        y: UI_H + 10 + Math.random() * (H - UI_H - 20),
+        len: 8 + Math.random() * 20,
+        f: 1.4 + Math.random() * 1.1,
+        a: 0.07 + Math.random() * 0.14
+      });
+    }
+  }
+
+  function resetGame() {
+    distance = 0;
+    lives = MAX_SOLDIERS;
+    speed = 0;
+    scroll = 0;
+    elapsed = 0;
+    shake = 0;
+    flash = 0;
+    kills = 0;
+    medTimer = 10;
+    furyT = 0;
+    failReason = 'soldiers';
+    fireScene.t = 0; fireScene.p = 0; fireScene.squad = 0; fireScene.scroll = 0;
+    embers = [];
+    melee.t = 0; melee.ourN = 0; melee.theirN = 0; melee.pairs = 0; melee.endT = 0; melee.sfx = -1;
+    flagAnim.t = 0; flagAnim.thud = false;
+    bullets = [];
+    medkits = [];
+    parts = [];
+    rings = [];
+    keys.walk = false;
+    keys.fire = false;
+    player.lane = 1;
+    player.y = LANE_Y[1];
+    player.targetY = LANE_Y[1];
+    player.invuln = 0;
+    player.phase = 0;
+    player.fireCd = 0;
+    player.recoil = 0;
+    player.slipOff = 0;
+    slip.active = false;
+    slip.t = 0;
+    slip.key = 'A';
+    slip.next = 6 + Math.random() * 4;
+    slip.wrong = 0;
+    rescue.t = 0;
+    rescue.phase = 'done';
+    rescue.fallY = 0;
+    rescue.vy = 0;
+    rescue.rot = 0;
+    rescue.splashed = false;
+    rescue.who = 1;
+    initEnemies();
+    initDebris();
+  }
+
+  function startGame() {
+    resetGame();
+    state = 'playing';
+  }
+
+  function moveLane(dir) {
+    var nl = player.lane + dir;
+    if (nl < 0 || nl >= ROPE_COUNT) return;
+    player.lane = nl;
+    player.targetY = LANE_Y[nl];
+    beep(300, 0.05, 'triangle', 0.04, 420);
+  }
+
+  /* 敌人在阵地上的受击框 */
+  function enemyRect(e) {
+    var y = LANE_Y[e.lane];
+    return { x: e.x - 30, y: y - 40, w: 46, h: 34 };
+  }
+
+  /* ==================== 开火 ==================== */
+  function playerShoot() {
+    player.fireCd = furyT > 0 ? 0.13 : PLAYER_FIRE_CD;
+    player.recoil = 1;
+    var y = LANE_Y[player.lane] + BULLET_DY;
+    bullets.push({
+      side: 'p',
+      x: PLAYER_CX + 34,
+      y: y,
+      r: 5,
+      vx: BULLET_SPEED
+    });
+    spawnParts(PLAYER_CX + 38, y, 5, '255, 240, 180', 0.8, true);
+    beep(900, 0.05, 'square', 0.04, 520);
+  }
+
+  function enemyShoot(e) {
+    var y = LANE_Y[e.lane] + BULLET_DY;
+    bullets.push({
+      side: 'e',
+      x: e.x - 44,
+      y: y,
+      r: 6,
+      vx: -BULLET_SPEED
+    });
+    e.muzzle = 1;
+    spawnParts(e.x - 46, y, 4, '255, 200, 110', 0.7, true);
+    beep(700, 0.05, 'square', 0.03, 330);
+  }
+
+  /* ==================== 伤害与判定 ==================== */
+  /* 中弹 / 失手 → 坠河，由下一位勇士接替 */
+  function beginFall(reason) {
+    if (rescue.t > 0) return;
+    rescue.reason = reason;
+    rescue.t = 0.0001;
+    rescue.phase = 'fall';
+    rescue.fallY = 0;
+    rescue.vy = 40;
+    rescue.rot = 0;
+    rescue.splashed = false;
+    slip.active = false;
+    slip.next = 7 + Math.random() * 7;
+    keys.fire = false;
+
+    lives = Math.max(0, lives - 1);
+    rescue.who = Math.min(MAX_SOLDIERS, MAX_SOLDIERS - lives);
+
+    shake = 13;
+    flash = 0.45;
+    flashColor = '255, 70, 60';
+    spawnParts(PLAYER_CX, player.y + PLAYER_SAG - 8, 12, '255, 130, 100', 1.1);
+    beep(190, 0.3, 'sawtooth', 0.1, 60);
+  }
+
+  function hitEnemy(e) {
+    e.hp--;
+    e.flash = 1;
+    spawnParts(e.x - 12, LANE_Y[e.lane] - 22, 8, '255, 230, 150', 1, true);
+    beep(520, 0.05, 'square', 0.03, 300);
+    if (e.hp <= 0) {
+      e.hp = 0;
+      e.alive = false;
+      e.deadT = 0;
+      e.respawnAt = RESPAWN_MIN + Math.random() * (RESPAWN_MAX - RESPAWN_MIN);
+      kills++;
+      spawnParts(e.x - 10, LANE_Y[e.lane] - 26, 18, '255, 170, 90', 1.3);
+      beep(420, 0.18, 'sawtooth', 0.07, 160);
+    }
+  }
+
+  /* 捡到弹药补给箱：进入“勇猛状态”，5 秒内无需操作自动猛烈开火 */
+  function pickMedkit() {
+    furyT = 5;
+    flash = 0.34;
+    flashColor = '255, 170, 60';
+    shake = Math.max(shake, 7);
+    for (var i = 0; i < 18; i++) {
+      var a = Math.random() * Math.PI * 2;
+      var sp = 70 + Math.random() * 130;
+      parts.push({
+        x: PLAYER_CX, y: player.y + PLAYER_SAG - 10,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        life: 0.4 + Math.random() * 0.4, max: 0.8,
+        color: i % 3 === 0 ? '255, 250, 200' : '255, 170, 50',
+        size: 1.6 + Math.random() * 2.4
+      });
+    }
+    beep(660, 0.1, 'sine', 0.09, 980);
+    beep(990, 0.12, 'square', 0.05, 1320);
+    beep(1320, 0.2, 'square', 0.045, 1600);
+  }
+
+  /* ==================== 手滑流程 ==================== */
+  function startSlip() {
+    slip.active = true;
+    slip.key = LETTERS.charAt(Math.floor(Math.random() * LETTERS.length));
+    // 越接近对岸，敌人火力越近，留给你的反应时间越短
+    slip.limit = Math.max(1.6, 2.9 - (distance / BRIDGE_LEN) * 1.2);
+    slip.t = slip.limit;
+    slip.wrong = 0;
+    player.slipOff = 0;
+    slip.next = 7 + Math.random() * 7;
+    // 两声警报
+    beep(880, 0.08, 'square', 0.06, 660);
+    beep(520, 0.14, 'square', 0.045);
+  }
+
+  function updateSlip(dt) {
+    if (slip.wrong > 0) slip.wrong = Math.max(0, slip.wrong - dt * 3);
+
+    if (slip.active) {
+      slip.t -= dt;
+      // 抓着湿滑的铁索，身子一点点往下出溜
+      player.slipOff = Math.min(26, player.slipOff + dt * 18);
+      if (slip.t <= 0) {
+        beginFall('slip');
+      }
+      return;
+    }
+
+    player.slipOff = Math.max(0, player.slipOff - dt * 70);
+
+    if (rescue.t > 0) return;
+    if (elapsed < 5) return;     // 开局给 5 秒缓冲
+
+    slip.next -= dt;
+    if (slip.next <= 0) startSlip();
+  }
+
+  /* ==================== 坠河 → 前仆后继 ==================== */
+  function updateRescue(dt) {
+    rescue.t += dt;
+
+    if (rescue.phase === 'fall') {
+      rescue.vy += 1500 * dt;
+      rescue.fallY += rescue.vy * dt;
+      rescue.rot += dt * 5;
+
+      var fy = player.y + PLAYER_SAG + rescue.fallY;
+      if (fy >= 545 && !rescue.splashed) {
+        rescue.splashed = true;
+        spawnSplash(PLAYER_CX, 545);
+        shake = 16;
+      }
+      if (rescue.t >= 0.95) {
+        if (!rescue.splashed) {
+          rescue.splashed = true;
+          spawnSplash(PLAYER_CX, 545);
+        }
+        rescue.phase = 'rise';
+        shake = Math.max(shake, 8);
+        // 下一位勇士冲上来的脚步声
+        beep(160, 0.06, 'triangle', 0.05);
+      }
+      return;
+    }
+
+    /* 新战士接替 */
+    if (rescue.t >= 1.9) {
+      rescue.t = 0;
+      rescue.phase = 'done';
+      player.slipOff = 0;
+      if (lives <= 0) {
+        state = 'over';
+        beep(320, 0.7, 'sawtooth', 0.1, 80);
+      } else {
+        player.invuln = 1.7;
+        beep(520, 0.07, 'square', 0.06);
+        beep(780, 0.11, 'square', 0.05);
+      }
+    }
+  }
+
+  /* 坠河期间只让子弹继续飞，不判定命中 */
+  function moveBulletsOnly(dt) {
+    for (var b = bullets.length - 1; b >= 0; b--) {
+      var bl = bullets[b];
+      bl.x += bl.vx * dt;
+      if (bl.x < -60 || bl.x > W + 60) bullets.splice(b, 1);
+    }
+  }
+
+  /* ==================== 逻辑更新 ==================== */
+  function update(dt) {
+    animT += dt;
+    if (shake > 0) shake = Math.max(0, shake - dt * 60);
+    if (flash > 0) flash = Math.max(0, flash - dt * 1.8);
+    if (player.recoil > 0) player.recoil = Math.max(0, player.recoil - dt * 6);
+
+    // 粒子
+    for (var p = parts.length - 1; p >= 0; p--) {
+      var pt = parts[p];
+      pt.x += pt.vx * dt;
+      pt.y += pt.vy * dt;
+      pt.vy += 260 * dt;
+      pt.life -= dt;
+      if (pt.life <= 0) parts.splice(p, 1);
+    }
+
+    // 水面涟漪
+    for (var r = rings.length - 1; r >= 0; r--) {
+      var rg = rings[r];
+      rg.r += rg.vr * dt;
+      rg.vr *= Math.max(0, 1 - dt * 1.5);
+      rg.life -= dt;
+      if (rg.life <= 0) rings.splice(r, 1);
+    }
+
+    updateEmbers(dt);
+
+    /* —— 过桥之后的三段场景 —— */
+    if (state === 'fire') { updateFire(dt); return; }
+    if (state === 'melee') { updateMelee(dt); return; }
+    if (state === 'flag') { updateFlag(dt); return; }
+
+    if (state !== 'playing') return;
+    elapsed += dt;
+
+    /* —— 坠河 / 接替：冻结推进 —— */
+    if (rescue.t > 0) {
+      updateRescue(dt);
+      moveBulletsOnly(dt);
+      return;
+    }
+
+    /* —— 铁索湿滑 —— */
+    updateSlip(dt);
+
+    /* —— 前进：匍匐 / 行走，速度接近真人 —— */
+    var targetSpeed = slip.active ? 0 : (keys.walk ? WALK_SPEED : CRAWL_SPEED);
+    speed += (targetSpeed - speed) * Math.min(1, dt * 3);
+    distance += speed * dt;
+    scroll += speed * dt * PX_PER_M;
+
+    player.phase += dt * (keys.walk ? 9 : 4.5);
+    player.y += (player.targetY - player.y) * Math.min(1, dt * 15);
+    if (player.invuln > 0) player.invuln -= dt;
+
+    // 水面漂浮物视差
+    var flow = speed * PX_PER_M;
+    for (var d = 0; d < debris.length; d++) {
+      var db = debris[d];
+      db.x -= flow * db.f * dt;
+      if (db.x < -70) {
+        db.x = ROPE_X1 + 40 + Math.random() * 120;
+        db.y = UI_H + 10 + Math.random() * (H - UI_H - 20);
+      }
+    }
+
+    /* —— 主控射击：勇猛状态下不受控制、自动连续猛烈开火 —— */
+    if (player.fireCd > 0) player.fireCd -= dt;
+    if (furyT > 0) {
+      furyT -= dt;
+      if (furyT <= 0) { furyT = 0; }
+    }
+    if (furyT > 0) {
+      // 勇猛状态：不用按键，自己一直打
+      if (!slip.active && player.fireCd <= 0) playerShoot();
+    } else if (keys.fire && !slip.active && player.fireCd <= 0) {
+      playerShoot();
+    }
+
+    /* —— 敌人开火 / 阵亡补位 —— */
+    for (var i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      if (e.flash > 0) e.flash = Math.max(0, e.flash - dt * 5);
+      if (e.muzzle > 0) e.muzzle = Math.max(0, e.muzzle - dt * 12);
+      if (e.rise < 1) e.rise = Math.min(1, e.rise + dt * 4);
+
+      if (!e.alive) {
+        e.deadT += dt;
+        // 过几秒，新兵从沙袋后补位
+        if (e.deadT >= e.respawnAt) {
+          e.alive = true;
+          e.hp = e.maxHp;
+          e.deadT = 0;
+          e.rise = 0;
+          e.timer = 1.1 + Math.random() * 1.4;
+          e.respawnAt = RESPAWN_MIN + Math.random() * (RESPAWN_MAX - RESPAWN_MIN);
+          spawnParts(e.x, LANE_Y[e.lane] - 26, 7, '210, 220, 200', 0.6, true);
+          beep(360, 0.09, 'square', 0.04, 500);
+        }
+        continue;
+      }
+      e.timer -= dt;
+      if (e.timer <= 0) {
+        enemyShoot(e);
+        e.timer = 3.6 + Math.random() * 3.4;    // 单人 3.6~7.0 秒一发
+      }
+    }
+
+    /* —— 弹药飞行与命中 —— */
+    var pRect = { x: PLAYER_CX - 18, y: player.y - 22, w: 40, h: 22 };
+    for (var b = bullets.length - 1; b >= 0; b--) {
+      var bl = bullets[b];
+      bl.x += bl.vx * dt;
+
+      if (bl.side === 'p') {
+        // 我方子弹：打同一条铁索上最靠前的敌人（先前排，后后排）
+        for (var k = 0; k < enemies.length; k++) {
+          var en = enemies[k];
+          if (!en.alive) continue;
+          if (Math.abs(LANE_Y[en.lane] + BULLET_DY - bl.y) > 2) continue;
+          var er = enemyRect(en);
+          if (hitCircleRect(bl.x, bl.y, bl.r, er.x, er.y, er.w, er.h)) {
+            hitEnemy(en);
+            bullets.splice(b, 1);
+            break;
+          }
+        }
+        if (bl.x > W + 40) bullets.splice(b, 1);
+      } else {
+        // 敌方子弹：命中主控即坠河（手滑抓索时子弹从头顶飞过）
+        if (player.invuln <= 0 && !slip.active &&
+            hitCircleRect(bl.x, bl.y, bl.r, pRect.x, pRect.y, pRect.w, pRect.h)) {
+          bullets.splice(b, 1);
+          beginFall('bullet');
+          continue;
+        }
+        if (bl.x < -40) bullets.splice(b, 1);
+      }
+    }
+
+    /* —— 急救包 —— */
+    medTimer -= dt;
+    if (medTimer <= 0) {
+      medkits.push({
+        x: ROPE_X1 + 20,
+        y: LANE_Y[Math.floor(Math.random() * ROPE_COUNT)],
+        r: 13,
+        vx: 160 + Math.random() * 50
+      });
+      medTimer = 9 + Math.random() * 6;
+    }
+    for (var m = medkits.length - 1; m >= 0; m--) {
+      var mk = medkits[m];
+      mk.x -= mk.vx * dt;
+      if (mk.x < -40) { medkits.splice(m, 1); continue; }
+      var dx = mk.x - PLAYER_CX;
+      var dy = mk.y - player.y;
+      if (dx * dx + dy * dy < (mk.r + 22) * (mk.r + 22)) {
+        medkits.splice(m, 1);
+        pickMedkit();
+      }
+    }
+
+    /* —— 抵达对岸：立刻进入桥头火海 —— */
+    if (distance >= BRIDGE_LEN) {
+      distance = BRIDGE_LEN;
+      startFireScene();
+    }
+  }
+
+  /* ==================== 过桥之后 · 一：火海冲刺 ==================== */
+  function startFireScene() {
+    state = 'fire';
+    fireScene.t = 0;
+    fireScene.p = 0;
+    fireScene.scroll = 0;
+    fireScene.squad = Math.max(1, lives);   // 此刻还剩多少位勇士
+    bullets = [];
+    medkits = [];
+    keys.fire = false;
+    keys.walk = false;
+    slip.active = false;
+    rescue.t = 0;
+    rescue.phase = 'done';
+    player.slipOff = 0;
+    shake = 14;
+    flash = 0.55;
+    flashColor = '255, 150, 50';
+    noiseBurst(1.1, 0.26, 2600, 170, 0.8);
+    beep(110, 0.7, 'sawtooth', 0.09, 48);
+  }
+
+  function updateFire(dt) {
+    fireScene.t += dt;
+    var boost = keys.fire ? 1.75 : 1;
+    fireScene.p += (dt / FIRE_DUR) * boost;
+    fireScene.scroll += dt * (boost > 1 ? 620 : 340);
+
+    // 火星四溅
+    if (Math.random() < dt * 60) {
+      embers.push({
+        x: Math.random() * W,
+        y: H - 30 - Math.random() * 150,
+        vx: -50 - Math.random() * 110,
+        vy: -50 - Math.random() * 120,
+        life: 0.8 + Math.random() * 1.1,
+        max: 1.9,
+        size: 1 + Math.random() * 2.4
+      });
+    }
+    // 火海呼啸
+    if (Math.random() < dt * 2.4) noiseBurst(0.5, 0.04, 1150, 200, 0.7);
+
+    if (fireScene.p >= 1) startMelee();
+  }
+
+  function updateEmbers(dt) {
+    for (var i = embers.length - 1; i >= 0; i--) {
+      var e = embers[i];
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+      e.vx += 18 * dt;
+      e.vy -= 16 * dt;
+      e.life -= dt;
+      if (e.life <= 0) embers.splice(i, 1);
+    }
+  }
+
+  /* ==================== 过桥之后 · 二：白刃搏斗 ==================== */
+  function startMelee() {
+    state = 'melee';
+    melee.t = 0;
+    melee.ourN = Math.max(1, lives);       // 我方冲过来的勇士
+    melee.theirN = FORT_DEFENDERS;         // 堡垒里的守敌
+    melee.pairs = Math.min(melee.ourN, melee.theirN);
+    melee.endT = 0.55 + melee.pairs * MELEE_STEP + 1.7;
+    melee.sfx = -1;
+    keys.fire = false;
+    shake = 12;
+    flash = 0.25;
+    flashColor = '255, 120, 60';
+    beep(520, 0.12, 'square', 0.07);
+    beep(392, 0.18, 'square', 0.06);
+  }
+
+  function updateMelee(dt) {
+    melee.t += dt;
+
+    // 每一对交手，来一声金属撞击 + 迸溅火星
+    var idx = Math.floor((melee.t - 0.55) / MELEE_STEP);
+    if (idx >= 0 && idx < melee.pairs && idx !== melee.sfx) {
+      melee.sfx = idx;
+      beep(1500, 0.05, 'square', 0.05, 720);
+      noiseBurst(0.12, 0.06, 4200, 1200, 1.2);
+      spawnParts(CLASH_CX, GROUND_Y - 42, 9, '255, 244, 200', 1, true);
+      shake = Math.max(shake, 5);
+    }
+
+    // 火海余烬还在飘
+    if (Math.random() < dt * 14) {
+      embers.push({
+        x: Math.random() * W,
+        y: H - 20 - Math.random() * 90,
+        vx: -30 - Math.random() * 60,
+        vy: -40 - Math.random() * 70,
+        life: 0.9 + Math.random() * 1.0,
+        max: 1.9,
+        size: 1 + Math.random() * 2
+      });
+    }
+
+    if (melee.t >= melee.endT) {
+      if (melee.ourN > melee.theirN) {
+        startFlag();
+      } else {
+        failReason = 'melee';
+        state = 'over';
+        beep(300, 0.7, 'sawtooth', 0.1, 70);
+      }
+    }
+  }
+
+  /* ==================== 过桥之后 · 三：把红旗插上桥头堡 ==================== */
+  function startFlag() {
+    state = 'flag';
+    flagAnim.t = 0;
+    flagAnim.thud = false;
+    // 白刃战里双方各倒下一批，我方剩下的就是活下来的勇士
+    lives = Math.max(1, melee.ourN - melee.theirN);
+    kills += melee.theirN;
+    keys.fire = false;
+    beep(392, 0.3, 'sine', 0.07);
+    beep(523, 0.28, 'sine', 0.06);
+    beep(659, 0.34, 'sine', 0.05);
+  }
+
+  function updateFlag(dt) {
+    flagAnim.t += dt;
+
+    // 堡门口的火星继续飘
+    if (Math.random() < dt * 10) {
+      embers.push({
+        x: FORT_X0 + Math.random() * (FORT_X1 - FORT_X0),
+        y: GROUND_Y - 10 - Math.random() * 40,
+        vx: -20 - Math.random() * 40,
+        vy: -40 - Math.random() * 60,
+        life: 0.9 + Math.random() * 1.0,
+        max: 1.9,
+        size: 1 + Math.random() * 1.8
+      });
+    }
+
+    // 旗杆砸进土里的一刻
+    if (!flagAnim.thud && flagAnim.t >= 1.45) {
+      flagAnim.thud = true;
+      shake = 16;
+      flash = 0.3;
+      flashColor = '255, 200, 120';
+      noiseBurst(0.3, 0.2, 900, 160, 1.2);
+      beep(120, 0.3, 'sine', 0.16, 60);
+      spawnParts(FLAG_X, GROUND_Y, 22, '210, 190, 150', 1, true);
+    }
+
+    if (flagAnim.t >= flagAnim.dur) {
+      state = 'win';
+      beep(523, 0.14, 'square', 0.09);
+      beep(659, 0.14, 'square', 0.06);
+      beep(784, 0.32, 'square', 0.09);
+    }
+  }
+
+  /* ==================== 场景绘制 ==================== */
+
+  /* 大渡河水面（只铺到对岸视图左侧） */
+  function drawWater() {
+    var g = ctx.createLinearGradient(0, UI_H, 0, H);
+    g.addColorStop(0, '#105484');
+    g.addColorStop(0.55, '#0a3a63');
+    g.addColorStop(1, '#041f38');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, UI_H, PANEL_X, H - UI_H);
+
+    ctx.lineWidth = 2;
+    for (var row = 0; row < 15; row++) {
+      var y = UI_H + 16 + row * 34;
+      if (y > H) break;
+      var phase = scroll * (0.010 + row * 0.0006) + row * 1.3;
+      ctx.strokeStyle = 'rgba(150, 215, 255, ' + (0.05 + (row % 4) * 0.02) + ')';
+      ctx.beginPath();
+      for (var x = 0; x <= PANEL_X; x += 16) {
+        var yy = y + Math.sin(x * 0.018 + phase) * 5;
+        if (x === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+    }
+
+    // 前景漂浮物
+    ctx.lineCap = 'round';
+    for (var i = 0; i < debris.length; i++) {
+      var db = debris[i];
+      if (db.x > PANEL_X) continue;
+      ctx.strokeStyle = 'rgba(210, 240, 255, ' + db.a + ')';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(db.x, db.y);
+      ctx.lineTo(db.x + db.len, db.y + Math.sin(db.x * 0.05) * 1.5);
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+  }
+
+  /* 此岸岩石桥台 */
+  function drawNearBank() {
+    ctx.fillStyle = '#243038';
+    ctx.beginPath();
+    ctx.moveTo(0, UI_H);
+    ctx.lineTo(48, UI_H);
+    ctx.lineTo(62, 170);
+    ctx.lineTo(46, 260);
+    ctx.lineTo(64, 350);
+    ctx.lineTo(44, 440);
+    ctx.lineTo(60, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(120, 96, 70, 0.9)';
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(26, 220); ctx.lineTo(56, 470); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(18, 330); ctx.lineTo(58, 330); ctx.stroke();
+  }
+
+  /* ============ 对岸：单独一块视图 ============ */
+  function drawFarPanel() {
+    var pw = W - PANEL_X;
+
+    // 崖壁分隔（水面与对岸的交界）
+    var eg = ctx.createLinearGradient(PANEL_X - 12, 0, PANEL_X + 10, 0);
+    eg.addColorStop(0, 'rgba(4,20,34,0)');
+    eg.addColorStop(0.6, 'rgba(3,14,24,0.85)');
+    eg.addColorStop(1, '#20241c');
+    ctx.fillStyle = eg;
+    ctx.fillRect(PANEL_X - 12, UI_H, 22, H - UI_H);
+
+    // 对岸地面
+    var g = ctx.createLinearGradient(0, UI_H, 0, H);
+    g.addColorStop(0, '#33342a');
+    g.addColorStop(0.5, '#24251c');
+    g.addColorStop(1, '#12130d');
+    ctx.fillStyle = g;
+    ctx.fillRect(PANEL_X, UI_H, pw, H - UI_H);
+
+    // 岩块
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+    ctx.beginPath();
+    ctx.moveTo(PANEL_X + 10, UI_H + 60);
+    ctx.lineTo(PANEL_X + 120, UI_H + 30);
+    ctx.lineTo(PANEL_X + 150, UI_H + 96);
+    ctx.lineTo(PANEL_X + 40, UI_H + 120);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(PANEL_X + 40, H - 60);
+    ctx.lineTo(PANEL_X + 210, H - 110);
+    ctx.lineTo(PANEL_X + 260, H - 20);
+    ctx.lineTo(PANEL_X + 30, H - 10);
+    ctx.closePath(); ctx.fill();
+
+    // 地面裂缝
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 1.5;
+    for (var c = 0; c < 5; c++) {
+      var cx0 = PANEL_X + 20 + c * 62;
+      ctx.beginPath();
+      ctx.moveTo(cx0, H - 40 - c * 8);
+      ctx.lineTo(cx0 + 26, H - 66 - c * 6);
+      ctx.lineTo(cx0 + 52, H - 50 - c * 9);
+      ctx.stroke();
+    }
+
+    // 通道延长虚线（示意弹道走向）
+    for (var i = 0; i < ROPE_COUNT; i++) {
+      var ly = LANE_Y[i] + BULLET_DY;
+      ctx.strokeStyle = 'rgba(255, 200, 130, 0.10)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (var x = ROPE_X1 + 4; x < ENEMY_BACK_X - 40; x += 12) {
+        ctx.moveTo(x, ly);
+        ctx.lineTo(x + 6, ly);
+      }
+      ctx.stroke();
+    }
+
+    // 视图边框
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(PANEL_X + 2, UI_H + 2, pw - 4, H - UI_H - 4);
+    ctx.strokeStyle = 'rgba(255, 214, 150, 0.22)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(PANEL_X + 6, UI_H + 6, pw - 12, H - UI_H - 12);
+
+    // 标题
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = 'rgba(255, 214, 150, 0.9)';
+    ctx.font = 'bold 13px ' + FONT;
+    ctx.fillText('对岸 · 敌军阵地（两排 8 人）', PANEL_X + 16, UI_H + 28);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255, 235, 200, 0.62)';
+    ctx.font = '12px ' + FONT;
+    ctx.fillText('距对岸 ' + Math.max(0, BRIDGE_LEN - distance).toFixed(1) + ' 米', W - 16, UI_H + 28);
+
+    // 当前还有几名守敌在射击
+    var aliveN = 0;
+    for (var k = 0; k < enemies.length; k++) if (enemies[k].alive) aliveN++;
+    if (aliveN === 0) {
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(126, 224, 138, 0.95)';
+      ctx.font = 'bold 15px ' + FONT;
+      ctx.fillText('敌军阵地暂时沉寂（守敌即将补位）', PANEL_X + pw / 2, UI_H + 54);
+    } else {
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(255, 190, 150, 0.55)';
+      ctx.font = '12px ' + FONT;
+      ctx.fillText('守敌 ' + aliveN + ' 人正在射击', PANEL_X + 16, UI_H + 50);
+    }
+  }
+
+  /* 铁索与吊杆 */
+  function drawRopes() {
+    var step = 58;
+    var off = scroll % step;
+    var midX = (ROPE_X0 + ROPE_X1) / 2;
+    var i, x, px, t, ky;
+
+    ctx.strokeStyle = 'rgba(18, 26, 34, 0.34)';
+    ctx.lineWidth = 2;
+    for (x = -step; x < ROPE_X1 + step; x += step) {
+      px = x - off;
+      if (px < ROPE_X0 || px > ROPE_X1) continue;
+      var sg = sagAt(px);
+      ctx.beginPath();
+      ctx.moveTo(px, LANE_Y[0] - 14 + sg);
+      ctx.lineTo(px, LANE_Y[ROPE_COUNT - 1] + 14 + sg);
+      ctx.stroke();
+    }
+
+    for (i = 0; i < ROPE_COUNT; i++) {
+      var y = LANE_Y[i];
+
+      ctx.strokeStyle = 'rgba(8, 14, 20, 0.55)';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(ROPE_X0, y + 4);
+      ctx.quadraticCurveTo(midX, y + 4 + SAG * 2, ROPE_X1, y + 4);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#9aa3a8';
+      ctx.lineWidth = 4.5;
+      ctx.beginPath();
+      ctx.moveTo(ROPE_X0, y);
+      ctx.quadraticCurveTo(midX, y + SAG * 2, ROPE_X1, y);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(ROPE_X0, y - 1.4);
+      ctx.quadraticCurveTo(midX, y - 1.4 + SAG * 2, ROPE_X1, y - 1.4);
+      ctx.stroke();
+
+      // 铁环
+      ctx.fillStyle = 'rgba(58, 64, 70, 0.85)';
+      for (x = -step; x < ROPE_X1 + step; x += step) {
+        px = x - off;
+        if (px < ROPE_X0 || px > ROPE_X1) continue;
+        t = clamp((px - ROPE_X0) / (ROPE_X1 - ROPE_X0), 0, 1);
+        ky = y + 4 * SAG * t * (1 - t);
+        ctx.beginPath();
+        ctx.arc(px, ky, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  /* ============ 敌人站在路尽头 ============ */
+  function drawSandbags(x, y) {
+    for (var r = 0; r < 3; r++) {
+      var count = 4 - (r % 2 === 0 ? 0 : 1);
+      for (var i = 0; i < count; i++) {
+        var sx = x - 40 + i * 21 + (r % 2) * 10;
+        var sy = y - 8 - r * 9;
+        ctx.fillStyle = r === 0 ? '#8f7d5a' : (r === 1 ? '#a08d67' : '#94815d');
+        roundRect(sx, sy, 22, 10, 4.5);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(60, 48, 30, 0.55)';
+        ctx.lineWidth = 1;
+        roundRect(sx, sy, 22, 10, 4.5);
+        ctx.stroke();
+      }
+    }
+  }
+
+  function drawEnemy(e) {
+    var baseY = LANE_Y[e.lane];
+    // 补位的新兵从沙袋后面升起来
+    var y = baseY + (e.alive ? (1 - e.rise) * 14 : 0);
+    var x = e.x;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.beginPath();
+    ctx.ellipse(x - 4, baseY + 3, 26, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (e.alive) {
+      var hx = x - 4, hy = y - 34;
+
+      // 身体
+      ctx.fillStyle = '#8f7d52';
+      roundRect(x - 16, hy + 8, 28, 22, 6);
+      ctx.fill();
+      ctx.fillStyle = '#6d5e3c';
+      ctx.fillRect(x - 16, hy + 12, 28, 3);
+
+      // 头
+      ctx.fillStyle = '#d8b48a';
+      ctx.beginPath();
+      ctx.arc(hx, hy, 8.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 钢盔
+      ctx.fillStyle = '#5a5f4a';
+      ctx.beginPath();
+      ctx.arc(hx, hy - 1, 10, Math.PI * 1.02, Math.PI * 1.98);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(hx - 11.5, hy - 2.5, 23, 3.2);
+
+      // 眼睛
+      ctx.fillStyle = '#2a2216';
+      ctx.fillRect(hx + 1.5, hy + 1.5, 2.4, 2.4);
+      ctx.fillRect(hx + 6.5, hy + 1.5, 2.4, 2.4);
+
+      // 步枪（枪口恰好在弹道高度）
+      ctx.strokeStyle = '#4a3524';
+      ctx.lineWidth = 3.4;
+      ctx.beginPath();
+      ctx.moveTo(x - 12, y - 20);
+      ctx.lineTo(x - 38, y - 11);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#23231f';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 28, y - 14);
+      ctx.lineTo(x - 42, y - 10);
+      ctx.stroke();
+
+      // 沙袋挡在身前
+      drawSandbags(x, baseY);
+
+      // 枪口火光
+      if (e.muzzle > 0) {
+        var mg = ctx.createRadialGradient(x - 44, y - 10, 0, x - 44, y - 10, 22);
+        mg.addColorStop(0, 'rgba(255, 245, 190, ' + (0.95 * e.muzzle) + ')');
+        mg.addColorStop(1, 'rgba(255, 170, 40, 0)');
+        ctx.fillStyle = mg;
+        ctx.beginPath();
+        ctx.arc(x - 44, y - 10, 22, 0, Math.PI * 2);
+        ctx.fill();
+        drawStar(x - 46, y - 10, 9 * e.muzzle, 'rgba(255, 240, 170, ' + e.muzzle + ')');
+      }
+
+      // 被击中闪白
+      if (e.flash > 0) {
+        ctx.fillStyle = 'rgba(255, 255, 255, ' + (0.6 * e.flash) + ')';
+        roundRect(x - 20, hy - 12, 38, 46, 8);
+        ctx.fill();
+      }
+
+      // 血条
+      var bw = 44, bh = 5;
+      var bx = x - bw / 2 - 4, by = y - 58;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      roundRect(bx - 1, by - 1, bw + 2, bh + 2, 3);
+      ctx.fill();
+      ctx.fillStyle = '#7a1f1f';
+      roundRect(bx, by, bw, bh, 2.5);
+      ctx.fill();
+      var hg = ctx.createLinearGradient(bx, by, bx + bw, by);
+      hg.addColorStop(0, '#ff6b4a');
+      hg.addColorStop(1, '#ffc44d');
+      ctx.fillStyle = hg;
+      roundRect(bx, by, Math.max(0, bw * (e.hp / e.maxHp)), bh, 2.5);
+      ctx.fill();
+    } else {
+      // 倒地
+      var d = Math.min(1, e.deadT * 3);
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#7c6c49';
+      roundRect(x - 26, baseY - 12 + (1 - d) * 6, 34, 14, 7);
+      ctx.fill();
+      ctx.fillStyle = '#c9a67e';
+      ctx.beginPath();
+      ctx.arc(x - 30, baseY - 8 + (1 - d) * 6, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#5a5f4a';
+      ctx.beginPath();
+      ctx.arc(x - 44, baseY - 2, 8, Math.PI, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#2a2216';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(x - 33, baseY - 10 + (1 - d) * 6); ctx.lineTo(x - 28, baseY - 5 + (1 - d) * 6);
+      ctx.moveTo(x - 28, baseY - 10 + (1 - d) * 6); ctx.lineTo(x - 33, baseY - 5 + (1 - d) * 6);
+      ctx.stroke();
+      ctx.restore();
+
+      drawSandbags(x, baseY);
+
+      ctx.strokeStyle = 'rgba(120, 200, 130, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 10, baseY - 54); ctx.lineTo(x + 2, baseY - 44);
+      ctx.moveTo(x + 2, baseY - 54); ctx.lineTo(x - 10, baseY - 44);
+      ctx.stroke();
+
+      // 补位倒计时（细环）
+      var k = Math.min(1, e.deadT / e.respawnAt);
+      ctx.strokeStyle = 'rgba(255, 210, 120, ' + (0.18 + 0.4 * (1 - k)) + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x - 8, baseY - 66, 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - k));
+      ctx.stroke();
+    }
+  }
+
+  /* ==================== Q 版红军战士 ==================== */
+  function drawCap(hx, hy, r) {
+    // 八角帽帽体
+    ctx.fillStyle = '#7d8b66';
+    ctx.beginPath();
+    ctx.moveTo(hx - r - 1.5, hy + 1.5);
+    ctx.quadraticCurveTo(hx - r * 0.9, hy - r * 1.35, hx, hy - r * 1.2);
+    ctx.quadraticCurveTo(hx + r * 0.9, hy - r * 1.35, hx + r + 1.5, hy + 1.5);
+    ctx.closePath();
+    ctx.fill();
+    // 帽檐
+    ctx.fillStyle = '#65734f';
+    ctx.beginPath();
+    ctx.moveTo(hx - r - 2.5, hy + 1);
+    ctx.lineTo(hx + r + 2.5, hy + 1);
+    ctx.lineTo(hx + r + 1, hy + 3.6);
+    ctx.lineTo(hx - r - 1, hy + 3.6);
+    ctx.closePath();
+    ctx.fill();
+    // 红星
+    drawStar(hx, hy - r * 0.45, r * 0.4, '#e01b24');
+  }
+
+  /* 匍匐：整个人趴在铁索上，一点一点挪 */
+  function drawCrawlPose(cx, y, phase) {
+    var bob = Math.sin(phase) * 1.4;
+    var hy = y - 11 + bob;
+
+    // 腿
+    ctx.fillStyle = '#4f5b3f';
+    roundRect(cx - 30, hy + 2, 14, 8, 4); ctx.fill();
+    roundRect(cx - 26, hy + 6, 12, 6, 3); ctx.fill();
+
+    // 身体
+    var g = ctx.createLinearGradient(0, hy - 7, 0, hy + 10);
+    g.addColorStop(0, '#84936c');
+    g.addColorStop(1, '#4f5b3f');
+    ctx.fillStyle = g;
+    roundRect(cx - 18, hy - 7, 34, 15, 7.5);
+    ctx.fill();
+
+    // 腰带
+    ctx.fillStyle = '#6b4a2a';
+    ctx.fillRect(cx - 8, hy - 7, 4, 15);
+
+    // 前臂
+    ctx.fillStyle = '#74835c';
+    roundRect(cx + 9, hy - 3, 15, 7, 3.5);
+    ctx.fill();
+
+    // 步枪
+    ctx.strokeStyle = '#4a3524';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx + 10, hy + 7);
+    ctx.lineTo(cx + 36, hy + 1);
+    ctx.stroke();
+    ctx.strokeStyle = '#1f1f1c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + 28, hy + 3);
+    ctx.lineTo(cx + 40, hy - 0.5);
+    ctx.stroke();
+
+    // 手
+    ctx.fillStyle = '#f2cba4';
+    ctx.beginPath(); ctx.arc(cx + 24, hy + 1, 3.4, 0, Math.PI * 2); ctx.fill();
+
+    // 头
+    var hx = cx + 22, hdy = hy - 5;
+    ctx.fillStyle = '#f2cba4';
+    ctx.beginPath(); ctx.arc(hx, hdy, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2b2118';
+    ctx.beginPath(); ctx.arc(hx + 4.5, hdy + 1.5, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hx + 8, hdy + 1.5, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#b06a52';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(hx + 4, hdy + 5);
+    ctx.lineTo(hx + 7, hdy + 5);
+    ctx.stroke();
+    drawCap(hx, hdy, 9);
+  }
+
+  /* 行走：猫着腰快步通过 */
+  function drawWalkPose(cx, y, phase) {
+    var sw = Math.sin(phase);
+    var bob = Math.abs(Math.cos(phase)) * 2.2;
+    var baseY = y - bob;
+
+    // 腿（交替）
+    ctx.fillStyle = '#4a5639';
+    roundRect(cx - 9 + sw * 5, baseY - 11, 8, 12, 3.5); ctx.fill();
+    roundRect(cx + 1 - sw * 5, baseY - 11, 8, 12, 3.5); ctx.fill();
+
+    // 身体
+    var g = ctx.createLinearGradient(0, baseY - 34, 0, baseY - 8);
+    g.addColorStop(0, '#84936c');
+    g.addColorStop(1, '#4f5b3f');
+    ctx.fillStyle = g;
+    roundRect(cx - 11, baseY - 34, 22, 26, 8);
+    ctx.fill();
+
+    // 腰带 + 挎包
+    ctx.fillStyle = '#6b4a2a';
+    ctx.fillRect(cx - 11, baseY - 19, 22, 4);
+    ctx.fillStyle = '#8a7a4f';
+    roundRect(cx - 15, baseY - 18, 9, 10, 3); ctx.fill();
+
+    // 后手
+    ctx.fillStyle = '#74835c';
+    roundRect(cx - 8 + sw * 3, baseY - 28, 7, 12, 3.5); ctx.fill();
+
+    // 步枪
+    ctx.strokeStyle = '#4a3524';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx + 4, baseY - 24);
+    ctx.lineTo(cx + 32, baseY - 12);
+    ctx.stroke();
+    ctx.strokeStyle = '#1f1f1c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + 24, baseY - 15);
+    ctx.lineTo(cx + 38, baseY - 10);
+    ctx.stroke();
+
+    // 前手
+    ctx.fillStyle = '#f2cba4';
+    ctx.beginPath(); ctx.arc(cx + 14, baseY - 21, 3.4, 0, Math.PI * 2); ctx.fill();
+
+    // 头
+    var hy = baseY - 44;
+    ctx.fillStyle = '#f2cba4';
+    ctx.beginPath(); ctx.arc(cx, hy, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2b2118';
+    ctx.beginPath(); ctx.arc(cx + 3, hy + 1.5, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 7.5, hy + 1.5, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#b06a52';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(cx + 3.5, hy + 5);
+    ctx.lineTo(cx + 7, hy + 5);
+    ctx.stroke();
+    drawCap(cx, hy, 10);
+  }
+
+  /* 通用：画一名战士（含影子） */
+  function drawTrooper(cx, y, phase, walking) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    ctx.beginPath();
+    ctx.ellipse(cx, y + 4, 24, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (walking) drawWalkPose(cx, y, phase);
+    else drawCrawlPose(cx, y, phase);
+  }
+
+  function drawPlayer() {
+    /* —— 坠河：整个人翻下铁索 —— */
+    if (rescue.t > 0 && rescue.phase === 'fall') {
+      var fy = player.y + PLAYER_SAG + rescue.fallY;
+      var sc = clamp(1 - rescue.fallY / 520, 0.3, 1);
+      ctx.save();
+      ctx.globalAlpha = clamp(1.15 - rescue.fallY / 420, 0, 1);
+      ctx.translate(PLAYER_CX, fy);
+      ctx.rotate(rescue.rot);
+      ctx.scale(sc, sc);
+      drawCrawlPose(0, 0, player.phase);
+      ctx.restore();
+      return;
+    }
+
+    /* —— 前仆后继：新战士从左侧索上冲上来 —— */
+    if (rescue.t > 0 && rescue.phase === 'rise') {
+      var k = clamp((rescue.t - 0.95) / 0.8, 0, 1);
+      var ease = 1 - Math.pow(1 - k, 3);
+      var nx = -70 + (PLAYER_CX + 70) * ease;
+      var ny = LANE_Y[player.lane] + PLAYER_SAG;
+      ctx.save();
+      ctx.globalAlpha = 0.25 + 0.75 * ease;
+      drawTrooper(nx, ny, elapsed * 12, true);
+      ctx.restore();
+      // 冲上来的尘土
+      if (k < 1 && Math.random() < 0.5) {
+        spawnParts(nx - 18, ny + 2, 1, '200, 190, 160', 0.4, true);
+      }
+      return;
+    }
+
+    /* —— 正常 / 手滑 —— */
+    var cx = PLAYER_CX - player.recoil * 2;
+    var off = slip.active ? player.slipOff : 0;
+    var jitterX = slip.active ? Math.sin(elapsed * 42) * 1.6 : 0;
+    var y = player.y + PLAYER_SAG + off;
+
+    ctx.save();
+    if (player.invuln > 0) {
+      ctx.globalAlpha = 0.35 + 0.65 * (Math.floor(player.invuln * 12) % 2);
+    }
+
+    if (slip.active) {
+      // 单臂死死抓住铁索，另一只手在下方乱抓
+      ctx.strokeStyle = 'rgba(240, 200, 160, 0.95)';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(cx + 16, y - 12);
+      ctx.lineTo(cx + 22, y - 2);
+      ctx.stroke();
+    }
+
+    /* 勇猛状态：身周腾起红光与放射光束 */
+    if (furyT > 0) {
+      var fa = Math.min(1, furyT / 0.6) * (0.65 + 0.35 * Math.sin(animT * 16));
+      var fg2 = ctx.createRadialGradient(cx, y - 12, 4, cx, y - 12, 62);
+      fg2.addColorStop(0, 'rgba(255, 190, 90, ' + (0.5 * fa) + ')');
+      fg2.addColorStop(0.45, 'rgba(255, 110, 40, ' + (0.26 * fa) + ')');
+      fg2.addColorStop(1, 'rgba(255, 60, 0, 0)');
+      ctx.fillStyle = fg2;
+      ctx.beginPath(); ctx.arc(cx, y - 12, 62, 0, Math.PI * 2); ctx.fill();
+
+      ctx.save();
+      ctx.translate(cx, y - 12);
+      ctx.rotate(animT * 2.4);
+      ctx.strokeStyle = 'rgba(255, 205, 120, ' + (0.5 * fa) + ')';
+      ctx.lineWidth = 2;
+      for (var ray = 0; ray < 9; ray++) {
+        var ang = ray * Math.PI * 2 / 9;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * 22, Math.sin(ang) * 12);
+        ctx.lineTo(Math.cos(ang) * (38 + 12 * Math.sin(animT * 9 + ray)), Math.sin(ang) * (22 + 8 * Math.sin(animT * 9 + ray)));
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    drawTrooper(cx + jitterX + (furyT > 0 ? Math.sin(animT * 40) * 1.4 : 0), y, player.phase, keys.walk && !slip.active);
+    ctx.restore();
+
+    // 状态小标签
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '11px ' + FONT;
+    var label = slip.active ? '手滑！'
+      : (furyT > 0 ? '勇猛！自动猛烈开火 ' + furyT.toFixed(1) + 's'
+        : (keys.walk ? '行走 1.5 m/s' : '匍匐 0.6 m/s'));
+    var tw = ctx.measureText(label).width;
+    var bx = cx - tw / 2 - 6, by = y - (keys.walk ? 88 : 54);
+    ctx.fillStyle = slip.active ? 'rgba(150, 20, 20, 0.8)'
+      : (furyT > 0 ? 'rgba(120, 40, 4, 0.82)' : 'rgba(6, 20, 34, 0.62)');
+    roundRect(bx, by, tw + 12, 17, 8);
+    ctx.fill();
+    ctx.fillStyle = slip.active ? '#ffd0c0'
+      : (furyT > 0 ? '#ffc65a' : (keys.walk ? 'rgba(255, 226, 122, 0.95)' : 'rgba(150, 225, 255, 0.95)'));
+    ctx.fillText(label, cx, by + 12.5);
+  }
+
+  /* 弹药（两套弹道特效） */
+  function drawBullet(b) {
+    if (b.side === 'p') {
+      // 我方：青白曳光弹
+      var g = ctx.createLinearGradient(b.x - 30, b.y, b.x + 8, b.y);
+      g.addColorStop(0, 'rgba(90, 210, 255, 0)');
+      g.addColorStop(0.6, 'rgba(120, 230, 255, 0.45)');
+      g.addColorStop(1, 'rgba(235, 255, 255, 0.95)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(b.x - 30, b.y);
+      ctx.lineTo(b.x, b.y - 2.6);
+      ctx.lineTo(b.x + 9, b.y);
+      ctx.lineTo(b.x, b.y + 2.6);
+      ctx.closePath();
+      ctx.fill();
+
+      var gg = ctx.createRadialGradient(b.x + 2, b.y, 0, b.x + 2, b.y, 15);
+      gg.addColorStop(0, 'rgba(170, 245, 255, 0.6)');
+      gg.addColorStop(1, 'rgba(120, 220, 255, 0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(b.x + 2, b.y, 15, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#f2ffff';
+      ctx.beginPath(); ctx.ellipse(b.x + 3, b.y, 5.5, 2.8, 0, 0, Math.PI * 2); ctx.fill();
+    } else {
+      // 敌方：橙黄火球
+      ctx.strokeStyle = 'rgba(255, 150, 40, 0.30)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(b.x + 6, b.y);
+      ctx.lineTo(b.x + 32, b.y);
+      ctx.stroke();
+
+      var g2 = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 19);
+      g2.addColorStop(0, 'rgba(255, 246, 190, 0.95)');
+      g2.addColorStop(0.4, 'rgba(255, 170, 50, 0.55)');
+      g2.addColorStop(1, 'rgba(255, 90, 0, 0)');
+      ctx.fillStyle = g2;
+      ctx.beginPath(); ctx.arc(b.x, b.y, 19, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#ffd400';
+      ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff8cc';
+      ctx.beginPath(); ctx.arc(b.x - 1, b.y - 1, 3.6, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawBullets() {
+    for (var i = 0; i < bullets.length; i++) drawBullet(bullets[i]);
+  }
+
+  /* 弹药补给箱（飘过来，吃到有 7 秒连发） */
+  function drawMedkits() {
+    for (var i = 0; i < medkits.length; i++) {
+      var m = medkits[i];
+      var y = m.y + Math.sin(elapsed * 5 + i) * 2;
+
+      // 金色光晕
+      var gg = ctx.createRadialGradient(m.x, y, 2, m.x, y, 26);
+      gg.addColorStop(0, 'rgba(255, 220, 120, 0.30)');
+      gg.addColorStop(1, 'rgba(255, 190, 60, 0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(m.x, y, 26, 0, Math.PI * 2); ctx.fill();
+
+      // 插在箱子上的三发子弹
+      for (var k = -1; k <= 1; k++) {
+        ctx.fillStyle = '#ffcf4d';
+        roundRect(m.x + k * 7 - 2, y - 15, 4, 12, 1.6);
+        ctx.fill();
+        ctx.fillStyle = '#fff2c0';
+        ctx.beginPath();
+        ctx.arc(m.x + k * 7, y - 15, 2, Math.PI, 0);
+        ctx.fill();
+      }
+
+      // 弹药箱
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
+      roundRect(m.x - 13 + 2, y - 1 + 3, 26, 13, 4); ctx.fill();
+      ctx.fillStyle = '#5c6a3c';
+      roundRect(m.x - 13, y - 1, 26, 13, 4); ctx.fill();
+      ctx.strokeStyle = '#2f3a1e';
+      ctx.lineWidth = 1.8;
+      roundRect(m.x - 13, y - 1, 26, 13, 4); ctx.stroke();
+      ctx.fillStyle = '#7d8b52';
+      ctx.fillRect(m.x - 11, y + 3, 22, 3);
+    }
+  }
+
+  function drawParts() {
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      var a = Math.max(0, p.life / p.max);
+      ctx.fillStyle = 'rgba(' + p.color + ', ' + a + ')';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /* 水面涟漪 */
+  function drawRings() {
+    for (var i = 0; i < rings.length; i++) {
+      var rg = rings[i];
+      var a = Math.max(0, rg.life / rg.max) * 0.55;
+      ctx.strokeStyle = 'rgba(225, 245, 255, ' + a + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(rg.x, rg.y, rg.r, rg.r * 0.3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(180, 225, 255, ' + (a * 0.6) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(rg.x, rg.y, rg.r * 0.72, rg.r * 0.22, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  function drawVignette() {
+    var g = ctx.createRadialGradient(W / 2, H * 0.6, 180, W / 2, H * 0.6, 660);
+    g.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    g.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  /* ==================== 桥头场景绘制 ==================== */
+
+  /* 一簇程序化火焰 */
+  function drawFlame(x, baseY, w, h, seed, alpha) {
+    var sway = Math.sin(animT * 6.5 + seed) * w * 0.20;
+    var lift = 1 + Math.sin(animT * 10.2 + seed * 1.7) * 0.13;
+
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2, baseY);
+    ctx.quadraticCurveTo(x - w * 0.52 + sway * 0.5, baseY - h * 0.50 * lift, x + sway, baseY - h * lift);
+    ctx.quadraticCurveTo(x + w * 0.52 + sway * 0.5, baseY - h * 0.46 * lift, x + w / 2, baseY);
+    ctx.closePath();
+
+    var g = ctx.createLinearGradient(0, baseY, 0, baseY - h);
+    g.addColorStop(0, 'rgba(255, 86, 16, ' + (0.86 * alpha) + ')');
+    g.addColorStop(0.45, 'rgba(255, 158, 34, ' + (0.72 * alpha) + ')');
+    g.addColorStop(1, 'rgba(255, 240, 170, 0)');
+    ctx.fillStyle = g;
+    ctx.fill();
+  }
+
+  /* 火星 */
+  function drawEmbers() {
+    for (var i = 0; i < embers.length; i++) {
+      var e = embers[i];
+      var a = Math.max(0, e.life / e.max);
+      ctx.fillStyle = 'rgba(255, ' + Math.round(160 + 80 * a) + ', 90, ' + (a * 0.95) + ')';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.size * (0.45 + a * 0.7), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /* 桥头堡：石墙 + 城垛 + 门洞 + 火光射击孔 */
+  function drawFortress(burning) {
+    var x0 = FORT_X0, x1 = FORT_X1, top = 250;
+
+    var g = ctx.createLinearGradient(x0, top, x0, GROUND_Y);
+    g.addColorStop(0, '#4b4438');
+    g.addColorStop(0.6, '#332e24');
+    g.addColorStop(1, '#1f1b14');
+    ctx.fillStyle = g;
+    ctx.fillRect(x0, top, x1 - x0, GROUND_Y - top);
+
+    // 城垛
+    for (var i = 0; i < 6; i++) {
+      ctx.fillStyle = '#3d372c';
+      ctx.fillRect(x0 + 10 + i * 44, top - 24, 28, 26);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.fillRect(x0 + 10 + i * 44, top - 24, 28, 6);
+    }
+
+    // 石缝
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.lineWidth = 1;
+    for (var r = 0; r < 9; r++) {
+      var yy = top + 22 + r * 28;
+      if (yy > GROUND_Y) break;
+      ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x1, yy); ctx.stroke();
+      for (var c = 0; c < 7; c++) {
+        var xx = x0 + ((c * 40 + (r % 2) * 20) % (x1 - x0));
+        ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx, Math.min(GROUND_Y, yy + 28)); ctx.stroke();
+      }
+    }
+
+    // 门洞
+    ctx.fillStyle = '#0e0805';
+    roundRect(x0 + 66, GROUND_Y - 104, 78, 104, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120, 96, 66, 0.55)';
+    ctx.lineWidth = 3;
+    roundRect(x0 + 66, GROUND_Y - 104, 78, 104, 8);
+    ctx.stroke();
+
+    // 堡内火光从射击孔透出
+    for (var s = 0; s < 4; s++) {
+      var fl = 0.35 + 0.65 * Math.abs(Math.sin(animT * 5 + s * 1.3));
+      ctx.fillStyle = 'rgba(255, 150, 50, ' + (0.32 * fl) + ')';
+      ctx.fillRect(x0 + 24 + s * 58, 300, 20, 26);
+    }
+
+    // 门口两堆火
+    if (burning !== false) {
+      drawFlame(x0 + 40, GROUND_Y + 4, 70, 90, 3.1, 0.9);
+      drawFlame(x1 - 30, GROUND_Y + 4, 80, 104, 5.7, 0.9);
+    }
+  }
+
+  /* 桥头场景的通用底（天光 + 地面 + 堡） */
+  function drawBridgeHeadBackdrop() {
+    var g = ctx.createLinearGradient(0, UI_H, 0, H);
+    g.addColorStop(0, '#1c0a06');
+    g.addColorStop(0.45, '#3c1108');
+    g.addColorStop(1, '#1b0d07');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, UI_H, W, H - UI_H);
+
+    // 堡后的冲天火光
+    var rg = ctx.createRadialGradient(790, 470, 60, 790, 470, 560);
+    rg.addColorStop(0, 'rgba(255, 176, 60, 0.40)');
+    rg.addColorStop(0.45, 'rgba(255, 90, 20, 0.16)');
+    rg.addColorStop(1, 'rgba(255, 60, 0, 0)');
+    ctx.fillStyle = rg;
+    ctx.fillRect(0, UI_H, W, H - UI_H);
+
+    // 远处山影
+    ctx.fillStyle = 'rgba(10, 6, 4, 0.55)';
+    ctx.beginPath();
+    ctx.moveTo(0, 300);
+    ctx.lineTo(180, 236);
+    ctx.lineTo(360, 286);
+    ctx.lineTo(520, 250);
+    ctx.lineTo(700, 292);
+    ctx.lineTo(960, 248);
+    ctx.lineTo(960, GROUND_Y);
+    ctx.lineTo(0, GROUND_Y);
+    ctx.closePath();
+    ctx.fill();
+
+    // 地面
+    var gg = ctx.createLinearGradient(0, GROUND_Y - 10, 0, H);
+    gg.addColorStop(0, '#42301f');
+    gg.addColorStop(0.5, '#241710');
+    gg.addColorStop(1, '#0f0906');
+    ctx.fillStyle = gg;
+    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+    // 地面裂缝
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.lineWidth = 1.5;
+    for (var c = 0; c < 9; c++) {
+      var cx0 = 20 + c * 108;
+      ctx.beginPath();
+      ctx.moveTo(cx0, H - 30);
+      ctx.lineTo(cx0 + 34, H - 62);
+      ctx.lineTo(cx0 + 74, H - 44);
+      ctx.stroke();
+    }
+
+    drawFortress(true);
+  }
+
+  /* 小号战士（远景群像 / 白刃战） */
+  function drawMiniFighter(x, y, s, phase, side, mode) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(s, s);
+    if (mode === 'fallen') {
+      ctx.rotate(-Math.PI / 2.35);
+      ctx.globalAlpha = 0.9;
+    }
+
+    var sw = Math.sin(phase);
+    var top = side === 'our' ? '#84936c' : '#8d7d51';
+    var bot = side === 'our' ? '#4f5b3f' : '#665936';
+
+    // 影子
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    ctx.beginPath(); ctx.ellipse(0, 1, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+    // 腿
+    ctx.fillStyle = bot;
+    roundRect(-9 + sw * 4, -13, 8, 13, 3.5); ctx.fill();
+    roundRect(1 - sw * 4, -13, 8, 13, 3.5); ctx.fill();
+
+    // 身体
+    var g = ctx.createLinearGradient(0, -40, 0, -12);
+    g.addColorStop(0, top); g.addColorStop(1, bot);
+    ctx.fillStyle = g;
+    roundRect(-11, -38, 22, 26, 7);
+    ctx.fill();
+
+    // 头
+    ctx.fillStyle = '#f2cba4';
+    ctx.beginPath(); ctx.arc(0, -46, 8.5, 0, Math.PI * 2); ctx.fill();
+
+    if (side === 'our') {
+      // 八角帽 + 红星
+      drawCap(0, -46, 8.5);
+      ctx.fillStyle = '#2b2118';
+      ctx.fillRect(3, -45, 1.8, 1.8);
+      ctx.fillRect(6, -45, 1.8, 1.8);
+    } else {
+      // 钢盔
+      ctx.fillStyle = '#565b46';
+      ctx.beginPath();
+      ctx.arc(0, -47, 9.6, Math.PI * 1.02, Math.PI * 1.98);
+      ctx.closePath(); ctx.fill();
+      ctx.fillRect(-11, -48.5, 22, 3);
+      ctx.fillStyle = '#2a2216';
+      ctx.fillRect(-6, -45, 1.8, 1.8);
+      ctx.fillRect(-2.6, -45, 1.8, 1.8);
+    }
+
+    // 步枪 + 刺刀
+    ctx.strokeStyle = '#3a2a1c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-4, -28);
+    ctx.lineTo(18, -38);
+    ctx.stroke();
+    ctx.strokeStyle = '#a9b2b8';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(18, -38);
+    ctx.lineTo(28, -42);
+    ctx.stroke();
+
+    // 手
+    ctx.fillStyle = '#f2cba4';
+    ctx.beginPath(); ctx.arc(6, -31, 3.2, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore();
+  }
+
+  /* 小旗（跟在带头勇士身后） */
+  function drawSmallFlag(x, y, scale, wave) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.strokeStyle = '#7d5f3c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -74);
+    ctx.stroke();
+    var fw = 44, fh = 28, ty = -74;
+    ctx.beginPath();
+    ctx.moveTo(1, ty);
+    ctx.quadraticCurveTo(fw * 0.55, ty - 4 + Math.sin(wave) * 3, fw, ty + Math.sin(wave + 1) * 4);
+    ctx.lineTo(fw, ty + fh + Math.sin(wave + 1.3) * 4);
+    ctx.quadraticCurveTo(fw * 0.55, ty + fh + 4 + Math.sin(wave + 2) * 3, 1, ty + fh);
+    ctx.closePath();
+    ctx.fillStyle = '#d8202a';
+    ctx.fill();
+    drawStar(fw * 0.3, ty + fh * 0.42, 7, '#ffdc5c');
+    ctx.restore();
+  }
+
+  /* ============ 场景一：火海冲刺 ============ */
+  function drawFireScene() {
+    var deckTop = 442, deckBot = 522;
+    var off = fireScene.scroll % 54;
+
+    /* 天空 */
+    var g = ctx.createLinearGradient(0, UI_H, 0, H);
+    g.addColorStop(0, '#1a0704');
+    g.addColorStop(0.42, '#3f1108');
+    g.addColorStop(1, '#7d2c06');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, UI_H, W, H - UI_H);
+
+    /* 对岸石堡剪影（一半埋在火里） */
+    ctx.fillStyle = '#190c08';
+    ctx.fillRect(FORT_X0, 244, FORT_X1 - FORT_X0, deckTop - 244 + 30);
+    for (var m = 0; m < 6; m++) ctx.fillRect(FORT_X0 + 10 + m * 44, 224, 28, 24);
+    for (var sl = 0; sl < 4; sl++) {
+      var fl2 = 0.35 + 0.65 * Math.abs(Math.sin(animT * 5 + sl * 1.1));
+      ctx.fillStyle = 'rgba(255, 150, 50, ' + (0.30 * fl2) + ')';
+      ctx.fillRect(FORT_X0 + 26 + sl * 58, 286, 20, 26);
+    }
+
+    /* 火光云 */
+    var rg = ctx.createRadialGradient(W * 0.6, 520, 60, W * 0.6, 520, 640);
+    rg.addColorStop(0, 'rgba(255, 186, 74, 0.40)');
+    rg.addColorStop(0.5, 'rgba(255, 96, 20, 0.15)');
+    rg.addColorStop(1, 'rgba(255, 60, 0, 0)');
+    ctx.fillStyle = rg;
+    ctx.fillRect(0, UI_H, W, H - UI_H);
+
+    /* 燃烧的桥面 */
+    ctx.fillStyle = '#20110a';
+    ctx.fillRect(0, deckTop, W, deckBot - deckTop);
+    for (var x = -54; x < W + 54; x += 54) {
+      var px = x - off;
+      var fl = 0.5 + 0.5 * Math.sin(animT * 8 + px * 0.05);
+      ctx.fillStyle = 'rgba(112, 56, 22, ' + (0.45 + 0.30 * fl) + ')';
+      ctx.fillRect(px + 3, deckTop + 6, 48, deckBot - deckTop - 18);
+      ctx.fillStyle = 'rgba(255, ' + Math.round(110 + 90 * fl) + ', 40, ' + (0.10 + 0.22 * fl) + ')';
+      ctx.fillRect(px + 51, deckTop + 4, 3, deckBot - deckTop - 6);
+    }
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+    ctx.fillRect(0, deckBot, W, 6);
+
+    /* 桥面后方的火墙 */
+    for (var f = 0; f < 16; f++) {
+      var fx = ((f * 72 - fireScene.scroll * 0.55) % (W + 160) + W + 160) % (W + 160) - 40;
+      drawFlame(fx, deckTop + 10, 58, 66 + (f % 3) * 34, f * 1.7, 0.55);
+    }
+
+    /* 勇士冲刺 */
+    var n = fireScene.squad;
+    var advance = fireScene.p * 260;
+    var cols = 6;
+    for (var row = 0; row < 4; row++) {
+      for (var c = 0; c < cols; c++) {
+        var i = row * cols + c;
+        if (i >= n) continue;
+        var bx = 66 + c * 44 + row * 20 + advance;
+        var by = 492 - row * 15;
+        var sc = 0.62 + row * 0.04;
+        if (i === 0) drawSmallFlag(bx - 4, by - 40, 0.72, animT * 6);
+        drawMiniFighter(bx, by, sc, animT * 13 + i * 0.9, 'our', 'idle');
+      }
+    }
+
+    /* 前景火焰（压住脚边） */
+    for (var f2 = 0; f2 < 12; f2++) {
+      var fx2 = ((f2 * 92 - fireScene.scroll * 1.55) % (W + 200) + W + 200) % (W + 200) - 60;
+      drawFlame(fx2, H + 20, 92, 84 + (f2 % 2) * 36, f2 * 2.3, 0.85);
+    }
+
+    drawEmbers();
+
+    /* 文案 */
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    var pulse = 0.7 + 0.3 * Math.sin(animT * 8);
+    ctx.font = 'bold 34px ' + FONT;
+    ctx.fillStyle = 'rgba(255, 210, 90, ' + pulse + ')';
+    ctx.fillText('火 海 冲 刺', W / 2, 196);
+    ctx.font = 'bold 17px ' + FONT;
+    ctx.fillStyle = 'rgba(255, 226, 180, 0.95)';
+    ctx.fillText('敌人纵火，桥头已是一片火海 —— 还剩 ' + fireScene.squad + ' 位勇士', W / 2, 228);
+    ctx.font = '14px ' + FONT;
+    ctx.fillStyle = 'rgba(255, 200, 150, 0.75)';
+    ctx.fillText(keys.fire ? '冲！冲过去！' : '按住 空格 加速冲锋', W / 2, 252);
+
+    /* 进度 */
+    var bw2 = 420, bx2 = (W - bw2) / 2, by2 = 268;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    roundRect(bx2, by2, bw2, 8, 4); ctx.fill();
+    ctx.fillStyle = '#ff8a2b';
+    roundRect(bx2, by2, Math.max(4, bw2 * clamp(fireScene.p, 0, 1)), 8, 4); ctx.fill();
+  }
+
+  /* ============ 场景二：白刃搏斗 ============ */
+  /* 站位：我方在左，守敌在堡门前 */
+  function meleePos(side, i) {
+    var cols = 6;
+    var col = i % cols, row = Math.floor(i / cols);
+    if (side === 'our') {
+      // 下标 0 在最前排、最靠右（先交手）
+      return { x: 132 + (cols - 1 - col) * 42 + row * 16, y: 500 - row * 15, s: 0.66 - row * 0.04 };
+    }
+    return { x: 544 + col * 26 + row * 12, y: 498 - row * 15, s: 0.62 - row * 0.04 };
+  }
+
+  function meleeSideState(i, t, side) {
+    var st = { x: 0, y: 0, mode: 'idle' };
+    var p = meleePos(side, i);
+    st.x = p.x; st.y = p.y; st.s = p.s;
+    if (i >= melee.pairs) return st;
+
+    var t0 = 0.55 + i * MELEE_STEP;
+    if (t >= t0 + MELEE_STEP) {
+      st.mode = 'fallen';
+    } else if (t >= t0) {
+      var k = (t - t0) / MELEE_STEP;
+      var rush = Math.sin(k * Math.PI);
+      var goal = side === 'our' ? CLASH_CX - 22 : CLASH_CX + 24;
+      st.x = p.x + (goal - p.x) * rush * 0.95;
+      st.y = p.y - rush * 5;
+      st.mode = 'charge';
+    }
+    return st;
+  }
+
+  function drawMeleeScene() {
+    var t = melee.t;
+    drawBridgeHeadBackdrop();
+
+    // 地面上的火
+    drawFlame(120, GROUND_Y + 6, 90, 74, 2.2, 0.8);
+    drawFlame(330, GROUND_Y + 6, 70, 52, 4.4, 0.7);
+
+    var i, st;
+
+    // 守敌（后排先画）
+    for (i = melee.theirN - 1; i >= 0; i--) {
+      st = meleeSideState(i, t, 'enemy');
+      drawMiniFighter(st.x, st.y, st.s, animT * 10 + i, 'enemy', st.mode);
+    }
+
+    // 我方
+    for (i = melee.ourN - 1; i >= 0; i--) {
+      st = meleeSideState(i, t, 'our');
+      drawMiniFighter(st.x, st.y, st.s, animT * 13 + i * 0.7, 'our', st.mode);
+    }
+
+    // 交手处的火星迸溅
+    var cur = Math.floor((t - 0.55) / MELEE_STEP);
+    if (cur >= 0 && cur < melee.pairs) {
+      var kk = ((t - 0.55) % MELEE_STEP) / MELEE_STEP;
+      if (kk > 0.25 && kk < 0.75) {
+        var rr = 10 + 16 * Math.sin((kk - 0.25) * Math.PI * 2);
+        var gg2 = ctx.createRadialGradient(CLASH_CX, GROUND_Y - 42, 0, CLASH_CX, GROUND_Y - 42, rr);
+        gg2.addColorStop(0, 'rgba(255, 250, 210, 0.95)');
+        gg2.addColorStop(1, 'rgba(255, 170, 40, 0)');
+        ctx.fillStyle = gg2;
+        ctx.beginPath(); ctx.arc(CLASH_CX, GROUND_Y - 42, rr, 0, Math.PI * 2); ctx.fill();
+        drawStar(CLASH_CX, GROUND_Y - 42, 9, 'rgba(255, 240, 180, 0.85)');
+      }
+    }
+
+    drawEmbers();
+    drawParts();
+
+    /* 战况面板 */
+    var done = clamp((t - 0.55) / (melee.pairs * MELEE_STEP), 0, 1);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = 'bold 30px ' + FONT;
+    ctx.fillStyle = 'rgba(255, 220, 130, 0.95)';
+    ctx.fillText('白刃相接 · 夺取桥头堡', W / 2, 178);
+
+    ctx.font = 'bold 16px ' + FONT;
+    var ourLeft = Math.max(0, melee.ourN - Math.floor(done * melee.pairs));
+    var theirLeft = Math.max(0, melee.theirN - Math.floor(done * melee.pairs));
+    ctx.fillStyle = '#9fe3ff';
+    ctx.textAlign = 'right';
+    ctx.fillText('我方勇士 ' + ourLeft + ' 人', W / 2 - 40, 212);
+    ctx.fillStyle = 'rgba(255, 170, 150, 0.95)';
+    ctx.textAlign = 'left';
+    ctx.fillText('守敌 ' + theirLeft + ' 人', W / 2 + 40, 212);
+
+    ctx.textAlign = 'center';
+    ctx.font = '13px ' + FONT;
+    ctx.fillStyle = 'rgba(200, 220, 240, 0.7)';
+    ctx.fillText('我方人数多于守敌，就能拿下桥头堡', W / 2, 238);
+  }
+
+  /* ============ 场景三：把红旗插上桥头堡 ============ */
+  function drawBigFlag(x, baseY, poleLen, unfold, wave) {
+    // 旗杆
+    ctx.strokeStyle = '#9a7448';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(x, baseY);
+    ctx.lineTo(x, baseY - poleLen);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255, 235, 190, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 1.6, baseY);
+    ctx.lineTo(x - 1.6, baseY - poleLen);
+    ctx.stroke();
+
+    // 枪尖
+    drawStar(x, baseY - poleLen - 6, 7, '#ffd24d');
+
+    if (unfold <= 0.01) return;
+
+    var fw = 104 * unfold;
+    var fh = 64;
+    var ty = baseY - poleLen + 6;
+
+    ctx.beginPath();
+    ctx.moveTo(x + 1, ty);
+    ctx.quadraticCurveTo(x + fw * 0.55, ty - 6 + Math.sin(wave) * 5,
+                         x + fw, ty + Math.sin(wave + 1) * 7);
+    ctx.lineTo(x + fw, ty + fh + Math.sin(wave + 1.4) * 7);
+    ctx.quadraticCurveTo(x + fw * 0.55, ty + fh + 6 + Math.sin(wave + 2) * 5,
+                         x + 1, ty + fh);
+    ctx.closePath();
+
+    var fg = ctx.createLinearGradient(x, ty, x + fw, ty + fh);
+    fg.addColorStop(0, '#ef2530');
+    fg.addColorStop(0.55, '#c8161f');
+    fg.addColorStop(1, '#8d0d14');
+    ctx.fillStyle = fg;
+    ctx.fill();
+
+    // 布面褶皱
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    ctx.lineWidth = 1.6;
+    for (var i = 1; i <= 3; i++) {
+      var kx = fw * i / 4;
+      ctx.beginPath();
+      ctx.moveTo(x + kx, ty + 4);
+      ctx.quadraticCurveTo(x + kx + Math.sin(wave + i) * 4, ty + fh * 0.5, x + kx, ty + fh - 4);
+      ctx.stroke();
+    }
+
+    drawStar(x + fw * 0.26, ty + fh * 0.38, 12, '#ffdc5c');
+  }
+
+  function drawFlagScene() {
+    var t = flagAnim.t;
+    drawBridgeHeadBackdrop();
+
+    var walk = clamp(t / 0.95, 0, 1);
+    var px = 520 + (FLAG_X - 520) * (1 - Math.pow(1 - walk, 3));
+    var poleLen = t < 0.95 ? 96 : 96 + 44 * clamp((t - 0.95) / 0.5, 0, 1);
+
+    // 幸存的勇士（欢呼）
+    var n = Math.min(lives, 12);
+    for (var i = n - 1; i >= 0; i--) {
+      var col = i % 6, row = Math.floor(i / 6);
+      var bx = 250 + (5 - col) * 34 + row * 18;
+      var by = 512 - row * 16;
+      var jump = t > 1.45 ? Math.abs(Math.sin(animT * 7 + i * 0.8)) * 9 : 0;
+      drawMiniFighter(bx, by - jump, 0.6 - row * 0.03, animT * 8 + i, 'our', 'idle');
+    }
+
+    // 旗手
+    var planterY = GROUND_Y + 6;
+    ctx.save();
+    ctx.translate(px, planterY);
+    drawBigFlag(0, 0, poleLen, clamp((t - 1.45) / 0.55, 0, 1), animT * 5);
+    ctx.restore();
+
+    // 旗手本人（在旗杆后方）
+    drawMiniFighter(px + 16, planterY, 0.9, animT * 10, 'our', 'idle');
+
+    // 插旗瞬间的尘土
+    if (t > 1.45 && t < 2.2) {
+      var k = (t - 1.45) / 0.75;
+      ctx.strokeStyle = 'rgba(220, 200, 160, ' + (0.5 * (1 - k)) + ')';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(FLAG_X, GROUND_Y + 4, 20 + k * 90, 5 + k * 22, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    drawEmbers();
+    drawParts();
+
+    // 大字
+    var a = clamp((t - 1.5) / 0.4, 0, 1);
+    if (a > 0) {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.font = 'bold 40px ' + FONT;
+      ctx.fillStyle = 'rgba(255, 216, 90, ' + a + ')';
+      ctx.fillText('红旗插上泸定桥！', W / 2, 196);
+      ctx.font = 'bold 16px ' + FONT;
+      ctx.fillStyle = 'rgba(255, 232, 190, ' + (a * 0.95) + ')';
+      ctx.fillText('22 位勇士前仆后继，桥头堡终于拿下来了', W / 2, 228);
+    }
+  }
+
+  /* ==================== 界面 ==================== */
+  function drawUI() {
+    ctx.fillStyle = 'rgba(6, 20, 34, 0.80)';
+    ctx.fillRect(0, 0, W, UI_H);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.fillRect(0, UI_H - 1, W, 1);
+
+    ctx.textBaseline = 'alphabetic';
+
+    // 标题
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffe27a';
+    ctx.font = 'bold 24px ' + FONT;
+    ctx.fillText('飞夺泸定桥（1935年5月）', 22, 34);
+
+    // 操作说明
+    ctx.fillStyle = 'rgba(206, 232, 250, 0.70)';
+    ctx.font = '12px ' + FONT;
+    var help = '↑/↓ 换铁索　空格 射击　→ 行走（默认匍匐）　M 静音　打滑时按提示字母';
+    if (state === 'fire') help = '按住 空格 加速冲过火海';
+    else if (state === 'melee') help = '白刃相接 —— 我方人数多于守敌才能拿下堡垒';
+    else if (state === 'flag') help = '红旗插上桥头堡';
+    ctx.fillText(help, 22, 56);
+
+    // 距离 / 用时
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 15px ' + FONT;
+    ctx.fillText('已前进 ' + distance.toFixed(1) + ' / ' + BRIDGE_LEN + ' 米', 22, 80);
+    ctx.fillStyle = 'rgba(200, 225, 245, 0.72)';
+    ctx.font = '13px ' + FONT;
+    ctx.fillText('用时 ' + elapsed.toFixed(1) + ' 秒', 250, 80);
+    ctx.fillText('击毙 ' + kills + ' 人', 355, 80);
+    if (furyT > 0) {
+      ctx.fillStyle = '#ffb03a';
+      ctx.font = 'bold 13px ' + FONT;
+      ctx.fillText('勇猛状态 ' + furyT.toFixed(1) + 's', 448, 80);
+    }
+
+    // 勇士剩余（22 条）
+    ctx.textAlign = 'right';
+    ctx.fillStyle = lives > 6 ? '#ff8b7a' : '#ff4d4d';
+    ctx.font = 'bold 16px ' + FONT;
+    ctx.fillText('勇士 ' + lives + ' / ' + maxLives, W - 22, 32);
+
+    var bw = 5, gap = 3;
+    var totalW = maxLives * bw + (maxLives - 1) * gap;
+    var sx = W - 22 - totalW;
+    for (var i = 0; i < maxLives; i++) {
+      if (i < lives) {
+        ctx.fillStyle = i >= lives - 1 ? '#ffd166' : '#ff5a68';
+      } else {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.13)';
+      }
+      ctx.fillRect(sx + i * (bw + gap), 41, bw, 11);
+    }
+
+    // 进度条
+    var barX = 22, barY = 88, barW = W - 44, barH = 6;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    roundRect(barX, barY, barW, barH, 3);
+    ctx.fill();
+    var prog = clamp(distance / BRIDGE_LEN, 0, 1);
+    if (prog > 0) {
+      ctx.fillStyle = '#ffd400';
+      roundRect(barX, barY, Math.max(6, barW * prog), barH, 3);
+      ctx.fill();
+    }
+  }
+
+  /* 手滑提示：必须在时间内按对字母 */
+  function drawSlipPrompt() {
+    if (!slip.active) return;
+
+    var cx = 336, cy = 186;
+    var pulse = 0.55 + 0.45 * Math.sin(elapsed * 20);
+    var warn = slip.wrong > 0;
+
+    // 面板
+    ctx.fillStyle = warn
+      ? 'rgba(180, 20, 20, ' + (0.55 + 0.3 * pulse) + ')'
+      : 'rgba(110, 18, 18, ' + (0.48 + 0.22 * pulse) + ')';
+    roundRect(cx - 152, cy - 56, 304, 116, 12);
+    ctx.fill();
+    ctx.strokeStyle = warn
+      ? 'rgba(255, 230, 120, 0.95)'
+      : 'rgba(255, 120, 90, ' + (0.55 + 0.45 * pulse) + ')';
+    ctx.lineWidth = 2.5;
+    roundRect(cx - 152, cy - 56, 304, 116, 12);
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#ffe0d0';
+    ctx.font = 'bold 15px ' + FONT;
+    ctx.fillText('铁索湿滑，要掉下去了！', cx, cy - 32);
+    ctx.fillStyle = 'rgba(255, 235, 200, 0.8)';
+    ctx.font = '12px ' + FONT;
+    ctx.fillText('立刻按下这个键抓住铁索', cx, cy - 14);
+
+    // 键帽
+    var kw = 48, kh = 40;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+    roundRect(cx - kw / 2, cy - 6, kw, kh, 7);
+    ctx.fill();
+    ctx.strokeStyle = warn ? '#ffcf4d' : '#b7332a';
+    ctx.lineWidth = 2;
+    roundRect(cx - kw / 2, cy - 6, kw, kh, 7);
+    ctx.stroke();
+    ctx.fillStyle = '#8b1111';
+    ctx.font = 'bold 27px ' + FONT;
+    ctx.fillText(slip.key, cx, cy + 23);
+
+    // 倒计时条
+    var tw = 236, tx = cx - tw / 2, ty = cy + 44;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    roundRect(tx, ty, tw, 7, 3.5);
+    ctx.fill();
+    var k = clamp(slip.t / slip.limit, 0, 1);
+    ctx.fillStyle = k > 0.4 ? '#ffd34d' : '#ff4a3a';
+    roundRect(tx, ty, Math.max(2, tw * k), 7, 3.5);
+    ctx.fill();
+  }
+
+  /* 前仆后继的提示语 */
+  function drawRescueText() {
+    if (rescue.t <= 0 || rescue.phase !== 'rise') return;
+
+    var a = clamp((rescue.t - 0.95) / 0.25, 0, 1) * clamp((1.95 - rescue.t) / 0.35, 0, 1);
+    if (a <= 0) return;
+
+    var msg;
+    if (lives <= 0) {
+      msg = '22 位勇士全部倒下……';
+    } else if (rescue.reason === 'slip') {
+      msg = '第 ' + rescue.who + ' 位勇士失手坠河，下一位接过红旗！';
+    } else {
+      msg = '第 ' + rescue.who + ' 位勇士中弹坠河，下一位接过红旗！';
+    }
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = 'bold 19px ' + FONT;
+    var tw = ctx.measureText(msg).width;
+    ctx.fillStyle = 'rgba(10, 26, 42, ' + (0.72 * a) + ')';
+    roundRect(W / 2 - tw / 2 - 20, 146, tw + 40, 40, 10);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 210, 120, ' + (0.6 * a) + ')';
+    ctx.lineWidth = 1.6;
+    roundRect(W / 2 - tw / 2 - 20, 146, tw + 40, 40, 10);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255, 232, 180, ' + a + ')';
+    ctx.fillText(msg, W / 2, 173);
+  }
+
+  function drawFlash() {
+    if (flash <= 0) return;
+    ctx.fillStyle = 'rgba(' + flashColor + ', ' + (flash * 0.5) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawOverlay() {
+    // 这三个场景本身就在演，不压暗幕
+    if (state === 'playing' || state === 'fire' || state === 'melee' || state === 'flag') return;
+
+    ctx.fillStyle = 'rgba(3, 12, 22, 0.7)';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+
+    var pw = 790, ph = 386;
+    var px = (W - pw) / 2, py = (H - ph) / 2;
+
+    ctx.fillStyle = 'rgba(9, 30, 50, 0.95)';
+    roundRect(px, py, pw, ph, 16);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 214, 90, 0.55)';
+    ctx.lineWidth = 2;
+    roundRect(px, py, pw, ph, 16);
+    ctx.stroke();
+
+    if (state === 'ready') {
+      ctx.fillStyle = '#ffe27a';
+      ctx.font = 'bold 30px ' + FONT;
+      ctx.fillText('飞夺泸定桥（1935年5月）', W / 2, py + 50);
+
+      ctx.fillStyle = 'rgba(214, 234, 250, 0.92)';
+      ctx.font = '15px ' + FONT;
+      ctx.fillText('1935年5月29日，红四团一昼夜奔袭 240 里，22 名勇士攀上 103.67 米铁索。', W / 2, py + 88);
+
+      ctx.fillStyle = 'rgba(255, 200, 160, 0.95)';
+      ctx.fillText('对岸两排共 8 名守敌，每条铁索各两人；每人要挨 5 发，倒下后数秒由新兵补位。', W / 2, py + 114);
+
+      ctx.fillStyle = 'rgba(160, 220, 255, 0.92)';
+      ctx.fillText('铁索被雨打湿，随时会打滑——出现提示后必须按对那个字母，否则坠河。', W / 2, py + 140);
+
+      ctx.fillStyle = 'rgba(255, 220, 140, 0.92)';
+      ctx.fillText('中弹或坠河，都由下一位勇士接过红旗继续冲；22 人前仆后继，直到冲过对岸。', W / 2, py + 166);
+
+      ctx.fillStyle = 'rgba(255, 176, 90, 0.95)';
+      ctx.fillText('弹药补给箱：拿到即进入「勇猛状态」，5 秒内不用操作，自己连续猛烈开火。', W / 2, py + 192);
+
+      ctx.fillStyle = 'rgba(255, 150, 120, 0.95)';
+      ctx.fillText('冲过对岸后还有火海冲刺，最后与桥头堡守敌白刃相接——人数多者胜。', W / 2, py + 218);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fillText('↑/↓ 换铁索　·　空格 射击（可按住连射）　·　按住 → 由匍匐改行走', W / 2, py + 254);
+      ctx.fillStyle = 'rgba(180, 210, 240, 0.8)';
+      ctx.fillText('匍匐 0.6 米/秒，行走 1.5 米/秒 —— 这段路，走得很难。', W / 2, py + 278);
+
+      ctx.fillStyle = '#7ee08a';
+      ctx.font = 'bold 21px ' + FONT;
+      ctx.fillText('按 空格 出发', W / 2, py + 330);
+    } else if (state === 'over') {
+      ctx.fillStyle = '#ff6b6b';
+      ctx.font = 'bold 32px ' + FONT;
+
+      if (failReason === 'melee') {
+        ctx.fillText('兵力不足，桥头堡没能拿下', W / 2, py + 74);
+
+        ctx.fillStyle = 'rgba(214, 234, 250, 0.92)';
+        ctx.font = '17px ' + FONT;
+        ctx.fillText('冲到堡前的勇士 ' + melee.ourN + ' 人，守敌 ' + melee.theirN + ' 人 —— 人数未能压过对方。', W / 2, py + 118);
+        ctx.fillText('白刃之下，最后一名勇士也倒在了桥头。', W / 2, py + 148);
+        ctx.fillText('本次前进 ' + BRIDGE_LEN + ' 米（已过铁索）　　累计击毙 ' + kills + ' 人', W / 2, py + 182);
+      } else {
+        ctx.fillText('22 位勇士全部倒下', W / 2, py + 74);
+
+        ctx.fillStyle = 'rgba(214, 234, 250, 0.9)';
+        ctx.font = '17px ' + FONT;
+        ctx.fillText('红旗落进了大渡河，桥还没拿下……', W / 2, py + 118);
+        ctx.fillText('本次前进 ' + distance.toFixed(1) + ' 米 / ' + BRIDGE_LEN + ' 米　　累计击毙 ' + kills + ' 人', W / 2, py + 152);
+      }
+
+      ctx.fillStyle = 'rgba(180, 214, 240, 0.78)';
+      ctx.font = '14px ' + FONT;
+      ctx.fillText('史实：22 名突击队员在连长廖大珠率领下攀索夺桥，最终夺下泸定桥。', W / 2, py + 236);
+
+      ctx.fillStyle = '#ffe27a';
+      ctx.font = 'bold 21px ' + FONT;
+      ctx.fillText('按 空格 重新出发', W / 2, py + 300);
+    } else if (state === 'win') {
+      ctx.fillStyle = '#ffd400';
+      ctx.font = 'bold 27px ' + FONT;
+      ctx.fillText('胜利！红旗插上了泸定桥', W / 2, py + 66);
+
+      ctx.fillStyle = 'rgba(214, 234, 250, 0.95)';
+      ctx.font = '18px ' + FONT;
+      ctx.fillText('全程 ' + BRIDGE_LEN + ' 米　　用时 ' + elapsed.toFixed(1) + ' 秒', W / 2, py + 110);
+      ctx.fillText('堡前白刃战：我方 ' + melee.ourN + ' 人对守敌 ' + melee.theirN + ' 人，' + lives + ' 人活了下来', W / 2, py + 142);
+
+      ctx.fillStyle = 'rgba(255, 200, 150, 0.92)';
+      ctx.font = '15px ' + FONT;
+      ctx.fillText('22 位勇士冲过 103.67 米铁索，穿过火海，把红旗插上了桥头堡。', W / 2, py + 180);
+
+      ctx.fillStyle = 'rgba(180, 214, 240, 0.8)';
+      ctx.font = '14px ' + FONT;
+      ctx.fillText('史实：红四团 22 名突击队员在连长廖大珠率领下，攀索夺桥，一举成功。', W / 2, py + 212);
+      ctx.fillText('泸定桥全长 103.67 米，由 13 根铁链组成，9 根作底链铺板，4 根为扶手。', W / 2, py + 236);
+
+      ctx.fillStyle = '#7ee08a';
+      ctx.font = 'bold 21px ' + FONT;
+      ctx.fillText('按 空格 再冲一次', W / 2, py + 302);
+    }
+  }
+
+  /* ==================== 主渲染 ==================== */
+  /* 铁索桥主画面 */
+  function drawBridgeWorld() {
+    drawWater();
+    drawFarPanel();
+    drawRopes();
+    drawRings();
+    drawMedkits();
+    for (var i = 0; i < enemies.length; i++) drawEnemy(enemies[i]);
+    drawBullets();
+    drawNearBank();
+    drawPlayer();
+    drawParts();
+    drawVignette();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.save();
+    if (shake > 0) {
+      ctx.translate((Math.random() - 0.5) * shake * 0.6, (Math.random() - 0.5) * shake * 0.6);
+    }
+
+    if (state === 'fire') {
+      drawFireScene();
+    } else if (state === 'melee' || (state === 'over' && failReason === 'melee')) {
+      drawMeleeScene();
+      if (state === 'over') drawVignette();
+    } else if (state === 'flag' || state === 'win') {
+      drawFlagScene();
+      if (state === 'win') drawVignette();
+    } else {
+      drawBridgeWorld();
+    }
+
+    ctx.restore();
+
+    drawUI();
+    drawSlipPrompt();
+    drawRescueText();
+    drawFlash();
+    drawOverlay();
+  }
+
+  /* ==================== 主循环 ==================== */
+  var lastTime = 0;
+  function loop(t) {
+    if (!lastTime) lastTime = t;
+    var dt = (t - lastTime) / 1000;
+    lastTime = t;
+    if (dt > 0.05) dt = 0.05;
+    if (dt < 0) dt = 0;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  /* ==================== 输入 ==================== */
+  window.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (['ArrowUp', 'ArrowDown', 'ArrowRight', 'ArrowLeft', ' ', 'Spacebar'].indexOf(k) !== -1) {
+      e.preventDefault();
+    }
+    initAudio();
+
+    /* 打滑时：只认 26 个字母，按错会缩短剩余时间 */
+    if (slip.active) {
+      if (k.length === 1 && LETTERS.indexOf(k.toUpperCase()) !== -1) {
+        if (k.toUpperCase() === slip.key) {
+          slip.active = false;
+          slip.wrong = 0;
+          slip.next = 7 + Math.random() * 7;
+          beep(760, 0.1, 'square', 0.09, 1180);
+          spawnParts(PLAYER_CX, player.y + PLAYER_SAG, 6, '180, 240, 255', 0.7);
+        } else {
+          slip.t = Math.max(0.1, slip.t - 0.22);
+          slip.wrong = 1;
+          beep(220, 0.08, 'sawtooth', 0.06, 150);
+        }
+        return;
+      }
+      if (k !== 'm' && k !== 'M') return;
+    }
+
+    if (k === 'ArrowUp' || k === 'w' || k === 'W') {
+      if (state === 'playing' && !e.repeat) moveLane(-1);
+    } else if (k === 'ArrowDown' || k === 's' || k === 'S') {
+      if (state === 'playing' && !e.repeat) moveLane(1);
+    } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+      if (state === 'playing' && !slip.active) keys.walk = true;
+    } else if (k === 'm' || k === 'M') {
+      if (!e.repeat) muted = !muted;
+    } else if (k === ' ' || k === 'Spacebar') {
+      if (state === 'playing') {
+        if (!slip.active) keys.fire = true;   // 按住连射
+      } else if (state === 'fire') {
+        keys.fire = true;                     // 火海里按住空格加速冲锋
+      } else if (state === 'ready' || state === 'over' || state === 'win') {
+        startGame();
+        keys.fire = true;
+      }
+    } else if (k === 'Enter') {
+      if (!e.repeat && (state === 'ready' || state === 'over' || state === 'win')) startGame();
+    }
+  });
+
+  window.addEventListener('keyup', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.walk = false;
+    if (k === ' ' || k === 'Spacebar') keys.fire = false;
+  });
+
+  window.addEventListener('blur', function () {
+    keys.walk = false;
+    keys.fire = false;
+  });
+
+  canvas.addEventListener('click', function () {
+    initAudio();
+    if (state === 'ready' || state === 'over' || state === 'win') startGame();
+  });
+
+  /* ==================== 启动 ==================== */
+  resetGame();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
