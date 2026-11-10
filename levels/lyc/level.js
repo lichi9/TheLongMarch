@@ -1,14 +1,34 @@
-// 因为不能修改 index.html，所以我们在这里动态加载 React
+// 不能改 index.html，所以 React 在这里动态挂上去。
+// 两个 UMD 文件就放在本关 assets/ 里，不走 CDN：
+//   - 断网也能玩（项目口径是零外链、双击即开）
+//   - 从 unpkg 拉要跨境，两个文件又是串行加载，开场会白屏好几秒
 (function loadReact(callback) {
   if (window.React && window.ReactDOM) return callback();
-  const loadScript = (src, onload) => {
+
+  const loadScript = (src, onload, onerror) => {
     const s = document.createElement('script');
-    s.src = src; s.crossOrigin = 'anonymous'; s.onload = onload;
+    s.src = src;
+    if (onload) s.onload = onload;
+    if (onerror) s.onerror = onerror;
     document.head.appendChild(s);
   };
-  loadScript("https://unpkg.com/react@18.3.1/umd/react.production.min.js", () => {
-    loadScript("https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js", callback);
-  });
+
+  // 兜底：以前这里没有 onerror，脚本拉不到就永远停在白屏，
+  // 玩家只会看到一个空舞台，不知道是文件丢了还是代码坏了。
+  const fail = (missing) => {
+    const stage = document.getElementById('stage');
+    if (!stage) return;
+    stage.innerHTML =
+      '<div class="boot-error">' +
+      '  <p class="boot-error-title">这一关没能加载起来</p>' +
+      '  <p class="boot-error-sub">缺少 <code>' + missing + '</code>。' +
+      '    这个文件在 <code>levels/lyc/assets/</code> 下面，重新拉一次仓库就能补回来。</p>' +
+      '</div>';
+  };
+
+  loadScript('assets/react-18.3.1.production.min.js', () => {
+    loadScript('assets/react-dom-18.3.1.production.min.js', callback, () => fail('react-dom-18.3.1.production.min.js'));
+  }, () => fail('react-18.3.1.production.min.js'));
 })(function() {
   // ====== 以下为游戏逻辑 ======
   const { useReducer, useEffect } = React;

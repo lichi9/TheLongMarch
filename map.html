@@ -324,15 +324,17 @@
   var tip = document.getElementById('tip');
   var stage = document.getElementById('stage');
 
-  /* 三种状态的提示语 */
+  /* 四种状态的提示语 */
   var TIPS = {
     locked:  '请先完成前面的关卡',
     done:    '重新体验',
     current: '继续',
-    final:   '恭喜抵达'
+    final:   '恭喜抵达',
+    pending: '这一站还在赶制，暂时进不去'
   };
 
   function stateOf(el) {
+    if (el.classList.contains('pending')) return 'pending';
     if (el.classList.contains('current')) return 'current';
     if (el.classList.contains('done')) return 'done';
     return 'locked';
@@ -430,11 +432,24 @@
     }
   }
 
+  /* 只留已经做完的关卡。
+     半成品的 id 照旧写在 data-level 里，只是不会出现在面板里——
+     玩家看不到、点不进，但清单还在，做完一关加进 CZSave.SHIPPED 就放出来了。 */
+  function isShipped(id) {
+    var list = window.CZSave && CZSave.SHIPPED;
+    return list ? list.indexOf(id) >= 0 : true;
+  }
+
+  function shippedIdsOf(el) {
+    return (el.getAttribute('data-level') || '').split(',').filter(Boolean).filter(isShipped);
+  }
+
   function openNode(el) {
     currentNode = el;
-    var raw = el.getAttribute('data-level') || '';
-    var ids = raw.split(',').filter(Boolean);
-    if (!ids.length) return;
+    var ids = shippedIdsOf(el);
+    /* 这一站一关都没放出来：顺手清掉面板里上一站的卡片，
+       免得下次打开时先闪一眼别人的图。 */
+    if (!ids.length) { cardsBox.innerHTML = ''; closePanel(); return; }
 
     lastFocus = el;
     panelTitle.textContent = (el.querySelector('.name') || {}).textContent || '';
@@ -524,26 +539,41 @@
     if (window.CZSave) CZSave.pushProgress(id);
   }
 
-  /* 按进度刷新节点：已通关 = done，第一个没过的 = current，后面全 locked */
+  /* 「已放出的关卡是不是全通了」。
+     尾声的触发条件看这一句，不看打的是哪一站——
+     半成品站点被屏蔽着的时候，打完最后一个放出的关卡就能正常收尾；
+     以后这些站点陆续放出来，`SHIPPED` 变长，判断自动跟着走。 */
+  function allShippedDone() {
+    var list = (window.CZSave && CZSave.SHIPPED) || [];
+    if (!list.length) return false;
+    var done = loadProgress();
+    for (var i = 0; i < list.length; i++) {
+      if (done.indexOf(list[i]) < 0) return false;
+    }
+    return true;
+  }
+
+  /* 按进度刷新节点：已通关 = done，第一个没过的 = current，后面全 locked。
+     一关都还没做完的站点标成 pending，不参与这条解锁链——
+     否则它会卡在那儿，后面的站点永远解不开。 */
   function refreshStates() {
     var done = loadProgress();
     var unlocked = true;   // 前面的地点是否已全部通关
 
     for (var i = 0; i < seals.length; i++) {
       var el = seals[i];
-      var ids = (el.getAttribute('data-level') || '').split(',').filter(Boolean);
+      var ids = shippedIdsOf(el);
 
-      var allDone = ids.length > 0;
-      for (var k = 0; k < ids.length; k++) {
-        if (done.indexOf(ids[k]) < 0) { allDone = false; break; }
-      }
-
-      el.classList.remove('locked', 'done', 'current');
+      el.classList.remove('locked', 'done', 'current', 'pending');
 
       if (ids.length === 0) {
-        // 终章：前面全过了才能进
-        el.classList.add(unlocked ? 'current' : 'locked');
+        el.classList.add('pending');
         continue;
+      }
+
+      var allDone = true;
+      for (var k = 0; k < ids.length; k++) {
+        if (done.indexOf(ids[k]) < 0) { allDone = false; break; }
       }
 
       if (allDone) {
@@ -680,18 +710,22 @@
     }
 
     if (e.data.type !== 'cz:done') return;
+
+    /* 「刚刚」把最后一关打通了才播尾声。
+       已经全通过的玩家回头重玩某一关，不应该再看一遍 15 秒的黑屏金字。 */
+    var wasAllDone = allShippedDone();
     if (playingId) markDone(playingId);
     refreshStates();
 
-    var isFinal = !!(currentNode && currentNode.classList.contains('final'));
+    var finished = !wasAllDone && allShippedDone();
 
     /* 不停留、不盖「通关」：关掉关卡立刻回到面板，
        反馈交给面板里刚变红的那张卡 */
     closeLevel();
-    if (isFinal) {
-      playEnding();                                    // 会宁：播尾声，之后回开始页
+    if (finished) {
+      playEnding();                                    // 全部放出的关卡刚好通关：播尾声
     } else if (currentNode) {
-      openNode(currentNode);                            // 其它地点：留在本地点继续选
+      openNode(currentNode);                            // 否则留在本地点继续选
     }
   });
 
@@ -706,20 +740,23 @@
   });
 
   /* ---------- 开局 ----------
-     ?reset=1  清空进度，从头开始
-     ?all=1    把前面的关卡全标成已通关，方便直接测最后一关 */
+     ?reset=1  清空当前挡位进度（加了一次确认，免得转发链接把别人的档清了）
+     ?all=1    把已放出的关卡全标成通关，用来直接看尾声 */
   if (/[?&]reset=1\b/.test(location.search)) {
-    saveProgress([]);
+    if (window.confirm('清空当前存档的通关记录？这一步不可撤销。')) {
+      saveProgress([]);
+    }
   }
 
-  if (/[?&]all=1\b/.test(location.search)) {
-    var allIds = [];
-    for (var a = 0; a < seals.length - 1; a++) {
-      allIds = allIds.concat(
-        (seals[a].getAttribute('data-level') || '').split(',').filter(Boolean)
-      );
+  if (/[?&]all=1\b/.test(location.search) && window.CZSave) {
+    /* 以前没有挡位时 setProgress 会直接返回 false，参数等于白写。
+       这里先补一个挡位，「直接看尾声」才真的能用。
+       注意别覆盖已经存在的挡位 1——那可能是别人的真实进度。 */
+    if (!CZSave.getActive()) {
+      if (CZSave.read(1)) CZSave.setActive(1);
+      else CZSave.create(1);
     }
-    saveProgress(allIds);
+    saveProgress(CZSave.SHIPPED.slice());
   }
 
   refreshStates();
@@ -730,7 +767,8 @@
   for (var i = 0; i < seals.length; i++) {
     (function (el) {
       function go() {
-        if (stateOf(el) === 'locked') return;  // 未通关的不让进
+        var st = stateOf(el);
+        if (st === 'locked' || st === 'pending') return;  // 没解锁的、还没做完的，都不让进
         openNode(el);
       }
       el.addEventListener('click', go);
