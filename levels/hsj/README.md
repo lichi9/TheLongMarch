@@ -79,4 +79,4 @@ window.parent.postMessage({ type: 'cz:done' }, '*');
 git switch -c hsj
 ```
 
-分支名就是你的缩写，和文件夹名一致。PR 提到 `develop`，不要提 `master`。
+分支名就是你的缩写，和文件夹名一致。PR 提到 `develop`，不要提 `main`。

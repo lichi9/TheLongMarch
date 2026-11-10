@@ -151,7 +151,7 @@ window.parent.postMessage({ type: 'cz:done' }, '*');
 
 | 分支 | 谁写 | 说明 |
 | --- | --- | --- |
-| `master` | 只有负责人 | 随时能展演的稳定版 |
+| `main` | 只有负责人 | 随时能展演的稳定版 |
 | `develop` | 只能通过 PR 合入 | 日常集成分支，允许半成品 |
 | `<你的缩写>` | 你自己 | 想怎么提交都行，坏了只影响自己 |
 
@@ -161,7 +161,7 @@ window.parent.postMessage({ type: 'cz:done' }, '*');
    `map.html`、`core/`、`assets/brand/`、`docs/`、别人的关卡——一律只读。
 2. **草稿不进库，成品必须进库。** `_draft/` 随便扔（已被忽略）；
    别人 clone 下来必须有的素材放 `assets/`，必须提交。
-3. **只推自己的分支。** 写完 push，提 PR 到 `develop`，不要直推 `master`。
+3. **只推自己的分支。** 写完 push，提 PR 到 `develop`，不要直推 `main`。
 
 **命名**：文件夹、文件名全小写 ASCII，多个词用连字符。关卡 `id` 定了就不改，
 它是存档的键。
