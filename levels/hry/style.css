@@ -1,0 +1,46 @@
+/* ============================================================
+   飞夺泸定桥 · 关卡样式（levels/hry）
+
+   ★ 舞台由主程序固定成 1280×720 再整体缩放
+   所以这里只管「填满」：画布 100% 铺满 #stage，
+   不用自己写响应式，也不要读 window.innerWidth。
+
+   本文件跑在 iframe 的独立文档里，
+   主程序的样式影响不到这里，html / body / * 可以放心写。
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #05080b;
+  /* 手机上不允许双指缩放，避免误触把画布放大 */
+  touch-action: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+#stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #05080b;
+  /* 关卡自己处理等比留边，这里不做弹性布局，避免和画布尺寸打架 */
+  display: block;
+}
+
+#stage canvas,
+.cz-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  outline: none;
+  /* 长按不选中、不弹出复制菜单 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}

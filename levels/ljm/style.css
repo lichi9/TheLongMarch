@@ -1,0 +1,98 @@
+/* 四渡赤水 · 连线 —— levels/ljm/style.css （增强版） */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1280px; height: 720px;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: #1a1410;
+  overflow: hidden;
+}
+
+#stage { width: 1280px; height: 720px; display: flex; align-items: center; justify-content: center; }
+
+#board {
+  position: relative;
+  width: 1120px; height: 640px;
+  background: linear-gradient(160deg, #2a1d14, #140d09);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
+}
+
+#mapBg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: .22;
+  filter: saturate(.8);
+}
+#canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+.head { position: absolute; top: 18px; left: 0; right: 0; text-align: center; z-index: 2; }
+.head h1 {
+  color: #f4c95d; letter-spacing: 4px; font-size: 26px;
+  text-shadow: 0 2px 8px rgba(0,0,0,.6);
+}
+.head .info { color: #d9c4a8; font-size: 13px; margin-top: 6px; opacity: .85; }
+
+/* 数据条 */
+.stats {
+  position: absolute; top: 78px; left: 0; right: 0; z-index: 2;
+  display: flex; justify-content: center; gap: 14px;
+}
+.stat {
+  min-width: 96px; padding: 6px 12px; text-align: center;
+  background: rgba(120,40,30,.35);
+  border: 1px solid rgba(244,201,93,.4);
+  border-radius: 10px; backdrop-filter: blur(2px);
+}
+.stat .num { display: block; color: #f4c95d; font-size: 18px; font-weight: 700; }
+.stat .lab { display: block; color: #d9c4a8; font-size: 11px; margin-top: 2px; }
+
+/* 卡片列 */
+.row {
+  position: absolute; top: 148px; left: 0; right: 0; z-index: 2;
+  display: flex; justify-content: space-between;
+  padding: 0 70px;
+}
+.col { display: flex; flex-direction: column; gap: 12px; width: 380px; }
+
+.card {
+  padding: 11px 16px; font-size: 14px; line-height: 1.35;
+  color: #f5ede0;
+  background: rgba(38,28,20,.92);
+  border: 1.5px solid rgba(244,201,93,.5);
+  border-radius: 10px;
+  cursor: pointer; transition: all .15s ease;
+  user-select: none;
+}
+.card:hover { border-color: #f4c95d; transform: translateY(-1px); }
+.card.selected { background: #6b4a1a; border-color: #f4c95d; box-shadow: 0 0 0 2px rgba(244,201,93,.5); }
+.card.correct { background: rgba(44,110,73,.85); border-color: #5fae7e; cursor: default; }
+.card.wrong { background: rgba(163,58,44,.85); border-color: #d07a6a; animation: shake .4s; }
+@keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
+
+/* 史实面板 */
+.fact-panel {
+  position: absolute; left: 70px; right: 70px; bottom: 64px; z-index: 2;
+  background: rgba(20,13,9,.9);
+  border: 1px solid rgba(244,201,93,.35);
+  border-radius: 10px; padding: 10px 16px;
+}
+.fact-title { color: #f4c95d; font-size: 13px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; }
+.fact-body { color: #e7d8c2; font-size: 13px; line-height: 1.6; min-height: 38px; }
+
+/* 按钮 & 结果 */
+.btns { position: absolute; bottom: 16px; right: 70px; z-index: 3; }
+.btns button {
+  padding: 8px 22px; font-size: 14px;
+  color: #1a1410; background: #f4c95d; border: none; border-radius: 8px;
+  cursor: pointer; font-weight: 600; transition: filter .15s;
+}
+.btns button:hover { filter: brightness(1.08); }
+#result {
+  position: absolute; bottom: 18px; left: 70px; z-index: 3;
+  color: #5fae7e; font-size: 15px; font-weight: 700;
+}
+#board.is-done .head h1 { animation: glow 1.2s ease infinite alternate; }
+@keyframes glow { from { text-shadow: 0 0 6px #f4c95d; } to { text-shadow: 0 0 22px #f4c95d; } }

@@ -1,0 +1,740 @@
+/* ============================================================
+   遵义会议 · 会场记录 —— 样式
+
+   ★ 舞台固定 1280 × 720
+   主程序负责把这一层缩放去适配窗口，所以按 1280×720 摆就行：
+   想铺满 → width/height: 100%；想精确摆放 → 直接写像素。
+   不要写 @media / vw / vh 之类的响应式。
+
+   （跑在 iframe 里，html / body 选择器可以放心用。）
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #e9e0cc;
+  color: #3a2c1f;
+  font-family: "KaiTi", "STKaiti", "华文楷体", "Songti SC", "SimSun", serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+#stage { width: 100%; height: 100%; }
+
+/* ---------- 整体：左边题签，右边记录纸 ---------- */
+
+.hall {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(120% 90% at 16% 10%, rgba(255, 252, 242, .92), rgba(233, 224, 204, .5) 58%, rgba(210, 196, 168, .8) 100%),
+    #e9e0cc;
+}
+
+.spine {
+  position: relative;
+  flex: none;
+  width: 322px;
+  padding: 52px 42px 40px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(120, 95, 60, .18);
+}
+
+.spine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  background: linear-gradient(90deg, rgba(120, 95, 60, .1), rgba(120, 95, 60, 0));
+  pointer-events: none;
+}
+
+.spine-date {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 5px;
+  color: #9a7a58;
+}
+
+.spine-title {
+  margin: 16px 0 12px;
+  font-size: 44px;
+  line-height: 1.15;
+  letter-spacing: 8px;
+  color: #8a1a12;
+}
+
+.spine-sub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.9;
+  letter-spacing: 1px;
+  color: #6b5c47;
+}
+
+/* 出席者 */
+.roster-cap {
+  margin: 26px 0 6px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #9a7a58;
+}
+
+.roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.roster li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dotted rgba(150, 120, 80, .22);
+}
+
+.roster b {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  color: #423426;
+}
+
+.roster span {
+  font-size: 11px;
+  letter-spacing: .5px;
+  color: #9a7a58;
+  white-space: nowrap;
+}
+
+/* 朱印 */
+.seal {
+  margin-top: auto;
+  width: 88px;
+  height: 88px;
+  border: 2px solid #a8322a;
+  color: #a8322a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: 2px;
+  transform: rotate(-5deg);
+  opacity: .82;
+}
+
+/* ---------- 右侧 ---------- */
+
+.desk {
+  flex: 1;
+  min-width: 0;
+  padding: 44px 58px 38px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 开场 ---------- */
+
+.intro {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+.intro-date {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 5px;
+  color: #9a7a58;
+}
+
+.intro-title {
+  margin: 18px 0 22px;
+  font-size: 42px;
+  line-height: 1.4;
+  letter-spacing: 8px;
+  color: #8a1a12;
+}
+
+.intro-sub {
+  margin: 0;
+  font-size: 15px;
+  line-height: 2;
+  color: #56483a;
+}
+
+.intro-hint {
+  margin: 16px 0 0;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #9a7a58;
+}
+
+.intro .next {
+  align-self: flex-start;
+  margin-top: 34px;
+}
+
+.desk-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #7d6d57;
+}
+
+/* 三段进度：会前 / 议程 / 核对 */
+.segs {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.seg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #a89880;
+  transition: color 200ms ease;
+}
+
+.seg b {
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.seg i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border: 1px solid #c1b096;
+  border-radius: 50%;
+}
+
+.seg i.is-done {
+  background: #8a1a12;
+  border-color: #8a1a12;
+}
+
+.seg i.is-now {
+  border-color: #8a1a12;
+  box-shadow: 0 0 0 3px rgba(138, 26, 18, .12);
+}
+
+.seg.is-current { color: #8a1a12; }
+
+/* 纸内日期行：第几项 · 哪一天 */
+.dateline {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #9a7a58;
+}
+
+.dateline .js-step { color: #8a1a12; }
+
+/* 翻档案：贴在日期行右端 */
+.lookup {
+  margin-left: auto;
+  align-self: center;
+  padding: 2px 10px;
+  border: 1px solid #c9b89a;
+  background: #fffdf7;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #8a1a12;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.lookup:hover:enabled {
+  border-color: #a8322a;
+  background: #fff4e6;
+}
+
+.lookup:disabled {
+  color: #b9a88c;
+  border-color: #ddcdad;
+  cursor: default;
+}
+
+/* 档案条：一条线索，翻过就留在纸上 */
+.archive {
+  margin: -8px 0 16px;
+  padding: 9px 14px;
+  border-left: 2px solid #c9a24a;
+  background: #f8f0d9;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #6b5c47;
+}
+
+.archive::before {
+  content: '档案 · ';
+  color: #a8322a;
+  letter-spacing: 2px;
+}
+
+.slips {
+  margin-left: auto;
+  color: #9a7a58;
+}
+
+.slips b {
+  color: #a8322a;
+  font-weight: 700;
+}
+
+.stamps {
+  margin-left: 18px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(150, 120, 80, .3);
+  color: #9a7a58;
+}
+
+.stamps b {
+  color: #a8322a;
+  font-weight: 700;
+}
+
+/* ---------- 记录纸 ---------- */
+
+.sheet {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 34px 42px 30px;
+  display: flex;
+  flex-direction: column;
+  background: #fbf5e6;
+  border: 1px solid #d9c9a8;
+  box-shadow: 0 14px 34px rgba(90, 66, 36, .13);
+}
+
+.sheet::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(160, 130, 90, .16);
+  pointer-events: none;
+}
+
+.prompt {
+  margin: 0 0 20px;
+  font-size: 23px;
+  line-height: 1.6;
+  letter-spacing: .5px;
+  color: #3a2c1f;
+}
+
+/* ---------- 选项 ---------- */
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.opt {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 13px 17px;
+  text-align: left;
+  background: #fffdf7;
+  border: 1px solid #ddcdad;
+  color: #423426;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.55;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.opt:hover:enabled {
+  border-color: #b23a2c;
+  background: #fff8e8;
+  transform: translateX(2px);
+}
+
+.opt:focus-visible {
+  outline: 2px solid rgba(138, 26, 18, .45);
+  outline-offset: 2px;
+}
+
+.mark {
+  flex: none;
+  color: #8a1a12;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.opt-text { flex: 1; }
+
+/* 记错：留一条涂改，不能改口 */
+.opt.is-wrong {
+  border-color: #c9b89a;
+  background: #f6f0e2;
+  color: #9c9182;
+  cursor: default;
+}
+
+.opt.is-wrong .mark { color: #b9a88c; }
+
+/* 记对：朱笔一圈，盖一个「录」 */
+.opt.is-right {
+  border-color: #8a1a12;
+  background: #fdf0e2;
+  box-shadow: inset 0 0 0 1px rgba(138, 26, 18, .14);
+}
+
+.opt.is-right::after {
+  content: '录';
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #a8322a;
+  border-radius: 50%;
+  color: #a8322a;
+  font-size: 13px;
+  line-height: 24px;
+  text-align: center;
+  transform: rotate(-8deg);
+}
+
+.opt:disabled { opacity: 1; }
+
+/* ---------- 提示与下一步 ---------- */
+
+.note {
+  margin: auto 0 0;
+  padding: 14px 0 0;
+  min-height: 50px;
+  border-top: 1px dashed #ddcdad;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #6b5c47;
+}
+
+.note.is-good { color: #4d6b3c; }
+.note.is-bad { color: #a8322a; }
+
+.next {
+  align-self: flex-end;
+  margin-top: 12px;
+  padding: 11px 26px;
+  border: 0;
+  background: #8a1a12;
+  color: #f9f0da;
+  font-family: inherit;
+  font-size: 15px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.next:hover:enabled { background: #a8322a; }
+
+.next:disabled {
+  background: #b9a88c;
+  cursor: default;
+}
+
+[hidden] { display: none !important; }
+
+/* 连击盖印：落一枚「批」，900ms 后自己淡掉 */
+.stamp-fx {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #a8322a;
+  color: #a8322a;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 2px;
+  transform: rotate(-10deg);
+  opacity: 0;
+  pointer-events: none;
+  animation: stamp-in 900ms ease-out forwards;
+}
+
+@keyframes stamp-in {
+  0%   { opacity: 0;   transform: rotate(-10deg) scale(1.8); }
+  18%  { opacity: .95; transform: rotate(-10deg) scale(1); }
+  70%  { opacity: .9;  transform: rotate(-10deg) scale(1.02); }
+  100% { opacity: 0;   transform: rotate(-10deg) scale(1.04); }
+}
+
+/* ---------- 闭幕：会议纪要 ---------- */
+
+.verdict {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.verdict-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: #9a7a58;
+}
+
+.verdict-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 6px 0 12px;
+}
+
+.verdict-title {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: 7px;
+  color: #8a1a12;
+}
+
+.tabs {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.tab {
+  padding: 3px 8px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #9a7a58;
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+
+.tab:hover { color: #8a1a12; }
+
+.tab.is-on {
+  color: #8a1a12;
+  border-bottom-color: #8a1a12;
+}
+
+/* 纪要 / 错题共用这一块区域，内容多了内部滚动，不撑破版面 */
+.pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wrongs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wrongs li {
+  display: flex;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(160, 130, 90, .16);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.wrong-text { flex: 1; }
+
+.wrong-text em {
+  font-style: normal;
+  color: #9c9182;
+  text-decoration: line-through;
+}
+
+.wrong-text b {
+  font-weight: 400;
+  color: #423426;
+}
+
+.wrongs-empty {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #6b5c47;
+}
+
+/* 结局章：准予归档 / 退回重抄 */
+.verdict-seal {
+  padding: 3px 9px;
+  border: 1px solid currentColor;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #8a1a12;
+  transform: rotate(-4deg);
+}
+
+.verdict-seal.is-back {
+  color: #8c2a20;
+  border-style: double;
+  border-width: 3px;
+}
+
+/* 可截图的纪要卡：定宽 3:2 内版式 */
+.pane-card {
+  display: flex;
+  justify-content: center;
+}
+
+.share-card {
+  position: relative;
+  width: 440px;
+  min-height: 262px;
+  padding: 24px 30px 20px;
+  background: #fffaf0;
+  border: 1px solid #d9c9a8;
+  box-shadow: 0 8px 22px rgba(90, 66, 36, .12);
+}
+
+.card-eyebrow {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #9a7a58;
+}
+
+.card-title {
+  margin: 10px 0 12px;
+  font-size: 26px;
+  letter-spacing: 6px;
+  color: #8a1a12;
+}
+
+.card-list {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.card-list li {
+  margin: 5px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #423426;
+}
+
+.card-list li::marker { color: #a8322a; }
+
+.card-foot {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed #ddcdad;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #7d6d57;
+}
+
+.card-seal {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  padding: 3px 8px;
+  border: 1px solid rgba(168, 50, 42, .7);
+  color: rgba(168, 50, 42, .85);
+  font-size: 12px;
+  letter-spacing: 2px;
+  transform: rotate(-6deg);
+}
+
+/* 九条纪要分两栏，别把一屏塞成一列长条 */
+.recap {
+  display: flex;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+}
+
+.recap ol {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recap li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(160, 130, 90, .16);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rec-no {
+  flex: none;
+  width: 42px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #8a1a12;
+}
+
+.rec-text {
+  flex: 1;
+  color: #423426;
+}
+
+.verdict-data {
+  margin: 12px 0 0;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #8a1a12;
+}
+
+.verdict-note {
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px dashed #ddcdad;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #6b5c47;
+}
+
+.verdict .next { margin-top: auto; }
+
+/* 单独打开时的通关状态 */
+.hall.is-done .sheet::after {
+  content: '归档';
+  position: absolute;
+  right: 26px;
+  bottom: 18px;
+  font-size: 58px;
+  letter-spacing: 10px;
+  color: rgba(168, 50, 42, .13);
+  transform: rotate(-8deg);
+  pointer-events: none;
+}

@@ -1,0 +1,31 @@
+/* ============================================================
+   长征拼图 · 关卡样式
+
+   这一关跑在 iframe 里，是独立文档，所以直接写 html / body。
+   （原来的 :host 是 Shadow DOM 的写法，在本项目里匹配不到任何元素，
+   样式会整个失效，画布退回 1280×720 的原生尺寸。）
+   ============================================================ */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #4A0000;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+#stage {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}

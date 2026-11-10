@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四渡赤水 · 连线</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="stage">
+  <div id="board">
+    <img src="assets/sidu-chishui.jpg" id="mapBg" alt="">
+    <canvas id="canvas" width="1120" height="640"></canvas>
+
+    <header class="head">
+      <h1>四渡赤水 · 连线</h1>
+      <p class="info">先点左侧事件，再点右侧对应的结果；连对会展开史实，全部连对即可过关。</p>
+    </header>
+
+    <!-- 数据展示条 -->
+    <div class="stats" id="stats">
+      <div class="stat"><span class="num">3万</span><span class="lab">红军兵力</span></div>
+      <div class="stat"><span class="num">40万</span><span class="lab">围堵敌军</span></div>
+      <div class="stat"><span class="num">6万+</span><span class="lab">转战 km²</span></div>
+      <div class="stat"><span class="num">4次</span><span class="lab">往返赤水</span></div>
+      <div class="stat"><span class="num">3个月</span><span class="lab">1935.1–3</span></div>
+    </div>
+
+    <div class="row">
+      <div class="col" id="left"></div>
+      <div class="col" id="right"></div>
+    </div>
+
+    <!-- 史实描述面板 -->
+    <div class="fact-panel" id="factPanel">
+      <div class="fact-title">史实档案</div>
+      <div class="fact-body" id="factBody">
+        每连对一个正确节点，这里会展开对应的真实历史背景与数据。
+      </div>
+    </div>
+
+    <div class="btns">
+      <button id="resetBtn" type="button">重新开始</button>
+    </div>
+    <div id="result"></div>
+  </div>
+</div>
+
+<script src="level.js"></script>
+</body>
+</html>

@@ -1,0 +1,741 @@
+/* ============================================================
+   长征：拾光 —— 行军图（选关页）
+   苏联构成主义：米白纸、正红、纯黑、粗几何
+   舞台 1280×720，由 JS 写入 --s 等比缩放
+   ============================================================ */
+
+:root {
+  --paper:      #f2e9d6;
+  --paper-dim:  #e6d9bd;
+  --red:        #b23a2c;
+  --red-deep:   #8a1a12;
+  --red-bright: #c8483a;
+  --ink:        #2b2b26;
+  --grey:       #8e897e;
+  --gold:       #c9a24a;
+
+  --sans: "SimHei", "Heiti SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+  /* 国风：标题用行楷，标注用宋体 */
+  --brush: "STXingkai", "华文行楷", "STKaiti", "KaiTi", serif;
+  --song: "Songti SC", "STSong", "SimSun", serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #17130f;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 720px;
+  transform: translate(-50%, -50%) scale(var(--s, 1));
+  transform-origin: center center;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------- 标题：构成主义的大字块 ---------- */
+.map-title {
+  position: absolute;
+  left: 0;
+  top: 26px;
+  padding: 14px 110px 16px 54px;
+  pointer-events: none;
+  /* 题跋：左实右虚，压在山上也读得清 */
+  background: linear-gradient(90deg,
+    rgba(242, 233, 214, 0.92) 0%,
+    rgba(242, 233, 214, 0.74) 58%,
+    rgba(242, 233, 214, 0) 100%);
+}
+
+.map-title .bar {
+  width: 64px;
+  height: 7px;
+  background: var(--red);
+  margin-bottom: 12px;
+}
+
+.map-title .zh {
+  display: block;
+  font: 700 46px/1.1 var(--brush);
+  color: var(--ink);
+  letter-spacing: 6px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.map-title .sub {
+  display: block;
+  margin-top: 10px;
+  font: 400 14px/1 var(--song);
+  color: rgba(43, 43, 38, 0.6);
+  letter-spacing: 6px;
+}
+
+/* ---------- 返回 ---------- */
+.back {
+  position: absolute;
+  right: 34px;
+  top: 32px;
+  padding: 10px 20px;
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font: 700 14px/1 var(--sans);
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.back:hover {
+  background: var(--red);
+  border-color: var(--red);
+  color: #f7efe0;
+}
+
+.back:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* ---------- 印章节点 ---------- */
+.seal {
+  cursor: pointer;
+  outline: none;
+  /* 不在 g 上做缩放：g 的包围盒含标签文字，缩放中心会偏，
+     而且 CSS 的 scale 独立属性在 SVG <g> 上不可靠。
+     缩放只作用在圆环本身（圆的包围盒中心就是圆心，绝不会移位）。 */
+}
+
+.seal .hit { fill: transparent; }
+
+/* 场景底层：铺在地图上的水墨小景 */
+.scene-img {
+  opacity: 0.62;
+  filter: saturate(0.5) brightness(1.03) contrast(1.04);
+}
+
+/* 外圈 */
+.seal .ring {
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: stroke-width 200ms ease, stroke 200ms ease, rotate 280ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* 脉冲圈：显式 fill:none，否则 SVG 默认黑色填充，未通关时就成黑点 */
+.seal .pulse {
+  fill: none;
+  stroke: none;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* 字：白字深描边，压在任何插画上都读得清 */
+.seal .glyph {
+  fill: #fff8ea;
+  stroke: rgba(90, 22, 14, 0.92);
+  stroke-width: 3.6;
+  paint-order: stroke;
+  stroke-linejoin: round;
+  font-family: var(--brush);
+  font-size: 31px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+/* 会宁的星形：同样白描边 */
+.seal .glyph-star {
+  fill: rgba(240, 230, 207, 0.28);
+  stroke: #fff8ea;
+  stroke-width: 3;
+  stroke-linejoin: miter;
+  pointer-events: none;
+}
+
+/* ---- 未通关：红色虚线 ---- */
+.seal.locked .ring {
+  stroke: var(--red);
+  stroke-width: 2.8;
+  stroke-dasharray: 7 6;
+}
+
+.seal.locked .scene { opacity: 0.55; }
+
+/* ---- 还没做完的站点：灰虚线，整体压淡 ----
+   它不参与解锁链，点上去只给一句「还在赶制」。
+   做成一眼能看出「这不是我该点的」，而不是让人以为是坏了。 */
+.seal.pending {
+  cursor: default;
+}
+
+.seal.pending .ring {
+  stroke: #a9a396;
+  stroke-width: 2.2;
+  stroke-dasharray: 3 7;
+}
+
+.seal.pending .glyph,
+.seal.pending .glyph-star {
+  opacity: 0.34;
+}
+
+.seal.pending .name,
+.seal.pending .idx {
+  opacity: 0.45;
+}
+
+.seal.pending:hover .ring,
+.seal.pending:focus-visible .ring {
+  transform: none;
+  stroke-width: 2.2;
+}
+
+/* ---- 已通关：红色实线圈 ---- */
+.seal.done .ring {
+  stroke: var(--red);
+  stroke-width: 4;
+}
+
+/* ---- 进行中：红圈 + 扩散脉冲 ---- */
+.seal.current .ring {
+  stroke: var(--red-bright);
+  stroke-width: 5;
+  filter: drop-shadow(0 0 5px rgba(200, 72, 58, 0.65));
+}
+
+.seal.current .pulse {
+  stroke: var(--red-bright);
+  stroke-width: 3.2;
+  opacity: 0.8;
+  animation: ripple 2.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+@keyframes ripple {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  70%  {                         opacity: 0.12; }
+  100% { transform: scale(1.78); opacity: 0; }
+}
+
+/* ---- 悬停：圆环微微放大并旋转 ---- */
+.seal .ring,
+.seal .pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1),
+              stroke-width 200ms ease;
+}
+
+.seal:hover .ring,
+.seal:focus-visible .ring {
+  transform: scale(1.14) rotate(7deg);
+  stroke-width: 5;
+}
+
+.seal:hover .pulse,
+.seal:focus-visible .pulse {
+  transform: scale(1.14) rotate(7deg);
+}
+
+/* ---- 名称标签 ---- */
+.seal .name {
+  fill: var(--ink);
+  font-family: var(--song);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #f2e9d6;
+  stroke-width: 5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* 标签朝向：密集处靠左右错开 */
+.seal .lab { pointer-events: none; }
+.seal .lab.down,
+.seal .lab.up    { text-anchor: middle; }
+.seal .lab.left  { text-anchor: end; }
+.seal .lab.right { text-anchor: start; }
+
+/* 序号 */
+.seal .idx {
+  fill: var(--red);
+  font-family: var(--song);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #f2e9d6;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+/* ---------- 悬停提示 ---------- */
+.tip {
+  position: absolute;
+  z-index: 8;
+  padding: 7px 14px;
+  border-radius: 2px;
+  background: rgba(38, 32, 26, 0.92);
+  color: #f6ecd6;
+  font: 400 13px/1 var(--song);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, -8px);
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.tip.show {
+  opacity: 1;
+  transform: translate(-50%, -14px);
+}
+
+/* ---------- 底部信息条 ---------- */
+.hint {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  padding: 14px 54px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--ink);
+  color: rgba(247, 239, 224, 0.75);
+  font: 400 12px/1 var(--sans);
+  letter-spacing: 3px;
+  pointer-events: none;
+}
+
+.hint .legend {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  letter-spacing: 2px;
+}
+
+.hint .lg {
+  width: 17px;
+  height: 17px;
+  margin-right: 7px;
+  vertical-align: -3px;
+}
+
+/* ---------- 竖屏提示 ---------- */
+.rotate-hint {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #150403;
+  color: #ffeccb;
+  z-index: 99;
+  text-align: center;
+  padding: 24px;
+}
+
+.rotate-hint p {
+  margin: 0;
+  font: 400 15px/1.7 var(--sans);
+  letter-spacing: 0.1em;
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  .rotate-hint { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 1ms !important; }
+  .seal.current .pulse { animation: none; opacity: 0.45; }
+}
+
+/* ============================================================
+   选关面板
+   点开印章后：地图压暗 + 脉冲暂停，中央弹出该事件的关卡卡片
+   ============================================================ */
+
+/* 地图压暗 + 动画暂停 */
+#stage.is-dim .map {
+  filter: brightness(0.52) saturate(0.85);
+}
+
+#stage.is-dim .seal .pulse {
+  animation-play-state: paused;
+}
+
+#stage.is-dim .back,
+#stage.is-dim .hint {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+#stage.is-dim .tip {
+  opacity: 0;
+}
+
+.panel {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel[hidden] { display: none; }
+
+.panel-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 8, 6, 0.58);
+  animation: veilIn 220ms ease both;
+}
+
+@keyframes veilIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.panel-box {
+  position: relative;
+  max-width: 1180px;
+  max-height: 86vh;
+  padding: 30px 34px 22px;
+  background: #f2e9d6;
+  border: 1px solid rgba(122, 74, 46, 0.28);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  animation: boxIn 260ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  overflow: auto;
+}
+
+@keyframes boxIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(122, 74, 46, 0.22);
+}
+
+.panel-title {
+  margin: 0;
+  font: 700 30px/1.2 var(--brush);
+  color: var(--ink);
+  letter-spacing: 3px;
+}
+
+.panel-close {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(122, 74, 46, 0.4);
+  background: transparent;
+  color: var(--ink);
+  font: 400 22px/1 var(--song);
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.panel-close:hover {
+  background: var(--red);
+  border-color: var(--red);
+  color: #f7efe0;
+}
+
+/* ---------- 卡片 ---------- */
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px 0 8px;
+}
+
+.card {
+  flex: none;
+  width: 196px;
+  padding: 0;
+  border: 1px solid rgba(122, 74, 46, 0.28);
+  background: #efe6d2;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 200ms cubic-bezier(0.34, 1.3, 0.64, 1),
+              box-shadow 200ms ease, border-color 200ms ease;
+  overflow: hidden;
+}
+
+.card:hover,
+.card:focus-visible {
+  transform: translateY(-5px);
+  border-color: var(--red);
+  box-shadow: 0 12px 26px rgba(60, 34, 18, 0.28);
+  outline: none;
+}
+
+/* 图片区：3:2，成员把 cover.webp 换掉就生效 */
+.card-pic {
+  display: block;
+  position: relative;
+  aspect-ratio: 3 / 2;
+  background: #e6dbc2;
+  overflow: hidden;
+}
+
+.card-pic img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-id {
+  display: block;
+  padding: 9px 12px 10px;
+  font: 700 15px/1 var(--sans);
+  color: var(--ink);
+  letter-spacing: 2px;
+  border-top: 1px solid rgba(122, 74, 46, 0.18);
+}
+
+.card:hover .card-id {
+  color: var(--red-deep);
+}
+
+.panel-foot {
+  margin: 4px 0 0;
+  text-align: center;
+  font: 400 12px/1.6 var(--song);
+  color: rgba(60, 50, 40, 0.6);
+  letter-spacing: 1px;
+}
+
+/* 窄屏时卡片小一点 */
+@media (max-width: 900px) {
+  .card { width: 150px; }
+  .panel-title { font-size: 24px; }
+}
+
+/* ============================================================
+   关卡容器
+   点卡片后全屏加载 levels/<id>/test/index.html
+   用 iframe 是为了让每个成员的 CSS/JS 互不干扰
+   ============================================================ */
+
+.level-host {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: #17120e;
+  display: block;
+}
+
+.level-host[hidden] { display: none; }
+
+/* 关卡舞台：固定 1280×720，再整体缩放到窗口。
+   iframe 和「退出关卡」按钮都放在这一层里，
+   所以按钮永远贴着画面右上角，不会跑到黑边上。
+   成员按 1280×720 设计就有确定的坐标系。 */
+.level-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 720px;
+  transform: translate(-50%, -50%) scale(var(--level-s, 1));
+  transform-origin: center center;
+}
+
+.level-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.level-exit {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  z-index: 2;
+  padding: 9px 18px;
+  border: 1px solid rgba(246, 236, 214, 0.42);
+  background: rgba(23, 18, 14, 0.55);
+  color: #f6ecd6;
+  font: 400 13px/1 var(--song);
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.level-exit:hover {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+/* ---------- 卡片的三种状态 ---------- */
+
+/* 已通关：红边 + 左上角角标 */
+.card.is-done {
+  border-color: var(--red);
+}
+
+.card.is-done .card-id {
+  color: var(--red-deep);
+}
+
+.card-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 3px 9px 4px;
+  background: var(--red);
+  color: #f9f0da;
+  font: 700 11px/1.2 var(--song);
+  letter-spacing: 1px;
+}
+
+/* 未解锁：灰掉、不可点，去掉 hover 反馈 */
+.card.is-locked {
+  cursor: not-allowed;
+  opacity: 0.42;
+  filter: grayscale(0.9);
+}
+
+.card.is-locked:hover,
+.card.is-locked:focus-visible {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(122, 74, 46, 0.28);
+}
+
+/* ============================================================
+   尾声：黑屏金字
+   会宁通关后播放，播完自动回开始页
+   ============================================================ */
+
+.ending {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #07060a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+  pointer-events: none;
+}
+
+.ending[hidden] { display: none; }
+.ending.is-on { opacity: 1; }
+
+.ending-inner {
+  max-width: 960px;
+  padding: 40px;
+  text-align: center;
+}
+
+.ending-line {
+  margin: 0 0 18px;
+  font: 400 21px/1.9 var(--song);
+  color: #c9a24a;
+  letter-spacing: 4px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: lineIn 1.6s ease forwards;
+}
+
+/* 收尾那一句：行楷、更大、更亮 */
+.ending-line.big {
+  margin-top: 40px;
+  font: 700 42px/1.4 var(--brush);
+  color: #e6c886;
+  letter-spacing: 12px;
+}
+
+@keyframes lineIn {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+}
+
+/* ---------- 关卡加载 / 失败提示 ---------- */
+.level-loading {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px;
+  text-align: center;
+  background: #17120e;
+  color: #c9a24a;
+  font: 400 15px/1.8 var(--song);
+  letter-spacing: 2px;
+}
+
+.level-loading[hidden] { display: none; }
+
+.level-loading.is-error { color: #e0806b; }
+
+.level-loading-text { margin: 0; }
+
+.level-loading-sub {
+  margin: 0;
+  max-width: 620px;
+  font-size: 12px;
+  line-height: 1.9;
+  color: rgba(246, 236, 214, 0.5);
+  letter-spacing: 1px;
+}
+
+.level-loading.is-error .level-loading-sub {
+  color: rgba(224, 128, 107, 0.72);
+}

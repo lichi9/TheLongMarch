@@ -1,0 +1,64 @@
+/* 参考样例样式
+
+   ★ 舞台固定 1280 × 720，主程序负责缩放到窗口大小。
+   按 1280×720 摆位置就行，想铺满用 100%。
+
+   这一份跑在 iframe 里，是独立文档，
+   html / body 选择器可以放心用，不会污染主程序。 */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #17120e;
+}
+
+#stage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.probe {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  cursor: pointer;
+  background: radial-gradient(circle at 50% 45%, #f4ead4 0%, #e6d7b6 70%, #d5c29b 100%);
+  transition: background 260ms ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.probe:hover {
+  background: radial-gradient(circle at 50% 45%, #f8f0dc 0%, #ecdfc2 70%, #dccaa4 100%);
+}
+
+.probe-main {
+  margin: 0;
+  font: 700 34px/1.3 "STXingkai", "华文行楷", "KaiTi", serif;
+  color: #8a1a12;
+  letter-spacing: 4px;
+}
+
+.probe-sub {
+  margin: 0;
+  font: 400 13px/1.6 "Songti SC", "STSong", "SimSun", serif;
+  color: rgba(60, 45, 34, 0.62);
+  letter-spacing: 1px;
+}
+
+.probe.is-done {
+  background: radial-gradient(circle at 50% 45%, #b23a2c 0%, #8a1a12 100%);
+}
+
+.probe.is-done .probe-main { color: #f9f0da; }
+.probe.is-done .probe-sub  { color: rgba(249, 240, 218, 0.75); }
