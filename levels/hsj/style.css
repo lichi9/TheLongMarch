@@ -1,67 +1,31 @@
-/* 关卡样式
+/* ============================================================
+   长征拼图 · 关卡样式
 
-   ★ 舞台固定 1280 × 720
-   主程序负责把这一层缩放去适配窗口，所以按 1280×720 摆位置就行，
-   不用自己写响应式，也不用管别人屏幕多大。
-
-     想铺满      → width / height: 100%
-     想精确摆放  → 直接用像素，比如 left: 320px
-
-   （这一份跑在 iframe 里，html / body 选择器可以放心用。） */
-
-* { box-sizing: border-box; }
+   这一关跑在 iframe 里，是独立文档，所以直接写 html / body。
+   （原来的 :host 是 Shadow DOM 的写法，在本项目里匹配不到任何元素，
+   样式会整个失效，画布退回 1280×720 的原生尺寸。）
+   ============================================================ */
 
 html, body {
   margin: 0;
+  padding: 0;
   height: 100%;
   overflow: hidden;
-  background: #17120e;
+  background: #4A0000;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
 #stage {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
 }
 
-.probe {
+#stage canvas {
+  display: block;
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
   cursor: pointer;
-  background: radial-gradient(circle at 50% 45%, #f4ead4 0%, #e6d7b6 70%, #d5c29b 100%);
-  transition: background 260ms ease;
-  -webkit-user-select: none;
-  user-select: none;
 }
-
-.probe:hover {
-  background: radial-gradient(circle at 50% 45%, #f8f0dc 0%, #ecdfc2 70%, #dccaa4 100%);
-}
-
-.probe-main {
-  margin: 0;
-  font: 700 34px/1.3 "STXingkai", "华文行楷", "KaiTi", serif;
-  color: #8a1a12;
-  letter-spacing: 4px;
-}
-
-.probe-sub {
-  margin: 0;
-  font: 400 13px/1.6 "Songti SC", "STSong", "SimSun", serif;
-  color: rgba(60, 45, 34, 0.62);
-  letter-spacing: 1px;
-}
-
-.probe.is-done {
-  background: radial-gradient(circle at 50% 45%, #b23a2c 0%, #8a1a12 100%);
-}
-
-.probe.is-done .probe-main { color: #f9f0da; }
-.probe.is-done .probe-sub  { color: rgba(249, 240, 218, 0.75); }

@@ -185,6 +185,35 @@ html, body {
 
 .seal.locked .scene { opacity: 0.55; }
 
+/* ---- 还没做完的站点：灰虚线，整体压淡 ----
+   它不参与解锁链，点上去只给一句「还在赶制」。
+   做成一眼能看出「这不是我该点的」，而不是让人以为是坏了。 */
+.seal.pending {
+  cursor: default;
+}
+
+.seal.pending .ring {
+  stroke: #a9a396;
+  stroke-width: 2.2;
+  stroke-dasharray: 3 7;
+}
+
+.seal.pending .glyph,
+.seal.pending .glyph-star {
+  opacity: 0.34;
+}
+
+.seal.pending .name,
+.seal.pending .idx {
+  opacity: 0.45;
+}
+
+.seal.pending:hover .ring,
+.seal.pending:focus-visible .ring {
+  transform: none;
+  stroke-width: 2.2;
+}
+
 /* ---- 已通关：红色实线圈 ---- */
 .seal.done .ring {
   stroke: var(--red);

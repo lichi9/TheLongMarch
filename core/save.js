@@ -17,7 +17,27 @@
   var SAVES_KEY = 'cz.saves';
   var ACTIVE_KEY = 'cz.active';
   var SLOTS = 8;
-  var TOTAL_LEVELS = 21;   // 全部关卡数，用来算进度
+
+  /* ---------- 已放出的关卡 ----------
+     这是唯一一处「哪些关卡算数」的定义，地图和开始页都读它。
+
+     没列在这里的关卡：不出现在选关面板、不计入进度、
+     也不参与「这一站全部通关了没」的判定。半成品放着不碍事。
+
+     某个关卡做完了，把它的 id 加进数组就行——解锁链、进度分母、
+     「全部通关播尾声」的判定都会自动跟着变，别的地方一个字都不用改。
+
+     顺序按 map.html 里各节点内的先后排，方便对照。 */
+  var SHIPPED = [
+    'mt',                        // 血战湘江
+    'zsb',                       // 遵义会议
+    'ljm', 'qrz',                // 四渡赤水
+    'wxh',                       // 巧渡金沙江
+    'zjx', 'mmx', 'hry',         // 飞夺泸定桥
+    'jxf', 'lyc',                // 翻越夹金山
+    'mhm', 'zzy', 'zbw', 'ldy', // 走出松潘草地
+    'hsj'                        // 会宁会师 · 回忆拼图（终章）
+  ];
 
   function blankList() {
     var list = [];
@@ -162,13 +182,23 @@
 
   /* ---------- 给界面用的摘要 ---------- */
 
+  /* 旧存档里可能留着后来被撤下的关卡 id。统计只数还在 SHIPPED 里的，
+     否则开始页会出现「已通关 9 / 14 关」这种分母对不上的数字。 */
+  function countShipped(list) {
+    var n = 0;
+    for (var i = 0; i < list.length; i++) {
+      if (SHIPPED.indexOf(list[i]) >= 0) n++;
+    }
+    return n;
+  }
+
   function summary() {
     return readSaves().map(function (s, i) {
       return {
         slot: i + 1,
         empty: !s,
-        progress: s ? s.progress.length : 0,
-        total: TOTAL_LEVELS,
+        progress: s ? countShipped(s.progress) : 0,
+        total: SHIPPED.length,
         createdAt: s ? s.createdAt : 0,
         playedAt: s ? s.playedAt : 0
       };
@@ -177,7 +207,8 @@
 
   global.CZSave = {
     SLOTS: SLOTS,
-    TOTAL_LEVELS: TOTAL_LEVELS,
+    SHIPPED: SHIPPED,
+    TOTAL_LEVELS: SHIPPED.length,
     readSaves: readSaves,
     read: read,
     create: create,
